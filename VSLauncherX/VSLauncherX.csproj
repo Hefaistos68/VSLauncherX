@@ -1,0 +1,88 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net6.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <StartupObject>VSLauncher.Program</StartupObject>
+    <ApplicationIcon>Resources\AppLogo.ico</ApplicationIcon>
+    <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
+    <RootNamespace>VSLauncher</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Resources\Images\AddFavorite.png" />
+    <None Remove="Resources\Images\AddFolder.png" />
+    <None Remove="Resources\Images\ArrowDownEnd.png" />
+    <None Remove="Resources\Images\ArrowUpEnd.png" />
+    <None Remove="Resources\Images\ConnectArrow.png" />
+    <None Remove="Resources\Images\FolderClosedBlue.png" />
+    <None Remove="Resources\Images\FolderOpenBlue.png" />
+    <None Remove="Resources\Images\Refresh.png" />
+    <None Remove="Resources\Images\RightArrowAsterisk.png" />
+    <None Remove="Resources\Images\Run.png" />
+    <None Remove="Resources\Images\RunAll.png" />
+    <None Remove="Resources\Images\RunUpdate.png" />
+    <None Remove="Resources\Images\Settings.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Resources\AppLogo.ico" />
+    <Content Include="Resources\Images\AddFavorite.png" />
+    <Content Include="Resources\Images\AddFolder.png" />
+    <Content Include="Resources\Images\ArrowDownEnd.png" />
+    <Content Include="Resources\Images\ArrowUpEnd.png" />
+    <Content Include="Resources\Images\ConnectArrow.png" />
+    <Content Include="Resources\Images\FolderClosedBlue.png" />
+    <Content Include="Resources\Images\FolderOpenBlue.png" />
+    <Content Include="Resources\Images\Refresh.png" />
+    <Content Include="Resources\Images\RightArrowAsterisk.png" />
+    <Content Include="Resources\Images\Run.png" />
+    <Content Include="Resources\Images\RunAll.png" />
+    <Content Include="Resources\Images\RunUpdate.png" />
+    <Content Include="Resources\Images\Settings.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="ObjectListView">
+      <HintPath>ObjectListView.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="dlgImportFolder.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="MainDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="Properties\Settings.Designer.cs">
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+    </Compile>
+    <Compile Update="Resources.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Resources.resx">
+      <SubType>Designer</SubType>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+      <Generator>ResXFileCodeGenerator</Generator>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+  </ItemGroup>
+
+</Project>
