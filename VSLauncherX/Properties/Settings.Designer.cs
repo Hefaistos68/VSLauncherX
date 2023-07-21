@@ -22,5 +22,41 @@ namespace VSLauncher.Properties {
                 return defaultInstance;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string LastImportFolder {
+            get {
+                return ((string)(this["LastImportFolder"]));
+            }
+            set {
+                this["LastImportFolder"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string LastExecuteFolder {
+            get {
+                return ((string)(this["LastExecuteFolder"]));
+            }
+            set {
+                this["LastExecuteFolder"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string SelectedVSversion {
+            get {
+                return ((string)(this["SelectedVSversion"]));
+            }
+            set {
+                this["SelectedVSversion"] = value;
+            }
+        }
     }
 }

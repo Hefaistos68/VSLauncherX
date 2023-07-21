@@ -33,12 +33,12 @@
 			Label label2;
 			Label label3;
 			System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(dlgAddFolder));
-			txtFoldername = new TextBox();
 			btnSelectAfter = new Button();
 			btnSelectBefore = new Button();
 			chkRunAsAdmin = new CheckBox();
 			txtRunAfter = new TextBox();
 			txtRunBefore = new TextBox();
+			txtFoldername = new TextBox();
 			btnOk = new Button();
 			btnCancel = new Button();
 			label1 = new Label();
@@ -56,14 +56,6 @@
 			label1.Size = new Size(73, 15);
 			label1.TabIndex = 0;
 			label1.Text = "Folder name";
-			// 
-			// txtFoldername
-			// 
-			txtFoldername.Location = new Point(12, 27);
-			txtFoldername.Name = "txtFoldername";
-			txtFoldername.Size = new Size(368, 23);
-			txtFoldername.TabIndex = 1;
-			txtFoldername.TextChanged += txtFoldername_TextChanged;
 			// 
 			// groupBox1
 			// 
@@ -148,6 +140,14 @@
 			label3.TabIndex = 0;
 			label3.Text = "Run Before";
 			// 
+			// txtFoldername
+			// 
+			txtFoldername.Location = new Point(12, 27);
+			txtFoldername.Name = "txtFoldername";
+			txtFoldername.Size = new Size(368, 23);
+			txtFoldername.TabIndex = 1;
+			txtFoldername.TextChanged += txtFoldername_TextChanged;
+			// 
 			// btnOk
 			// 
 			btnOk.DialogResult = DialogResult.OK;
@@ -156,7 +156,7 @@
 			btnOk.Name = "btnOk";
 			btnOk.Size = new Size(100, 40);
 			btnOk.TabIndex = 4;
-			btnOk.Text = "Ok";
+			btnOk.Text = " Ok";
 			btnOk.TextImageRelation = TextImageRelation.ImageBeforeText;
 			btnOk.UseVisualStyleBackColor = true;
 			btnOk.Click += btnOk_Click;
@@ -169,7 +169,7 @@
 			btnCancel.Name = "btnCancel";
 			btnCancel.Size = new Size(100, 40);
 			btnCancel.TabIndex = 3;
-			btnCancel.Text = "Cancel";
+			btnCancel.Text = " Cancel";
 			btnCancel.TextImageRelation = TextImageRelation.ImageBeforeText;
 			btnCancel.UseVisualStyleBackColor = true;
 			// 

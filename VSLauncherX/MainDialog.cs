@@ -1,5 +1,7 @@
 ﻿using BrightIdeasSoftware;
 
+using Microsoft.Win32;
+
 using VSLauncher.DataModel;
 
 namespace VSLauncher
@@ -10,6 +12,7 @@ namespace VSLauncher
 	public partial class MainDialog : Form
 	{
 		private List<SolutionGroup> solutionGroups = new List<SolutionGroup>();
+		private VisualStudioInstanceManager visualStudioInstances = new VisualStudioInstanceManager();
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="MainDialog"/> class.
@@ -18,7 +21,27 @@ namespace VSLauncher
 		{
 			InitializeComponent();
 			InitializeListview(this.solutionGroups);
+
 			BuildTestData();
+
+
+			if (!string.IsNullOrEmpty(Properties.Settings.Default.SelectedVSversion))
+			{
+				foreach (var v in this.selectVisualStudioVersion.Versions)
+				{
+					if (v.Identifier == Properties.Settings.Default.SelectedVSversion)
+					{
+						this.selectVisualStudioVersion.SelectedItem = v;
+						break;
+					}
+				}
+
+			}
+			else
+			{
+				this.selectVisualStudioVersion.SelectedIndex = 0;
+			}
+
 			UpdateList();
 		}
 
@@ -47,27 +70,24 @@ namespace VSLauncher
 
 		private void BuildTestData()
 		{
-			var sg1 = new SolutionGroup("Test Group 1");
+			var sg1 = new SolutionGroup("Main");
 			sg1.RunBefore = new VsItem("Explorer", "explorer.exe");
-			sg1.Solutions.Add(new VsSolution("Solution 1", @"C:\TestSolution1.sln", eSolutionType.CSharp));
-			sg1.Solutions.Add(new VsSolution("Solution 2", @"C:\Solution2\TestSolution2.sln", eSolutionType.CSharp));
-			sg1.Solutions.Add(new VsSolution("Solution 3", @"C:\Solution3\TestSolution3.sln", eSolutionType.VisualBasic));
-			sg1.Solutions.Add(new VsSolution("Solution 4", @"C:\repo\website\TestSolution1.sln", eSolutionType.WebSite));
+			sg1.Solutions.Add(new VsSolution("ObjectListView", @"C:\dev\Repos\ObjectListViewDemo\ObjectListView2012.sln"));
 
 			var sg2 = new SolutionGroup("Some Group");
 			sg2.RunAsAdmin = true;
 
-			sg2.Solutions.Add(new VsSolution("Solution 1", @"C:\TestSolution1.sln", eSolutionType.CSharp));
-			sg2.Solutions.Add(new VsSolution("Solution 2", @"C:\Solution2\TestSolution2.sln", eSolutionType.CSharp));
-			sg2.Solutions.Add(new VsSolution("Solution 3", @"C:\Solution3\TestSolution3.sln", eSolutionType.VisualBasic));
+			sg2.Solutions.Add(new VsSolution("Solution 1", @"C:\TestSolution1.sln"));
+			sg2.Solutions.Add(new VsSolution("Solution 2", @"C:\Solution2\TestSolution2.sln"));
+			sg2.Solutions.Add(new VsSolution("Solution 3", @"C:\Solution3\TestSolution3.sln"));
 
 			var sg3 = new SolutionGroup("small sub group");
 			sg3.RunBefore = new VsItem("Explorer", "explorer.exe");
 			sg3.RunAsAdmin = true;
 			sg3.RunAfter = new VsItem("Explorer", "explorer.exe");
 
-			sg3.Solutions.Add(new VsSolution("Solution 1", @"C:\TestSolution1.sln", eSolutionType.CSharp));
-			sg3.Solutions.Add(new VsSolution("Solution 2", @"C:\Solution2\TestSolution2.sln", eSolutionType.CSharp));
+			sg3.Solutions.Add(new VsSolution("Solution 1", @"C:\TestSolution1.sln"));
+			sg3.Solutions.Add(new VsSolution("Solution 2", @"C:\Solution2\TestSolution2.sln"));
 
 			sg2.Solutions.Add(sg3);
 
@@ -156,11 +176,6 @@ namespace VSLauncher
 			//
 			// setup the Name/Filename column
 			//
-			this.olvColumnFilename.AspectToStringConverter = delegate (object cellValue)
-			{
-				return ((String)cellValue).ToUpperInvariant();
-			};
-
 			this.olvColumnFilename.ImageGetter = ColumnHelper.GetImageNameForFile;
 			this.olvColumnFilename.AspectGetter = ColumnHelper.GetAspectForFile;
 
@@ -246,6 +261,10 @@ namespace VSLauncher
 			this.olvFiles.SetObjects(list);
 		}
 
+		private void GetListOfInstalledVisualStudioVersions()
+		{
+		}
+
 		private void listViewFiles_CellClick(object sender, CellClickEventArgs e)
 		{
 			System.Diagnostics.Trace.WriteLine(String.Format("clicked ({0}, {1}). model {2}. click count: {3}",
@@ -258,17 +277,21 @@ namespace VSLauncher
 			// Show a menu if the click was on first column
 			if (e.ColumnIndex == 0)
 			{
-				e.MenuStrip = this.contextMenuStrip2;
+				e.MenuStrip = this.ctxMenu;
+				e.MenuStrip.Show();
 			}
 		}
 
 		private void listViewFiles_CellToolTipShowing(object sender, ToolTipShowingEventArgs e)
 		{
-			if (!this.showToolTipsOnFiles)
-				return;
-
-			e.Text = String.Format("Tool tip for '{0}', column '{1}'\r\nValue shown: '{2}'",
-				e.Model, e.Column.Text, e.SubItem.Text);
+			if (e.Model is SolutionGroup)
+			{
+				e.Text = e.Item.Text;
+			}
+			else
+			{
+				e.Text = e.SubItem.Text;
+			}
 		}
 
 		private void listViewFiles_ItemActivate(object sender, EventArgs e)
@@ -289,32 +312,6 @@ namespace VSLauncher
 		private void mainFolderAdd_Click(object sender, EventArgs e)
 		{
 			var dlg = new dlgAddFolder();
-			if(dlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
-			{
-				var r = this.olvFiles.SelectedItem;
-				if(r == null)
-				{
-					solutionGroups.Add(dlg.Solution);
-				}
-				else
-				{
-					if(r.RowObject is SolutionGroup sg)
-					{
-						sg.Solutions.Add(dlg.Solution);
-					}
-					else
-					{
-
-					}
-				}
-
-				UpdateList();
-			}
-		}
-
-		private void mainImportFolder_Click(object sender, EventArgs e)
-		{
-			var dlg = new dlgImportFolder();
 			if (dlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
 			{
 				var r = this.olvFiles.SelectedItem;
@@ -338,8 +335,59 @@ namespace VSLauncher
 			}
 		}
 
+		private void mainImportFolder_Click(object sender, EventArgs e)
+		{
+			var dlg = new dlgImportFolder();
+			if (dlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+			{
+				var r = this.olvFiles.SelectedItem;
+				if (r == null)
+				{
+					// nothing selected, add to the end
+					this.solutionGroups.Add(dlg.Solution);
+				}
+				else
+				{
+					if (r.RowObject is SolutionGroup sg)
+					{
+						// add below selected item
+						sg.Solutions.Add(dlg.Solution);
+					}
+					else
+					{
+						// add at the end
+						this.solutionGroups.Add(dlg.Solution);
+					}
+				}
+
+				UpdateList();
+			}
+		}
+
 		private void mainImportVS_Click(object sender, EventArgs e)
 		{
+			var dlg = new dlgImportVisualStudio();
+			if (dlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+			{
+				var r = this.olvFiles.SelectedItem;
+				if (r == null)
+				{
+					solutionGroups.Add(dlg.Solution);
+				}
+				else
+				{
+					if (r.RowObject is SolutionGroup sg)
+					{
+						sg.Solutions.Add(dlg.Solution);
+					}
+					else
+					{
+
+					}
+				}
+
+				UpdateList();
+			}
 		}
 
 		private void mainSettings_Click(object sender, EventArgs e)
@@ -352,31 +400,6 @@ namespace VSLauncher
 			{
 				this.toolStripStatusLabel3.Text = "";
 				return;
-			}
-
-			switch (e.HotCellHitLocation)
-			{
-				case HitTestLocation.Nothing:
-					this.toolStripStatusLabel3.Text = @"Over nothing";
-					break;
-
-				case HitTestLocation.Header:
-				case HitTestLocation.HeaderCheckBox:
-				case HitTestLocation.HeaderDivider:
-					this.toolStripStatusLabel3.Text = String.Format("Over {0} of column #{1}", e.HotCellHitLocation, e.HotColumnIndex);
-					break;
-
-				case HitTestLocation.Group:
-					this.toolStripStatusLabel3.Text = String.Format("Over group '{0}', {1}", e.HotGroup.Header, e.HotCellHitLocationEx);
-					break;
-
-				case HitTestLocation.GroupExpander:
-					this.toolStripStatusLabel3.Text = String.Format("Over group expander of '{0}'", e.HotGroup.Header);
-					break;
-
-				default:
-					this.toolStripStatusLabel3.Text = String.Format("Over {0} of ({1}, {2})", e.HotCellHitLocation, e.HotRowIndex, e.HotColumnIndex);
-					break;
 			}
 		}
 
@@ -403,71 +426,122 @@ namespace VSLauncher
 		{
 			this.olvFiles.SetObjects(this.solutionGroups);
 		}
-		private class ColumnHelper
+
+		private void selectVisualStudioVersion_DrawItem(object sender, DrawItemEventArgs e)
 		{
-			public static string GetImageNameForFile(object row)
+			// draw the selected item with the Visual Studio Icon and the version as text
+			if (e.Index >= 0 && e.Index <= this.visualStudioInstances.Count)
 			{
-				if (row is SolutionGroup sg)
-				{
-					// if(row)
-					return "Group";
-				}
+				e.DrawBackground();
 
-				if (row is VsSolution s)
-				{
-					return s.SolutionType.ToString();
-				}
+				var height = 16; // selectVisualStudioVersion.Height - (selectVisualStudioVersion.Margin.Top+selectVisualStudioVersion.Margin.Bottom);
 
-				return "";
+				Rectangle iconRect = new Rectangle(e.Bounds.Left + selectVisualStudioVersion.Margin.Left,
+													e.Bounds.Top + ((selectVisualStudioVersion.ItemHeight - height) / 2),
+													height, height);
+				e.Graphics.DrawIcon(visualStudioInstances[e.Index].AppIcon, iconRect);
+				e.Graphics.DrawString(visualStudioInstances[e.Index].Name, e.Font, Brushes.Black, e.Bounds.Left + 20, e.Bounds.Top + 4);
 			}
+		}
 
-			internal static object GetAspectForDate(object row)
+		private void selectVisualStudioVersion_SelectedIndexChanged(object sender, EventArgs e)
+		{
+			// update all buttons with icon from selected visual studio version
+			if (selectVisualStudioVersion.SelectedIndex >= 0 && selectVisualStudioVersion.SelectedIndex < visualStudioInstances.Count)
 			{
-				if (row is VsSolution s)
-				{
-					return s.LastModified;
-				}
 
-				return "";
+				// save the selected item as last selected item
+				Properties.Settings.Default.SelectedVSversion = visualStudioInstances[selectVisualStudioVersion.SelectedIndex].Identifier;
+
+				// set icon and text according to selection onto all buttons
+				var icon = visualStudioInstances[selectVisualStudioVersion.SelectedIndex].AppIcon.ToBitmap();
+				string shortName = visualStudioInstances[selectVisualStudioVersion.SelectedIndex].ShortName;
+
+				btnMainStartVisualStudio1.Text = string.Format(btnMainStartVisualStudio1.Tag.ToString(), shortName);
+				tooltipForButtons.SetToolTip(btnMainStartVisualStudio1, visualStudioInstances[selectVisualStudioVersion.SelectedIndex].ToString());
+				btnMainStartVisualStudio1.Image = icon;
+
+				btnMainStartVisualStudio2.Text = string.Format(btnMainStartVisualStudio2.Tag.ToString(), shortName);
+				tooltipForButtons.SetToolTip(btnMainStartVisualStudio2, visualStudioInstances[selectVisualStudioVersion.SelectedIndex].ToString());
+				btnMainStartVisualStudio2.Image = icon;
+
+				btnMainStartVisualStudio3.Text = string.Format(btnMainStartVisualStudio3.Tag.ToString(), shortName);
+				tooltipForButtons.SetToolTip(btnMainStartVisualStudio3, visualStudioInstances[selectVisualStudioVersion.SelectedIndex].ToString());
+				btnMainStartVisualStudio3.Image = icon;
+
+				btnMainStartVisualStudio4.Text = string.Format(btnMainStartVisualStudio4.Tag.ToString(), shortName);
+				tooltipForButtons.SetToolTip(btnMainStartVisualStudio4, visualStudioInstances[selectVisualStudioVersion.SelectedIndex].ToString());
+				btnMainStartVisualStudio4.Image = icon;
+
+				btnMainStartVisualStudio5.Text = string.Format(btnMainStartVisualStudio5.Tag.ToString(), shortName);
+				tooltipForButtons.SetToolTip(btnMainStartVisualStudio5, visualStudioInstances[selectVisualStudioVersion.SelectedIndex].ToString());
+				btnMainStartVisualStudio5.Image = icon;
 			}
+		}
 
-			internal static object GetAspectForFile(object row)
+		private void btnMainStartVisualStudio1_Click(object sender, EventArgs e)
+		{
+			var vs = visualStudioInstances[selectVisualStudioVersion.SelectedIndex];
+			vs.Execute();
+		}
+
+		private void btnMainStartVisualStudio2_Click(object sender, EventArgs e)
+		{
+			var vs = visualStudioInstances[selectVisualStudioVersion.SelectedIndex];
+			vs.ExecuteAsAdmin();
+		}
+
+		private void btnMainStartVisualStudio3_Click(object sender, EventArgs e)
+		{
+			var dlg = new dlgNewInstance();
+			if (dlg.ShowDialog() == DialogResult.OK)
 			{
-				if (row is SolutionGroup sg)
-				{
-					return sg.Name;
-				}
+				var vs = visualStudioInstances[selectVisualStudioVersion.SelectedIndex];
 
-				if (row is VsSolution s)
-				{
-					return s.Name;
-				}
-
-				return "";
+				vs.ExecuteWithInstance(IsControlPressed(), dlg.InstanceName);
 			}
+		}
 
-			internal static object GetAspectForOptions(object row)
+		private static bool IsControlPressed()
+		{
+			return (Control.ModifierKeys & Keys.Control) == Keys.Control;
+		}
+
+		private void btnMainStartVisualStudio4_Click(object sender, EventArgs e)
+		{
+			var vs = visualStudioInstances[selectVisualStudioVersion.SelectedIndex];
+			vs.ExecuteNewProject(IsControlPressed());
+		}
+
+		private void btnMainStartVisualStudio5_Click(object sender, EventArgs e)
+		{
+			var dlg = new dlgExecuteVisualStudio(selectVisualStudioVersion.SelectedIndex);
+
+			if (dlg.ShowDialog() == DialogResult.OK)
 			{
-				eOptions e = eOptions.None;
-				if (row is VsItem s)
-				{
-					e |= s.RunBefore is null ? eOptions.RunBeforeOff : eOptions.RunBeforeOn;
-					e |= s.RunAsAdmin ? eOptions.RunAsAdminOn : eOptions.RunAsAdminOff;
-					e |= s.RunAfter is null ? eOptions.RunAfterOff : eOptions.RunAfterOn;
-				}
-
-				return e;
+				var vs = dlg.Instance;
+				vs.ExecuteWith(dlg.AsAdmin, dlg.ShowSplash, dlg.ProjectOrSolution, dlg.InstanceName, dlg.Command);
 			}
+		}
 
-			internal static object GetAspectForPath(object row)
-			{
-				if (row is VsItem sg)
-				{
-					return sg.Path ?? string.Empty;
-				}
+		private void olvFiles_AfterLabelEdit(object sender, LabelEditEventArgs e)
+		{
 
-				return "";
-			}
+		}
+
+		private void olvFiles_DoubleClick(object sender, EventArgs e)
+		{
+
+		}
+
+		private void olvFiles_CellEditFinished(object sender, CellEditEventArgs e)
+		{
+
+		}
+
+		private void olvFiles_Dropped(object sender, OlvDropEventArgs e)
+		{
+
 		}
 	}
 }

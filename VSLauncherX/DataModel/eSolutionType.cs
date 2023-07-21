@@ -6,11 +6,12 @@
 	public enum eSolutionType
     {
         None,
-        CSharp,
-        VisualBasic,
-        WebSite,
-        FSharp,
-        Cpp,
-        JScript
-    }
+		CSProject,
+		VBProject,
+		WebSite,
+		FSProject,
+		CPPProject,
+		JSProject,
+		TSProject,
+	}
 }

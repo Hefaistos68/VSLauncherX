@@ -17,11 +17,8 @@ namespace VSLauncher
 {
 	public partial class dlgImportFolder : Form
 	{
-		private readonly string executablesFilterString =   "Executable files (*.exe)|*.exe|" +
-															"Batch files (*.bat)|*.bat|" +
-															"Command files (*.cmd)|*.cmd|" +
-															"PowerShell files (*.ps1)|*.ps1|" +
-															"All files (*.*)|*.*";
+		private readonly List<string> extensionsHandled  = new List<string>() { ".sln", ".csproj", ".tsproj", ".esproj", ".vcxproj", ".fsproj", ".vbproj"};
+		private bool bSolutionOnly;
 
 		/// <summary>
 		/// Gets the solution group selected by the user
@@ -34,8 +31,34 @@ namespace VSLauncher
 		public dlgImportFolder()
 		{
 			InitializeComponent();
-			this.olvFiles.HierarchicalCheckboxes = true;
+			InitializeList();
 			this.Solution = new SolutionGroup();
+		}
+
+		private void InitializeList()
+		{
+			this.olvFiles.FullRowSelect = true;
+			this.olvFiles.RowHeight = 26;
+
+			this.olvFiles.HierarchicalCheckboxes = true;
+			this.olvFiles.TreeColumnRenderer.IsShowLines = true;
+			this.olvFiles.TreeColumnRenderer.UseTriangles = true;
+
+			this.olvFiles.CanExpandGetter = delegate (object x)
+			{
+				return x is VsFolder f ? f.Items.Count > 0 : false;
+			};
+
+			this.olvFiles.ChildrenGetter = delegate (object x)
+			{
+				return x is VsFolder f ? f.Items : (IEnumerable?)null;
+			};
+
+			//
+			// setup the Name/Filename column
+			//
+			this.olvColumnFilename.ImageGetter = ColumnHelper.GetImageNameForFile;
+			this.olvColumnFilename.AspectGetter = ColumnHelper.GetAspectForFile;
 		}
 
 		/// <summary>
@@ -48,8 +71,11 @@ namespace VSLauncher
 			// let the user select a folder through the system dialog
 			using (FolderBrowserDialog folderBrowserDialog = new FolderBrowserDialog())
 			{
-				folderBrowserDialog.Description = "Select the folder to import";
 				folderBrowserDialog.ShowNewFolderButton = false;
+
+				// read the last folder from the application settings and set it as the initial folder
+				folderBrowserDialog.SelectedPath = Properties.Settings.Default.LastImportFolder;
+
 				folderBrowserDialog.RootFolder = Environment.SpecialFolder.MyComputer;
 
 				if (folderBrowserDialog.ShowDialog() == DialogResult.OK)
@@ -57,61 +83,78 @@ namespace VSLauncher
 					//Get the path of specified file
 					var folderPath = folderBrowserDialog.SelectedPath;
 					txtFoldername.Text = folderPath;
-					this.olvFiles.SetObjects(IterateFolder(folderPath));
+
+					// store current folderPath in application settings
+					Properties.Settings.Default.LastImportFolder = folderPath;
+
+
+					this.Cursor = Cursors.WaitCursor;
+					UpdateList();
+					this.Cursor = Cursors.Default;
 				}
 			}
-
 		}
 
-		private IEnumerable IterateFolder(string folderPath)
+
+		/// <summary>
+		/// Iterates the folder.
+		/// </summary>
+		/// <param name="folderPath">The folder path.</param>
+		/// <returns>An IEnumerable.</returns>
+		private List<VsItem> IterateFolder(string folderPath, bool bOnlySolutions)
 		{
-			yield return folderPath;
+			List<VsItem> sg = new();
+
+			var root = new VsFolder(Path.GetFileName(folderPath), folderPath);
+
 			// iterate through all files in the folder, returning all folders and subfolders, filter for files matching solution and project files
 			foreach (var folder in System.IO.Directory.GetDirectories(folderPath))
 			{
 				// get the attributes and check if the folder is hidden
-
 				if (!folder.StartsWith('.'))
 				{
 					var attributes = System.IO.File.GetAttributes(folder);
 					if (!attributes.HasFlag(FileAttributes.Hidden))
 					{
-						yield return IterateFolder(folder);
+						// 						var sub = new VsFolder(Path.GetFileName(folder), folder);
+						// 						sub.Items = IterateFolder(folder);
+						var subItems = IterateFolder(folder, bOnlySolutions);
+
+						if (subItems.Count > 0)
+						{
+							root.Items.Add(subItems.First());
+						}
 					}
 				}
 			}
 
 			foreach (var file in System.IO.Directory.GetFiles(folderPath))
 			{
-				if (System.IO.Path.GetExtension(file).ToLower() == ".sln")
+				if (!file.StartsWith('.'))
 				{
-					yield return new VsSolution(file, file);
-				}
-				else if (System.IO.Path.GetExtension(file).ToLower() == ".csproj")
-				{
-					yield return new VsProject(file, file, eProjectType.CSharp);
-				}
-				else if (System.IO.Path.GetExtension(file).ToLower() == ".vbproj")
-				{
-					yield return new VsProject(file, file, eProjectType.VisualBasic);
-				}
-				else if (System.IO.Path.GetExtension(file).ToLower() == ".vcxproj")
-				{
-					yield return new VsProject(file, file, eProjectType.Cpp);
-				}
-				else if (System.IO.Path.GetExtension(file).ToLower() == ".vcproj")
-				{
-					yield return new VsProject(file, file, eProjectType.Cpp);
-				}
-				else if (System.IO.Path.GetExtension(file).ToLower() == ".fsproj")
-				{
-					yield return new VsProject(file, file, eProjectType.FSharp);
-				}
-				else if (System.IO.Path.GetExtension(file).ToLower() == ".jsproj")
-				{
-					yield return new VsProject(file, file, eProjectType.JScript);
+					if (IsOfInterest(file, bOnlySolutions))
+					{
+						root.Items.Add(ImportHelper.GetItemFromExtension(Path.GetFileNameWithoutExtension(file), file));
+					}
 				}
 			}
+
+			if (root.Items.Count > 0)
+			{
+				sg.Add(root);
+			}
+
+			return sg;
+		}
+
+		private bool IsOfInterest(string file, bool bOnlySolutions)
+		{
+			if(bOnlySolutions)
+			{
+				return Path.GetExtension(file).ToLower() == ".sln";
+			}
+
+			return this.extensionsHandled.Contains(Path.GetExtension(file).ToLower());
 		}
 
 		/// <summary>
@@ -128,13 +171,53 @@ namespace VSLauncher
 		private void btnOk_Click(object sender, EventArgs e)
 		{
 			this.Solution.Name = txtFoldername.Text;
+			
+			// remove not selected items from the solutions list
+
+			foreach (var i in this.olvFiles.SelectedObjects)
+			{
+				if (i is VsItem item)
+				{
+					this.Solution.Solutions.Add(item);
+				}
+			}
+
 		}
 
 		private void listViewFiles_CellToolTipShowing(object sender, ToolTipShowingEventArgs e)
 		{
-			e.Text = String.Format("Tool tip for '{0}', column '{1}'\r\nValue shown: '{2}'",
-				e.Model, e.Column.Text, e.SubItem.Text);
+			e.Text = e.Item.Text;
 		}
 
+		private void btnRefresh_Click(object sender, EventArgs e)
+		{
+			UpdateList();
+		}
+
+		private void dlgImportFolder_Load(object sender, EventArgs e)
+		{
+			// when the last used folder is empty, already invoke the folder selection dialog
+			if (string.IsNullOrEmpty(Properties.Settings.Default.LastImportFolder))
+			{
+				btnSelectFolder_Click(sender, e);
+			}
+		}
+
+		private void chkSolutionOnly_CheckedChanged(object sender, EventArgs e)
+		{
+			this.bSolutionOnly = chkSolutionOnly.Checked;
+			UpdateList();
+		}
+
+		private void UpdateList()
+		{
+			if(Path.IsPathFullyQualified(txtFoldername.Text))
+			{
+				this.Cursor = Cursors.WaitCursor;
+				this.Solution.Solutions = IterateFolder(txtFoldername.Text, this.chkSolutionOnly.Checked);
+				this.olvFiles.SetObjects(this.Solution.Solutions);
+				this.Cursor = Cursors.Default;
+			}
+		}
 	}
 }

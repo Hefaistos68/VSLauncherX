@@ -49,12 +49,28 @@ namespace VSLauncher
 			olvColumnOptions = new OLVColumn();
 			optionsRenderer = new MultiImageRenderer();
 			imageList3 = new ImageList(this.components);
+			flowLayoutPanel1 = new FlowLayoutPanel();
+			this.selectVisualStudioVersion = new VisualStudioCombobox();
+			btnMainStartVisualStudio1 = new Button();
+			btnMainStartVisualStudio2 = new Button();
+			btnMainStartVisualStudio3 = new Button();
+			btnMainStartVisualStudio4 = new Button();
+			btnMainStartVisualStudio5 = new Button();
 			imageListMainIcons = new ImageList(this.components);
 			toolStripStatusLabel3 = new ToolStripStatusLabel();
+			tooltipForButtons = new ToolTip(this.components);
+			ctxMenu = new ContextMenuStrip(this.components);
+			runToolStripMenuItem = new ToolStripMenuItem();
+			runAsAdminToolStripMenuItem = new ToolStripMenuItem();
+			renameToolStripMenuItem = new ToolStripMenuItem();
+			toolStripMenuItem1 = new ToolStripSeparator();
+			settingsToolStripMenuItem = new ToolStripMenuItem();
 			mainPanel.SuspendLayout();
 			leftSubPanel.SuspendLayout();
 			mainToolstrip.SuspendLayout();
 			((System.ComponentModel.ISupportInitialize)olvFiles).BeginInit();
+			flowLayoutPanel1.SuspendLayout();
+			ctxMenu.SuspendLayout();
 			SuspendLayout();
 			// 
 			// mainPanel
@@ -63,6 +79,7 @@ namespace VSLauncher
 			mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 75F));
 			mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25F));
 			mainPanel.Controls.Add(leftSubPanel, 0, 0);
+			mainPanel.Controls.Add(flowLayoutPanel1, 1, 0);
 			mainPanel.Dock = DockStyle.Fill;
 			mainPanel.Location = new Point(0, 0);
 			mainPanel.Margin = new Padding(4, 3, 4, 3);
@@ -130,7 +147,7 @@ namespace VSLauncher
 			// mainImportFolder
 			// 
 			mainImportFolder.DisplayStyle = ToolStripItemDisplayStyle.Image;
-			mainImportFolder.Image = VSLauncher.Resources.OpenProjectFolder;
+			mainImportFolder.Image = Resources.OpenProjectFolder;
 			mainImportFolder.ImageTransparentColor = Color.Magenta;
 			mainImportFolder.Name = "mainImportFolder";
 			mainImportFolder.Size = new Size(23, 34);
@@ -140,7 +157,7 @@ namespace VSLauncher
 			// mainImportVS
 			// 
 			mainImportVS.DisplayStyle = ToolStripItemDisplayStyle.Image;
-			mainImportVS.Image = VSLauncher.Resources.ImportVS;
+			mainImportVS.Image = Resources.ImportVS;
 			mainImportVS.ImageTransparentColor = Color.Magenta;
 			mainImportVS.Name = "mainImportVS";
 			mainImportVS.Size = new Size(23, 34);
@@ -179,7 +196,6 @@ namespace VSLauncher
 			olvFiles.AllColumns.Add(olvColumnPath);
 			olvFiles.AllColumns.Add(olvColumnDate);
 			olvFiles.AllColumns.Add(olvColumnOptions);
-			olvFiles.AllowColumnReorder = true;
 			olvFiles.AllowDrop = true;
 			olvFiles.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
 			olvFiles.CellEditUseWholeCell = false;
@@ -202,17 +218,20 @@ namespace VSLauncher
 			olvFiles.UseFiltering = true;
 			olvFiles.View = View.Details;
 			olvFiles.VirtualMode = true;
+			olvFiles.CellEditFinished += olvFiles_CellEditFinished;
 			olvFiles.CellClick += listViewFiles_CellClick;
 			olvFiles.CellRightClick += listViewFiles_CellRightClick;
 			olvFiles.CellToolTipShowing += listViewFiles_CellToolTipShowing;
+			olvFiles.Dropped += olvFiles_Dropped;
 			olvFiles.HotItemChanged += olv_HotItemChanged;
+			olvFiles.AfterLabelEdit += olvFiles_AfterLabelEdit;
 			olvFiles.ItemActivate += listViewFiles_ItemActivate;
+			olvFiles.DoubleClick += olvFiles_DoubleClick;
 			// 
 			// olvColumnFilename
 			// 
 			olvColumnFilename.AspectName = "Name";
 			olvColumnFilename.Hideable = false;
-			olvColumnFilename.IsEditable = false;
 			olvColumnFilename.IsTileViewColumn = true;
 			olvColumnFilename.MaximumWidth = 200;
 			olvColumnFilename.MinimumWidth = 100;
@@ -279,11 +298,11 @@ namespace VSLauncher
 			imageList3.Images.SetKeyName(4, "ArrowDownEnd");
 			imageList3.Images.SetKeyName(5, "ArrowUpEnd");
 			imageList3.Images.SetKeyName(6, "ConnectArrow");
-			imageList3.Images.SetKeyName(7, "CPPProjectNode");
-			imageList3.Images.SetKeyName(8, "CSProjectNode");
+			imageList3.Images.SetKeyName(7, "CPPProject");
+			imageList3.Images.SetKeyName(8, "CSProject");
 			imageList3.Images.SetKeyName(9, "FolderClosedBlue");
 			imageList3.Images.SetKeyName(10, "FolderOpenBlue");
-			imageList3.Images.SetKeyName(11, "FSProjectNode");
+			imageList3.Images.SetKeyName(11, "FSProject");
 			imageList3.Images.SetKeyName(12, "OpenProjectFolder");
 			imageList3.Images.SetKeyName(13, "Refresh");
 			imageList3.Images.SetKeyName(14, "RightArrowAsterisk");
@@ -291,25 +310,152 @@ namespace VSLauncher
 			imageList3.Images.SetKeyName(16, "RunAll");
 			imageList3.Images.SetKeyName(17, "RunUpdate");
 			imageList3.Images.SetKeyName(18, "Settings");
-			imageList3.Images.SetKeyName(19, "TSProjectNode");
-			imageList3.Images.SetKeyName(20, "VBProjectNode");
+			imageList3.Images.SetKeyName(19, "TSProject");
+			imageList3.Images.SetKeyName(20, "VBProject");
 			imageList3.Images.SetKeyName(21, "RunAfter");
 			imageList3.Images.SetKeyName(22, "RunBefore");
 			imageList3.Images.SetKeyName(23, "None");
 			imageList3.Images.SetKeyName(24, "RunAsAdmin");
+			imageList3.Images.SetKeyName(25, "Application");
+			imageList3.Images.SetKeyName(26, "ApplicationGroup");
+			imageList3.Images.SetKeyName(27, "VsSolution");
+			imageList3.Images.SetKeyName(28, "WebProject");
+			// 
+			// flowLayoutPanel1
+			// 
+			flowLayoutPanel1.Controls.Add(this.selectVisualStudioVersion);
+			flowLayoutPanel1.Controls.Add(btnMainStartVisualStudio1);
+			flowLayoutPanel1.Controls.Add(btnMainStartVisualStudio2);
+			flowLayoutPanel1.Controls.Add(btnMainStartVisualStudio3);
+			flowLayoutPanel1.Controls.Add(btnMainStartVisualStudio4);
+			flowLayoutPanel1.Controls.Add(btnMainStartVisualStudio5);
+			flowLayoutPanel1.Dock = DockStyle.Fill;
+			flowLayoutPanel1.FlowDirection = FlowDirection.TopDown;
+			flowLayoutPanel1.Location = new Point(699, 0);
+			flowLayoutPanel1.Margin = new Padding(0);
+			flowLayoutPanel1.Name = "flowLayoutPanel1";
+			flowLayoutPanel1.Size = new Size(234, 519);
+			flowLayoutPanel1.TabIndex = 1;
+			// 
+			// selectVisualStudioVersion
+			// 
+			this.selectVisualStudioVersion.DrawMode = DrawMode.OwnerDrawFixed;
+			this.selectVisualStudioVersion.DropDownHeight = 300;
+			this.selectVisualStudioVersion.DropDownStyle = ComboBoxStyle.DropDownList;
+			this.selectVisualStudioVersion.IntegralHeight = false;
+			this.selectVisualStudioVersion.ItemHeight = 26;
+			this.selectVisualStudioVersion.Location = new Point(3, 3);
+			this.selectVisualStudioVersion.Name = "selectVisualStudioVersion";
+			this.selectVisualStudioVersion.Size = new Size(229, 32);
+			this.selectVisualStudioVersion.TabIndex = 1;
+			this.selectVisualStudioVersion.DrawItem += selectVisualStudioVersion_DrawItem;
+			this.selectVisualStudioVersion.SelectedIndexChanged += selectVisualStudioVersion_SelectedIndexChanged;
+			// 
+			// btnMainStartVisualStudio1
+			// 
+			btnMainStartVisualStudio1.Font = new Font("Segoe UI", 10F, FontStyle.Bold, GraphicsUnit.Point);
+			btnMainStartVisualStudio1.Image = (Image)resources.GetObject("btnMainStartVisualStudio1.Image");
+			btnMainStartVisualStudio1.ImageAlign = ContentAlignment.MiddleLeft;
+			btnMainStartVisualStudio1.Location = new Point(0, 38);
+			btnMainStartVisualStudio1.Margin = new Padding(0);
+			btnMainStartVisualStudio1.Name = "btnMainStartVisualStudio1";
+			btnMainStartVisualStudio1.Size = new Size(232, 57);
+			btnMainStartVisualStudio1.TabIndex = 0;
+			btnMainStartVisualStudio1.Tag = "Start {0}";
+			btnMainStartVisualStudio1.Text = "Start Visual Studio";
+			btnMainStartVisualStudio1.TextAlign = ContentAlignment.MiddleLeft;
+			btnMainStartVisualStudio1.TextImageRelation = TextImageRelation.ImageBeforeText;
+			tooltipForButtons.SetToolTip(btnMainStartVisualStudio1, "Test");
+			btnMainStartVisualStudio1.UseVisualStyleBackColor = true;
+			btnMainStartVisualStudio1.Click += btnMainStartVisualStudio1_Click;
+			// 
+			// btnMainStartVisualStudio2
+			// 
+			btnMainStartVisualStudio2.Font = new Font("Segoe UI", 10F, FontStyle.Bold, GraphicsUnit.Point);
+			btnMainStartVisualStudio2.Image = (Image)resources.GetObject("btnMainStartVisualStudio2.Image");
+			btnMainStartVisualStudio2.ImageAlign = ContentAlignment.MiddleLeft;
+			btnMainStartVisualStudio2.Location = new Point(0, 95);
+			btnMainStartVisualStudio2.Margin = new Padding(0);
+			btnMainStartVisualStudio2.Name = "btnMainStartVisualStudio2";
+			btnMainStartVisualStudio2.Size = new Size(232, 57);
+			btnMainStartVisualStudio2.TabIndex = 0;
+			btnMainStartVisualStudio2.Tag = "Start {0} as admin";
+			btnMainStartVisualStudio2.Text = "Start Visual Studio \r\nas Admin";
+			btnMainStartVisualStudio2.TextAlign = ContentAlignment.MiddleLeft;
+			btnMainStartVisualStudio2.TextImageRelation = TextImageRelation.ImageBeforeText;
+			tooltipForButtons.SetToolTip(btnMainStartVisualStudio2, "Test");
+			btnMainStartVisualStudio2.UseVisualStyleBackColor = true;
+			btnMainStartVisualStudio2.Click += btnMainStartVisualStudio2_Click;
+			// 
+			// btnMainStartVisualStudio3
+			// 
+			btnMainStartVisualStudio3.Font = new Font("Segoe UI", 10F, FontStyle.Bold, GraphicsUnit.Point);
+			btnMainStartVisualStudio3.Image = (Image)resources.GetObject("btnMainStartVisualStudio3.Image");
+			btnMainStartVisualStudio3.ImageAlign = ContentAlignment.MiddleLeft;
+			btnMainStartVisualStudio3.Location = new Point(0, 152);
+			btnMainStartVisualStudio3.Margin = new Padding(0);
+			btnMainStartVisualStudio3.Name = "btnMainStartVisualStudio3";
+			btnMainStartVisualStudio3.Size = new Size(232, 57);
+			btnMainStartVisualStudio3.TabIndex = 0;
+			btnMainStartVisualStudio3.Tag = "New {0} Instance...";
+			btnMainStartVisualStudio3.Text = "New Instance...";
+			btnMainStartVisualStudio3.TextAlign = ContentAlignment.MiddleLeft;
+			btnMainStartVisualStudio3.TextImageRelation = TextImageRelation.ImageBeforeText;
+			tooltipForButtons.SetToolTip(btnMainStartVisualStudio3, "Test");
+			btnMainStartVisualStudio3.UseVisualStyleBackColor = true;
+			btnMainStartVisualStudio3.Click += btnMainStartVisualStudio3_Click;
+			// 
+			// btnMainStartVisualStudio4
+			// 
+			btnMainStartVisualStudio4.Font = new Font("Segoe UI", 10F, FontStyle.Bold, GraphicsUnit.Point);
+			btnMainStartVisualStudio4.Image = (Image)resources.GetObject("btnMainStartVisualStudio4.Image");
+			btnMainStartVisualStudio4.ImageAlign = ContentAlignment.MiddleLeft;
+			btnMainStartVisualStudio4.Location = new Point(0, 209);
+			btnMainStartVisualStudio4.Margin = new Padding(0);
+			btnMainStartVisualStudio4.Name = "btnMainStartVisualStudio4";
+			btnMainStartVisualStudio4.Size = new Size(232, 57);
+			btnMainStartVisualStudio4.TabIndex = 0;
+			btnMainStartVisualStudio4.Tag = "New {0} Project...";
+			btnMainStartVisualStudio4.Text = "New Project...";
+			btnMainStartVisualStudio4.TextAlign = ContentAlignment.MiddleLeft;
+			btnMainStartVisualStudio4.TextImageRelation = TextImageRelation.ImageBeforeText;
+			tooltipForButtons.SetToolTip(btnMainStartVisualStudio4, "Test");
+			btnMainStartVisualStudio4.UseVisualStyleBackColor = true;
+			btnMainStartVisualStudio4.Click += btnMainStartVisualStudio4_Click;
+			// 
+			// btnMainStartVisualStudio5
+			// 
+			btnMainStartVisualStudio5.Font = new Font("Segoe UI", 10F, FontStyle.Bold, GraphicsUnit.Point);
+			btnMainStartVisualStudio5.Image = (Image)resources.GetObject("btnMainStartVisualStudio5.Image");
+			btnMainStartVisualStudio5.ImageAlign = ContentAlignment.MiddleLeft;
+			btnMainStartVisualStudio5.Location = new Point(0, 266);
+			btnMainStartVisualStudio5.Margin = new Padding(0);
+			btnMainStartVisualStudio5.Name = "btnMainStartVisualStudio5";
+			btnMainStartVisualStudio5.Size = new Size(232, 57);
+			btnMainStartVisualStudio5.TabIndex = 0;
+			btnMainStartVisualStudio5.Tag = "Start {0}...";
+			btnMainStartVisualStudio5.Text = "Start...";
+			btnMainStartVisualStudio5.TextAlign = ContentAlignment.MiddleLeft;
+			btnMainStartVisualStudio5.TextImageRelation = TextImageRelation.ImageBeforeText;
+			tooltipForButtons.SetToolTip(btnMainStartVisualStudio5, "Test");
+			btnMainStartVisualStudio5.UseVisualStyleBackColor = true;
+			btnMainStartVisualStudio5.Click += btnMainStartVisualStudio5_Click;
 			// 
 			// imageListMainIcons
 			// 
 			imageListMainIcons.ColorDepth = ColorDepth.Depth8Bit;
 			imageListMainIcons.ImageStream = (ImageListStreamer)resources.GetObject("imageListMainIcons.ImageStream");
 			imageListMainIcons.TransparentColor = Color.Transparent;
-			imageListMainIcons.Images.SetKeyName(0, "CPPProjectNode");
-			imageListMainIcons.Images.SetKeyName(1, "CSProjectNode");
+			imageListMainIcons.Images.SetKeyName(0, "CPPProject");
+			imageListMainIcons.Images.SetKeyName(1, "CSProject");
 			imageListMainIcons.Images.SetKeyName(2, "FolderClosed");
 			imageListMainIcons.Images.SetKeyName(3, "FolderOpen");
-			imageListMainIcons.Images.SetKeyName(4, "FSProjectNode");
-			imageListMainIcons.Images.SetKeyName(5, "TSProjectNode");
-			imageListMainIcons.Images.SetKeyName(6, "VBProjectNode");
+			imageListMainIcons.Images.SetKeyName(4, "FSProject");
+			imageListMainIcons.Images.SetKeyName(5, "TSProject");
+			imageListMainIcons.Images.SetKeyName(6, "VBProject");
+			imageListMainIcons.Images.SetKeyName(7, "Application");
+			imageListMainIcons.Images.SetKeyName(8, "ApplicationGroup");
+			imageListMainIcons.Images.SetKeyName(9, "VsSolution");
 			// 
 			// toolStripStatusLabel3
 			// 
@@ -318,6 +464,41 @@ namespace VSLauncher
 			toolStripStatusLabel3.Spring = true;
 			toolStripStatusLabel3.Text = "toolStripStatusLabel3";
 			toolStripStatusLabel3.TextAlign = ContentAlignment.MiddleRight;
+			// 
+			// ctxMenu
+			// 
+			ctxMenu.Items.AddRange(new ToolStripItem[] { runToolStripMenuItem, runAsAdminToolStripMenuItem, renameToolStripMenuItem, toolStripMenuItem1, settingsToolStripMenuItem });
+			ctxMenu.Name = "ctxMenu";
+			ctxMenu.Size = new Size(149, 98);
+			// 
+			// runToolStripMenuItem
+			// 
+			runToolStripMenuItem.Name = "runToolStripMenuItem";
+			runToolStripMenuItem.Size = new Size(148, 22);
+			runToolStripMenuItem.Text = "Run";
+			// 
+			// runAsAdminToolStripMenuItem
+			// 
+			runAsAdminToolStripMenuItem.Name = "runAsAdminToolStripMenuItem";
+			runAsAdminToolStripMenuItem.Size = new Size(148, 22);
+			runAsAdminToolStripMenuItem.Text = "Run as Admin";
+			// 
+			// renameToolStripMenuItem
+			// 
+			renameToolStripMenuItem.Name = "renameToolStripMenuItem";
+			renameToolStripMenuItem.Size = new Size(148, 22);
+			renameToolStripMenuItem.Text = "Rename...";
+			// 
+			// toolStripMenuItem1
+			// 
+			toolStripMenuItem1.Name = "toolStripMenuItem1";
+			toolStripMenuItem1.Size = new Size(145, 6);
+			// 
+			// settingsToolStripMenuItem
+			// 
+			settingsToolStripMenuItem.Name = "settingsToolStripMenuItem";
+			settingsToolStripMenuItem.Size = new Size(148, 22);
+			settingsToolStripMenuItem.Text = "Settings...";
 			// 
 			// MainDialog
 			// 
@@ -334,6 +515,8 @@ namespace VSLauncher
 			mainToolstrip.ResumeLayout(false);
 			mainToolstrip.PerformLayout();
 			((System.ComponentModel.ISupportInitialize)olvFiles).EndInit();
+			flowLayoutPanel1.ResumeLayout(false);
+			ctxMenu.ResumeLayout(false);
 			ResumeLayout(false);
 		}
 
@@ -359,6 +542,20 @@ namespace VSLauncher
 		private MultiImageRenderer optionsRenderer;
 		private ToolStripButton mainImportFolder;
 		private ToolStripButton mainImportVS;
+		private FlowLayoutPanel flowLayoutPanel1;
+		private Button btnMainStartVisualStudio1;
+		private Button btnMainStartVisualStudio2;
+		private Button btnMainStartVisualStudio3;
+		private Button btnMainStartVisualStudio4;
+		private Button btnMainStartVisualStudio5;
+		private VisualStudioCombobox selectVisualStudioVersion;
+		private ToolTip tooltipForButtons;
+		private ContextMenuStrip ctxMenu;
+		private ToolStripMenuItem runToolStripMenuItem;
+		private ToolStripMenuItem runAsAdminToolStripMenuItem;
+		private ToolStripMenuItem renameToolStripMenuItem;
+		private ToolStripSeparator toolStripMenuItem1;
+		private ToolStripMenuItem settingsToolStripMenuItem;
 	}
 }
 
