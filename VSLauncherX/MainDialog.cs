@@ -49,25 +49,25 @@ namespace VSLauncher
 		{
 			var sg1 = new SolutionGroup("Test Group 1");
 			sg1.RunBefore = new VsItem("Explorer", "explorer.exe");
-			sg1.Solutions.Add(new VsSolution("Solution 1", @"C:\TestSolution1.sln", eSolutionType.CSharp));
-			sg1.Solutions.Add(new VsSolution("Solution 2", @"C:\Solution2\TestSolution2.sln", eSolutionType.CSharp));
-			sg1.Solutions.Add(new VsSolution("Solution 3", @"C:\Solution3\TestSolution3.sln", eSolutionType.VisualBasic));
-			sg1.Solutions.Add(new VsSolution("Solution 4", @"C:\repo\website\TestSolution1.sln", eSolutionType.WebSite));
+			sg1.Solutions.Add(new VsSolution("Solution 1", @"C:\TestSolution1.sln"));
+			sg1.Solutions.Add(new VsSolution("Solution 2", @"C:\Solution2\TestSolution2.sln"));
+			sg1.Solutions.Add(new VsSolution("Solution 3", @"C:\Solution3\TestSolution3.sln"));
+			sg1.Solutions.Add(new VsProject("AProject", @"C:\repo\website\project.csproj", eProjectType.CSProject));
 
 			var sg2 = new SolutionGroup("Some Group");
 			sg2.RunAsAdmin = true;
 
-			sg2.Solutions.Add(new VsSolution("Solution 1", @"C:\TestSolution1.sln", eSolutionType.CSharp));
-			sg2.Solutions.Add(new VsSolution("Solution 2", @"C:\Solution2\TestSolution2.sln", eSolutionType.CSharp));
-			sg2.Solutions.Add(new VsSolution("Solution 3", @"C:\Solution3\TestSolution3.sln", eSolutionType.VisualBasic));
+			sg2.Solutions.Add(new VsSolution("Solution 1", @"C:\TestSolution1.sln"));
+			sg2.Solutions.Add(new VsSolution("Solution 2", @"C:\Solution2\TestSolution2.sln"));
+			sg2.Solutions.Add(new VsSolution("Solution 3", @"C:\Solution3\TestSolution3.sln"));
 
 			var sg3 = new SolutionGroup("small sub group");
 			sg3.RunBefore = new VsItem("Explorer", "explorer.exe");
 			sg3.RunAsAdmin = true;
 			sg3.RunAfter = new VsItem("Explorer", "explorer.exe");
 
-			sg3.Solutions.Add(new VsSolution("Solution 1", @"C:\TestSolution1.sln", eSolutionType.CSharp));
-			sg3.Solutions.Add(new VsSolution("Solution 2", @"C:\Solution2\TestSolution2.sln", eSolutionType.CSharp));
+			sg3.Solutions.Add(new VsSolution("Solution 1", @"C:\TestSolution1.sln"));
+			sg3.Solutions.Add(new VsSolution("Solution 2", @"C:\Solution2\TestSolution2.sln"));
 
 			sg2.Solutions.Add(sg3);
 
@@ -156,11 +156,6 @@ namespace VSLauncher
 			//
 			// setup the Name/Filename column
 			//
-			this.olvColumnFilename.AspectToStringConverter = delegate (object cellValue)
-			{
-				return ((String)cellValue).ToUpperInvariant();
-			};
-
 			this.olvColumnFilename.ImageGetter = ColumnHelper.GetImageNameForFile;
 			this.olvColumnFilename.AspectGetter = ColumnHelper.GetAspectForFile;
 
@@ -264,11 +259,14 @@ namespace VSLauncher
 
 		private void listViewFiles_CellToolTipShowing(object sender, ToolTipShowingEventArgs e)
 		{
-			if (!this.showToolTipsOnFiles)
-				return;
-
-			e.Text = String.Format("Tool tip for '{0}', column '{1}'\r\nValue shown: '{2}'",
-				e.Model, e.Column.Text, e.SubItem.Text);
+			if (e.Model is SolutionGroup)
+			{
+				e.Text = e.Item.Text;
+			}
+			else
+			{
+				e.Text = e.SubItem.Text;
+			}
 		}
 
 		private void listViewFiles_ItemActivate(object sender, EventArgs e)
@@ -289,16 +287,16 @@ namespace VSLauncher
 		private void mainFolderAdd_Click(object sender, EventArgs e)
 		{
 			var dlg = new dlgAddFolder();
-			if(dlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+			if (dlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
 			{
 				var r = this.olvFiles.SelectedItem;
-				if(r == null)
+				if (r == null)
 				{
 					solutionGroups.Add(dlg.Solution);
 				}
 				else
 				{
-					if(r.RowObject is SolutionGroup sg)
+					if (r.RowObject is SolutionGroup sg)
 					{
 						sg.Solutions.Add(dlg.Solution);
 					}
@@ -340,6 +338,28 @@ namespace VSLauncher
 
 		private void mainImportVS_Click(object sender, EventArgs e)
 		{
+			var dlg = new dlgImportVisualStudio();
+			if (dlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+			{
+				var r = this.olvFiles.SelectedItem;
+				if (r == null)
+				{
+					solutionGroups.Add(dlg.Solution);
+				}
+				else
+				{
+					if (r.RowObject is SolutionGroup sg)
+					{
+						sg.Solutions.Add(dlg.Solution);
+					}
+					else
+					{
+
+					}
+				}
+
+				UpdateList();
+			}
 		}
 
 		private void mainSettings_Click(object sender, EventArgs e)
@@ -352,31 +372,6 @@ namespace VSLauncher
 			{
 				this.toolStripStatusLabel3.Text = "";
 				return;
-			}
-
-			switch (e.HotCellHitLocation)
-			{
-				case HitTestLocation.Nothing:
-					this.toolStripStatusLabel3.Text = @"Over nothing";
-					break;
-
-				case HitTestLocation.Header:
-				case HitTestLocation.HeaderCheckBox:
-				case HitTestLocation.HeaderDivider:
-					this.toolStripStatusLabel3.Text = String.Format("Over {0} of column #{1}", e.HotCellHitLocation, e.HotColumnIndex);
-					break;
-
-				case HitTestLocation.Group:
-					this.toolStripStatusLabel3.Text = String.Format("Over group '{0}', {1}", e.HotGroup.Header, e.HotCellHitLocationEx);
-					break;
-
-				case HitTestLocation.GroupExpander:
-					this.toolStripStatusLabel3.Text = String.Format("Over group expander of '{0}'", e.HotGroup.Header);
-					break;
-
-				default:
-					this.toolStripStatusLabel3.Text = String.Format("Over {0} of ({1}, {2})", e.HotCellHitLocation, e.HotRowIndex, e.HotColumnIndex);
-					break;
 			}
 		}
 
@@ -402,72 +397,6 @@ namespace VSLauncher
 		private void UpdateList()
 		{
 			this.olvFiles.SetObjects(this.solutionGroups);
-		}
-		private class ColumnHelper
-		{
-			public static string GetImageNameForFile(object row)
-			{
-				if (row is SolutionGroup sg)
-				{
-					// if(row)
-					return "Group";
-				}
-
-				if (row is VsSolution s)
-				{
-					return s.SolutionType.ToString();
-				}
-
-				return "";
-			}
-
-			internal static object GetAspectForDate(object row)
-			{
-				if (row is VsSolution s)
-				{
-					return s.LastModified;
-				}
-
-				return "";
-			}
-
-			internal static object GetAspectForFile(object row)
-			{
-				if (row is SolutionGroup sg)
-				{
-					return sg.Name;
-				}
-
-				if (row is VsSolution s)
-				{
-					return s.Name;
-				}
-
-				return "";
-			}
-
-			internal static object GetAspectForOptions(object row)
-			{
-				eOptions e = eOptions.None;
-				if (row is VsItem s)
-				{
-					e |= s.RunBefore is null ? eOptions.RunBeforeOff : eOptions.RunBeforeOn;
-					e |= s.RunAsAdmin ? eOptions.RunAsAdminOn : eOptions.RunAsAdminOff;
-					e |= s.RunAfter is null ? eOptions.RunAfterOff : eOptions.RunAfterOn;
-				}
-
-				return e;
-			}
-
-			internal static object GetAspectForPath(object row)
-			{
-				if (row is VsItem sg)
-				{
-					return sg.Path ?? string.Empty;
-				}
-
-				return "";
-			}
 		}
 	}
 }

@@ -130,7 +130,7 @@ namespace VSLauncher
 			// mainImportFolder
 			// 
 			mainImportFolder.DisplayStyle = ToolStripItemDisplayStyle.Image;
-			mainImportFolder.Image = VSLauncher.Resources.OpenProjectFolder;
+			mainImportFolder.Image = Resources.OpenProjectFolder;
 			mainImportFolder.ImageTransparentColor = Color.Magenta;
 			mainImportFolder.Name = "mainImportFolder";
 			mainImportFolder.Size = new Size(23, 34);
@@ -140,7 +140,7 @@ namespace VSLauncher
 			// mainImportVS
 			// 
 			mainImportVS.DisplayStyle = ToolStripItemDisplayStyle.Image;
-			mainImportVS.Image = VSLauncher.Resources.ImportVS;
+			mainImportVS.Image = Resources.ImportVS;
 			mainImportVS.ImageTransparentColor = Color.Magenta;
 			mainImportVS.Name = "mainImportVS";
 			mainImportVS.Size = new Size(23, 34);
@@ -279,11 +279,11 @@ namespace VSLauncher
 			imageList3.Images.SetKeyName(4, "ArrowDownEnd");
 			imageList3.Images.SetKeyName(5, "ArrowUpEnd");
 			imageList3.Images.SetKeyName(6, "ConnectArrow");
-			imageList3.Images.SetKeyName(7, "CPPProjectNode");
-			imageList3.Images.SetKeyName(8, "CSProjectNode");
+			imageList3.Images.SetKeyName(7, "CPPProject");
+			imageList3.Images.SetKeyName(8, "CSProject");
 			imageList3.Images.SetKeyName(9, "FolderClosedBlue");
 			imageList3.Images.SetKeyName(10, "FolderOpenBlue");
-			imageList3.Images.SetKeyName(11, "FSProjectNode");
+			imageList3.Images.SetKeyName(11, "FSProject");
 			imageList3.Images.SetKeyName(12, "OpenProjectFolder");
 			imageList3.Images.SetKeyName(13, "Refresh");
 			imageList3.Images.SetKeyName(14, "RightArrowAsterisk");
@@ -291,25 +291,33 @@ namespace VSLauncher
 			imageList3.Images.SetKeyName(16, "RunAll");
 			imageList3.Images.SetKeyName(17, "RunUpdate");
 			imageList3.Images.SetKeyName(18, "Settings");
-			imageList3.Images.SetKeyName(19, "TSProjectNode");
-			imageList3.Images.SetKeyName(20, "VBProjectNode");
+			imageList3.Images.SetKeyName(19, "TSProject");
+			imageList3.Images.SetKeyName(20, "VBProject");
 			imageList3.Images.SetKeyName(21, "RunAfter");
 			imageList3.Images.SetKeyName(22, "RunBefore");
 			imageList3.Images.SetKeyName(23, "None");
 			imageList3.Images.SetKeyName(24, "RunAsAdmin");
+			imageList3.Images.SetKeyName(25, "Application");
+			imageList3.Images.SetKeyName(26, "ApplicationGroup");
+			imageList3.Images.SetKeyName(27, "VsSolution");
+			imageList3.Images.SetKeyName(28, "WebProject");
 			// 
 			// imageListMainIcons
 			// 
 			imageListMainIcons.ColorDepth = ColorDepth.Depth8Bit;
 			imageListMainIcons.ImageStream = (ImageListStreamer)resources.GetObject("imageListMainIcons.ImageStream");
 			imageListMainIcons.TransparentColor = Color.Transparent;
-			imageListMainIcons.Images.SetKeyName(0, "CPPProjectNode");
-			imageListMainIcons.Images.SetKeyName(1, "CSProjectNode");
+			imageListMainIcons.Images.SetKeyName(0, "CPPProject");
+			imageListMainIcons.Images.SetKeyName(1, "CSProject");
 			imageListMainIcons.Images.SetKeyName(2, "FolderClosed");
 			imageListMainIcons.Images.SetKeyName(3, "FolderOpen");
-			imageListMainIcons.Images.SetKeyName(4, "FSProjectNode");
-			imageListMainIcons.Images.SetKeyName(5, "TSProjectNode");
-			imageListMainIcons.Images.SetKeyName(6, "VBProjectNode");
+			imageListMainIcons.Images.SetKeyName(4, "FSProject");
+			imageListMainIcons.Images.SetKeyName(5, "TSProject");
+			imageListMainIcons.Images.SetKeyName(6, "VBProject");
+			imageListMainIcons.Images.SetKeyName(7, "Application");
+			imageListMainIcons.Images.SetKeyName(8, "ApplicationGroup");
+			imageListMainIcons.Images.SetKeyName(9, "VsSolution");
+			// imageListMainIcons.Images.SetKeyName(10, "WebProject");
 			// 
 			// toolStripStatusLabel3
 			// 

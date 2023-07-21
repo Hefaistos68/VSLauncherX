@@ -173,9 +173,9 @@ namespace VSLauncher {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap CPPProjectNode {
+        internal static System.Drawing.Bitmap CPPProject {
             get {
-                object obj = ResourceManager.GetObject("CPPProjectNode", resourceCulture);
+                object obj = ResourceManager.GetObject("CPPProject", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
@@ -183,9 +183,9 @@ namespace VSLauncher {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap CSProjectNode {
+        internal static System.Drawing.Bitmap CSProject {
             get {
-                object obj = ResourceManager.GetObject("CSProjectNode", resourceCulture);
+                object obj = ResourceManager.GetObject("CSProject", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
@@ -213,9 +213,9 @@ namespace VSLauncher {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap FSProjectNode {
+        internal static System.Drawing.Bitmap FSProject {
             get {
-                object obj = ResourceManager.GetObject("FSProjectNode", resourceCulture);
+                object obj = ResourceManager.GetObject("FSProject", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
@@ -313,9 +313,9 @@ namespace VSLauncher {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap TSProjectNode {
+        internal static System.Drawing.Bitmap TSProject {
             get {
-                object obj = ResourceManager.GetObject("TSProjectNode", resourceCulture);
+                object obj = ResourceManager.GetObject("TSProject", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
@@ -323,9 +323,29 @@ namespace VSLauncher {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap VBProjectNode {
+        internal static System.Drawing.Bitmap VBProject {
             get {
-                object obj = ResourceManager.GetObject("VBProjectNode", resourceCulture);
+                object obj = ResourceManager.GetObject("VBProject", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap VsSolution {
+            get {
+                object obj = ResourceManager.GetObject("VsSolution", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap WebProject {
+            get {
+                object obj = ResourceManager.GetObject("WebProject", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }

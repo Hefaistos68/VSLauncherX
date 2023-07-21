@@ -1,10 +1,8 @@
-﻿using System.Windows.Forms;
-
-using BrightIdeasSoftware;
+﻿using BrightIdeasSoftware;
 
 namespace VSLauncher
 {
-	partial class dlgImportFolder
+	partial class dlgImportVisualStudio
 	{
 		/// <summary>
 		/// Required designer variable.
@@ -34,15 +32,14 @@ namespace VSLauncher
 		{
 			this.components = new System.ComponentModel.Container();
 			Label label1;
-			System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(dlgImportFolder));
-			btnSelectFolder = new Button();
-			txtFoldername = new TextBox();
+			System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(dlgImportVisualStudio));
 			btnOk = new Button();
 			btnCancel = new Button();
 			colPath = new ColumnHeader();
 			btnRefresh = new Button();
 			olvFiles = new TreeListView();
 			olvColumnFilename = new OLVColumn();
+			olvColumnPath = new OLVColumn();
 			imageList = new ImageList(this.components);
 			label1 = new Label();
 			((System.ComponentModel.ISupportInitialize)olvFiles).BeginInit();
@@ -51,32 +48,11 @@ namespace VSLauncher
 			// label1
 			// 
 			label1.AutoSize = true;
-			label1.Location = new Point(12, 9);
+			label1.Location = new Point(12, 19);
 			label1.Name = "label1";
-			label1.Size = new Size(73, 15);
+			label1.Size = new Size(79, 15);
 			label1.TabIndex = 0;
-			label1.Text = "Folder name";
-			// 
-			// btnSelectFolder
-			// 
-			btnSelectFolder.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-			btnSelectFolder.Location = new Point(508, 26);
-			btnSelectFolder.Name = "btnSelectFolder";
-			btnSelectFolder.Size = new Size(25, 25);
-			btnSelectFolder.TabIndex = 6;
-			btnSelectFolder.Text = "...";
-			btnSelectFolder.UseVisualStyleBackColor = true;
-			btnSelectFolder.Click += btnSelectFolder_Click;
-			// 
-			// txtFoldername
-			// 
-			txtFoldername.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
-			txtFoldername.Location = new Point(12, 27);
-			txtFoldername.Name = "txtFoldername";
-			txtFoldername.ReadOnly = true;
-			txtFoldername.Size = new Size(492, 23);
-			txtFoldername.TabIndex = 1;
-			txtFoldername.TextChanged += txtFoldername_TextChanged;
+			label1.Text = "MRU's found:";
 			// 
 			// btnOk
 			// 
@@ -87,7 +63,7 @@ namespace VSLauncher
 			btnOk.Name = "btnOk";
 			btnOk.Size = new Size(100, 40);
 			btnOk.TabIndex = 4;
-			btnOk.Text = " Ok";
+			btnOk.Text = " Import";
 			btnOk.TextImageRelation = TextImageRelation.ImageBeforeText;
 			btnOk.UseVisualStyleBackColor = true;
 			btnOk.Click += btnOk_Click;
@@ -115,7 +91,7 @@ namespace VSLauncher
 			btnRefresh.Anchor = AnchorStyles.Top | AnchorStyles.Right;
 			btnRefresh.Enabled = false;
 			btnRefresh.Image = Resources.Refresh;
-			btnRefresh.Location = new Point(536, 26);
+			btnRefresh.Location = new Point(536, 9);
 			btnRefresh.Name = "btnRefresh";
 			btnRefresh.Size = new Size(25, 25);
 			btnRefresh.TabIndex = 6;
@@ -125,27 +101,25 @@ namespace VSLauncher
 			// olvFiles
 			// 
 			olvFiles.AllColumns.Add(olvColumnFilename);
-			olvFiles.AllowColumnReorder = true;
+			olvFiles.AllColumns.Add(olvColumnPath);
 			olvFiles.AllowDrop = true;
 			olvFiles.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
 			olvFiles.CellEditUseWholeCell = false;
 			olvFiles.CheckBoxes = true;
-			olvFiles.Columns.AddRange(new ColumnHeader[] { olvColumnFilename });
+			olvFiles.Columns.AddRange(new ColumnHeader[] { olvColumnFilename, olvColumnPath });
 			olvFiles.EmptyListMsg = "";
 			olvFiles.FullRowSelect = true;
-			olvFiles.Location = new Point(12, 56);
+			olvFiles.Location = new Point(12, 40);
 			olvFiles.Name = "olvFiles";
 			olvFiles.SelectColumnsOnRightClickBehaviour = ObjectListView.ColumnSelectBehaviour.Submenu;
 			olvFiles.ShowCommandMenuOnRightClick = true;
 			olvFiles.ShowGroups = false;
 			olvFiles.ShowImagesOnSubItems = true;
 			olvFiles.ShowItemToolTips = true;
-			olvFiles.Size = new Size(549, 204);
+			olvFiles.Size = new Size(549, 220);
 			olvFiles.SmallImageList = imageList;
 			olvFiles.TabIndex = 7;
 			olvFiles.UseCompatibleStateImageBehavior = false;
-			olvFiles.UseFilterIndicator = true;
-			olvFiles.UseFiltering = true;
 			olvFiles.View = View.Details;
 			olvFiles.VirtualMode = true;
 			olvFiles.CellToolTipShowing += listViewFiles_CellToolTipShowing;
@@ -153,15 +127,28 @@ namespace VSLauncher
 			// olvColumnFilename
 			// 
 			olvColumnFilename.AspectName = "Name";
-			olvColumnFilename.FillsFreeSpace = true;
 			olvColumnFilename.Hideable = false;
 			olvColumnFilename.IsEditable = false;
 			olvColumnFilename.IsTileViewColumn = true;
 			olvColumnFilename.MaximumWidth = 1000;
 			olvColumnFilename.MinimumWidth = 100;
+			olvColumnFilename.Searchable = false;
+			olvColumnFilename.Sortable = false;
 			olvColumnFilename.Text = "Name";
-			olvColumnFilename.ToolTipText = "Blah ";
+			olvColumnFilename.ToolTipText = "";
 			olvColumnFilename.Width = 140;
+			// 
+			// olvColumnPath
+			// 
+			olvColumnPath.AspectName = "Path";
+			olvColumnPath.FillsFreeSpace = true;
+			olvColumnPath.Groupable = false;
+			olvColumnPath.IsEditable = false;
+			olvColumnPath.MaximumWidth = 800;
+			olvColumnPath.MinimumWidth = 100;
+			olvColumnPath.Text = "Path";
+			olvColumnPath.ToolTipText = "";
+			olvColumnPath.Width = 140;
 			// 
 			// imageList
 			// 
@@ -179,8 +166,9 @@ namespace VSLauncher
 			imageList.Images.SetKeyName(8, "VBProject");
 			imageList.Images.SetKeyName(9, "VsSolution");
 			imageList.Images.SetKeyName(10, "WebProject");
+			imageList.Images.SetKeyName(11, "VSLogo");
 			// 
-			// dlgImportFolder
+			// dlgImportVisualStudio
 			// 
 			this.AcceptButton = btnOk;
 			this.AutoScaleDimensions = new SizeF(7F, 15F);
@@ -189,19 +177,17 @@ namespace VSLauncher
 			this.ClientSize = new Size(573, 321);
 			this.ControlBox = false;
 			this.Controls.Add(olvFiles);
-			this.Controls.Add(btnSelectFolder);
 			this.Controls.Add(btnRefresh);
 			this.Controls.Add(btnCancel);
 			this.Controls.Add(btnOk);
-			this.Controls.Add(txtFoldername);
 			this.Controls.Add(label1);
 			this.Icon = (Icon)resources.GetObject("$this.Icon");
 			this.MaximizeBox = false;
 			this.MinimizeBox = false;
-			this.Name = "dlgImportFolder";
+			this.Name = "dlgImportVisualStudio";
 			this.SizeGripStyle = SizeGripStyle.Show;
 			this.StartPosition = FormStartPosition.CenterParent;
-			this.Text = "Import from folder";
+			this.Text = "Import from Visual Studio Recent List";
 			((System.ComponentModel.ISupportInitialize)olvFiles).EndInit();
 			ResumeLayout(false);
 			PerformLayout();
@@ -210,8 +196,6 @@ namespace VSLauncher
 		#endregion
 
 		private Label label1;
-		private TextBox txtFoldername;
-		private Button btnSelectFolder;
 		private Button btnOk;
 		private Button btnCancel;
 		private ColumnHeader colPath;
@@ -219,7 +203,7 @@ namespace VSLauncher
 
 		private TreeListView olvFiles;
 		private OLVColumn olvColumnFilename;
+		private OLVColumn olvColumnPath;
 		private ImageList imageList;
-
 	}
 }

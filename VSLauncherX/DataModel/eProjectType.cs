@@ -6,11 +6,12 @@
 	public enum eProjectType
 	{
 		None,
-		CSharp,
-		VisualBasic,
+		CSProject,
+		VBProject,
 		WebSite,
-		FSharp,
-		Cpp,
-		JScript
+		FSProject,
+		CPPProject,
+		JSProject,
+		TSProject,
 	}
 }
