@@ -216,6 +216,7 @@ namespace VSLauncher
 				this.Cursor = Cursors.WaitCursor;
 				this.Solution.Solutions = IterateFolder(txtFoldername.Text, this.chkSolutionOnly.Checked);
 				this.olvFiles.SetObjects(this.Solution.Solutions);
+				this.olvFiles.ExpandAll();
 				this.Cursor = Cursors.Default;
 			}
 		}

@@ -192,7 +192,7 @@ namespace VSLauncher.DataModel
 				si.ArgumentList.Add(command);
 			}
 
-			if (string.IsNullOrEmpty(instance))
+			if (!string.IsNullOrEmpty(instance))
 			{
 				si.ArgumentList.Add($"/rootSuffix {instance}");
 			}
