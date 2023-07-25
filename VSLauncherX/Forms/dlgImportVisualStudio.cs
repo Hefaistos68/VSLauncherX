@@ -46,7 +46,7 @@ namespace VSLauncher
 
 			this.olvFiles.ChildrenGetter = delegate (object x)
 			{
-				return x is SolutionGroup sg ? sg.Solutions : (IEnumerable?)null;
+				return x is SolutionGroup sg ? sg.Items : (IEnumerable?)null;
 			};
 			//
 			// setup the Name/Filename column
@@ -61,6 +61,7 @@ namespace VSLauncher
 
 			this.Solution = new SolutionGroup();
 			this.olvFiles.SetObjects(GetRecentProjects());
+			this.olvFiles.ExpandAll();
 		}
 
 		/// <summary>
@@ -122,16 +123,16 @@ namespace VSLauncher
 									if (s.Value.LocalProperties.Type == 1)
 									{
 										var item = new VsFolder(Path.GetFileNameWithoutExtension(s.Key), s.Value.LocalProperties.FullPath);
-										group.Solutions.Add(item);
+										group.Items.Add(item);
 									}
 									else
 									{
 										var item = ImportHelper.GetItemFromExtension(Path.GetFileNameWithoutExtension(s.Key), s.Value.LocalProperties.FullPath);
-										group.Solutions.Add(item);
+										group.Items.Add(item);
 									}
 								}
 
-								solutionList.Solutions.Add(group);
+								solutionList.Items.Add(group);
 							}
 						}
 					}
@@ -141,7 +142,7 @@ namespace VSLauncher
 				}
 			}
 
-			return solutionList.Solutions;
+			return solutionList.Items;
 		}
 
 		private string? ParseDirectoryNameIntoVsVersion(string name)

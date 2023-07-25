@@ -76,5 +76,33 @@ namespace VSLauncher
 		{
 			return row is VsItem sg ? sg.Path ?? string.Empty : string.Empty;
 		}
+
+		internal static CheckState GetCheckState(object rowObject)
+		{
+			if (rowObject is null)
+				return CheckState.Indeterminate;
+
+			if (rowObject is VsFolder f)
+			{
+				if (f.Checked.HasValue)
+					return f.Checked == true ? CheckState.Checked : CheckState.Unchecked;
+				else
+					return CheckState.Indeterminate;
+			}
+			return ((VsItem)rowObject).Checked ? CheckState.Checked : CheckState.Unchecked;
+		}
+
+		internal static CheckState SetCheckState(object rowObject, CheckState newValue)
+		{
+			bool b = newValue == CheckState.Checked;
+			((VsItem)rowObject).Checked = b;
+
+			if (rowObject is VsFolder f)
+			{
+				f.Checked = b;
+			}
+
+			return newValue;
+		}
 	}
 }

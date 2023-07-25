@@ -41,11 +41,11 @@ namespace VSLauncher.DataModel
 	public class RemoteInfo
 	{
 		public string Name { get; set; }
-		public string CodeContainerProvider { get; set; }
-		public string DisplayUrl { get; set; }
-		public string BrowseOnlineUrl { get; set; }
+		public string? CodeContainerProvider { get; set; }
+		public string? DisplayUrl { get; set; }
+		public string? BrowseOnlineUrl { get; set; }
 		public DateTime LastAccessed { get; set; }
-		public object[] ExtraProperties { get; set; }
+		public object[]? ExtraProperties { get; set; }
 	}
 
 }

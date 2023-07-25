@@ -10,14 +10,13 @@ namespace VSLauncher.DataModel
 	/// <summary>
 	/// The solution group.
 	/// </summary>
-	public class SolutionGroup : VsItem
-    {
+	public class SolutionGroup : VsFolder
+	{
 		/// <summary>
 		/// Initializes a new instance of the <see cref="SolutionGroup"/> class.
 		/// </summary>
 		public SolutionGroup() : base()
 		{
-			this.Solutions = new List<VsItem>();
 			this.Name = "<empty>";
 		}
 
@@ -29,11 +28,5 @@ namespace VSLauncher.DataModel
 		{
 			this.Name = name;
 		}
-
-		/// <summary>
-		/// Gets or sets the solutions.
-		/// </summary>
-		public List<VsItem> Solutions { get; set; }
-
-    }
+	}
 }

@@ -54,6 +54,15 @@ namespace VSLauncher
 				return x is VsFolder f ? f.Items : (IEnumerable?)null;
 			};
 
+			// take care of check states
+			this.olvFiles.CheckStateGetter = ColumnHelper.GetCheckState;
+			this.olvFiles.CheckStatePutter = delegate (object rowObject, CheckState newValue)
+			{
+				var cs = ColumnHelper.SetCheckState(rowObject, newValue);
+				this.olvFiles.Invalidate();
+				return cs;
+			};
+
 			//
 			// setup the Name/Filename column
 			//
@@ -101,9 +110,9 @@ namespace VSLauncher
 		/// </summary>
 		/// <param name="folderPath">The folder path.</param>
 		/// <returns>An IEnumerable.</returns>
-		private List<VsItem> IterateFolder(string folderPath, bool bOnlySolutions)
+		private VsItemList IterateFolder(string folderPath, bool bOnlySolutions)
 		{
-			List<VsItem> sg = new();
+			VsItemList sg = new(null);
 
 			var root = new VsFolder(Path.GetFileName(folderPath), folderPath);
 
@@ -149,7 +158,7 @@ namespace VSLauncher
 
 		private bool IsOfInterest(string file, bool bOnlySolutions)
 		{
-			if(bOnlySolutions)
+			if (bOnlySolutions)
 			{
 				return Path.GetExtension(file).ToLower() == ".sln";
 			}
@@ -171,17 +180,32 @@ namespace VSLauncher
 		private void btnOk_Click(object sender, EventArgs e)
 		{
 			this.Solution.Name = txtFoldername.Text;
-			
-			// remove not selected items from the solutions list
 
-			foreach (var i in this.olvFiles.SelectedObjects)
+			// remove not selected items from the solutions list
+			SolutionGroup sg = new SolutionGroup(txtFoldername.Text);
+			sg.Items = FilterItems(this.Solution.Items, this.olvFiles.CheckedObjects);
+		}
+
+		private VsItemList FilterItems(VsItemList origin, IList checkedItems)
+		{
+			VsItemList list = new VsItemList(null);
+
+			foreach (var i in origin)
 			{
-				if (i is VsItem item)
+				if(checkedItems.Contains(i))
 				{
-					this.Solution.Solutions.Add(item);
+					list.Add(i);
+				}
+
+				if (i is VsFolder f)
+				{
+					var fi = FilterItems(f.Items, checkedItems);
+					fi.Reparent(i);
+					list.Changed = true;
 				}
 			}
 
+			return list;
 		}
 
 		private void listViewFiles_CellToolTipShowing(object sender, ToolTipShowingEventArgs e)
@@ -211,11 +235,11 @@ namespace VSLauncher
 
 		private void UpdateList()
 		{
-			if(Path.IsPathFullyQualified(txtFoldername.Text))
+			if (Path.IsPathFullyQualified(txtFoldername.Text))
 			{
 				this.Cursor = Cursors.WaitCursor;
-				this.Solution.Solutions = IterateFolder(txtFoldername.Text, this.chkSolutionOnly.Checked);
-				this.olvFiles.SetObjects(this.Solution.Solutions);
+				this.Solution.Items = IterateFolder(txtFoldername.Text, this.chkSolutionOnly.Checked);
+				this.olvFiles.SetObjects(this.Solution.Items);
 				this.olvFiles.ExpandAll();
 				this.Cursor = Cursors.Default;
 			}

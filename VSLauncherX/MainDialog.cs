@@ -21,6 +21,7 @@ namespace VSLauncher
 		{
 			InitializeComponent();
 			InitializeListview(this.solutionGroups);
+			SetupDragAndDrop();
 
 			BuildTestData();
 
@@ -69,30 +70,114 @@ namespace VSLauncher
 		}
 
 		/// <summary>
+		/// Is the control key pressed.
+		/// </summary>
+		/// <returns>A bool.</returns>
+		private static bool IsControlPressed()
+		{
+			return (Control.ModifierKeys & Keys.Control) == Keys.Control;
+		}
+
+		/// <summary>
+		/// Handles click on the btnMainStartVisualStudio1 button (Start VS)
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
+		private void btnMainStartVisualStudio1_Click(object sender, EventArgs e)
+		{
+			this.Cursor = Cursors.WaitCursor;
+			var vs = visualStudioInstances[selectVisualStudioVersion.SelectedIndex];
+			vs.Execute();
+			this.Cursor = Cursors.Default;
+		}
+
+		/// <summary>
+		/// Handles click on the btnMainStartVisualStudio2 button (Start VS as admin)
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
+		private void btnMainStartVisualStudio2_Click(object sender, EventArgs e)
+		{
+			this.Cursor = Cursors.WaitCursor;
+			var vs = visualStudioInstances[selectVisualStudioVersion.SelectedIndex];
+			vs.ExecuteAsAdmin();
+			this.Cursor = Cursors.Default;
+		}
+
+		/// <summary>
+		/// Handles click on the btnMainStartVisualStudio3 button (Start VS with an instance)
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
+		private void btnMainStartVisualStudio3_Click(object sender, EventArgs e)
+		{
+			var dlg = new dlgNewInstance();
+			if (dlg.ShowDialog() == DialogResult.OK)
+			{
+				this.Cursor = Cursors.WaitCursor;
+				var vs = visualStudioInstances[selectVisualStudioVersion.SelectedIndex];
+
+				vs.ExecuteWithInstance(IsControlPressed(), dlg.InstanceName);
+				this.Cursor = Cursors.Default;
+			}
+		}
+
+		/// <summary>
+		/// Handles click on the btnMainStartVisualStudio4 button (Start VS with new project)
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
+		private void btnMainStartVisualStudio4_Click(object sender, EventArgs e)
+		{
+			this.Cursor = Cursors.WaitCursor;
+			var vs = visualStudioInstances[selectVisualStudioVersion.SelectedIndex];
+			vs.ExecuteNewProject(IsControlPressed());
+			this.Cursor = Cursors.Default;
+		}
+
+		/// <summary>
+		/// Handles click on the btnMainStartVisualStudio5 button (Start VS with dialog)
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
+		private void btnMainStartVisualStudio5_Click(object sender, EventArgs e)
+		{
+			var dlg = new dlgExecuteVisualStudio(selectVisualStudioVersion.SelectedIndex);
+
+			if (dlg.ShowDialog() == DialogResult.OK)
+			{
+				this.Cursor = Cursors.WaitCursor;
+				var vs = dlg.Instance;
+				vs.ExecuteWith(dlg.AsAdmin, dlg.ShowSplash, dlg.ProjectOrSolution, dlg.InstanceName, dlg.Command);
+				this.Cursor = Cursors.Default;
+			}
+		}
+
+		/// <summary>
 		/// Builds the test data.
 		/// </summary>
 		private void BuildTestData()
 		{
 			var sg1 = new SolutionGroup("Main");
-			sg1.RunBefore = new VsItem("Explorer", "explorer.exe");
-			sg1.Solutions.Add(new VsSolution("ObjectListView", @"C:\dev\Repos\ObjectListViewDemo\ObjectListView2012.sln"));
+			sg1.RunBefore = new VsItem("Explorer", "explorer.exe", null);
+			sg1.Items.Add(new VsSolution("ObjectListView", @"C:\dev\Repos\ObjectListViewDemo\ObjectListView2012.sln"));
 
 			var sg2 = new SolutionGroup("Some Group");
 			sg2.RunAsAdmin = true;
 
-			sg2.Solutions.Add(new VsSolution("Solution 1", @"C:\TestSolution1.sln"));
-			sg2.Solutions.Add(new VsSolution("Solution 2", @"C:\Solution2\TestSolution2.sln"));
-			sg2.Solutions.Add(new VsSolution("Solution 3", @"C:\Solution3\TestSolution3.sln"));
+			sg2.Items.Add(new VsSolution("Solution 1", @"C:\TestSolution1.sln"));
+			sg2.Items.Add(new VsSolution("Solution 2", @"C:\Solution2\TestSolution2.sln"));
+			sg2.Items.Add(new VsSolution("Solution 3", @"C:\Solution3\TestSolution3.sln"));
 
 			var sg3 = new SolutionGroup("small sub group");
-			sg3.RunBefore = new VsItem("Explorer", "explorer.exe");
+			sg3.RunBefore = new VsItem("Explorer", "explorer.exe", null);
 			sg3.RunAsAdmin = true;
-			sg3.RunAfter = new VsItem("Explorer", "explorer.exe");
+			sg3.RunAfter = new VsItem("Explorer", "explorer.exe", null);
 
-			sg3.Solutions.Add(new VsSolution("Solution 1", @"C:\TestSolution1.sln"));
-			sg3.Solutions.Add(new VsSolution("Solution 2", @"C:\Solution2\TestSolution2.sln"));
+			sg3.Items.Add(new VsSolution("Solution 1", @"C:\TestSolution1.sln"));
+			sg3.Items.Add(new VsSolution("Solution 2", @"C:\Solution2\TestSolution2.sln"));
 
-			sg2.Solutions.Add(sg3);
+			sg2.Items.Add(sg3);
 
 			solutionGroups.Add(sg1);
 			solutionGroups.Add(sg2);
@@ -141,7 +226,11 @@ namespace VSLauncher
 			this.olvFiles.AddDecoration(new EditingCellBorderDecoration(true));
 			this.olvFiles.TreeColumnRenderer.IsShowLines = false;
 			this.olvFiles.TreeColumnRenderer.UseTriangles = true;
+			this.olvFiles.TreeColumnRenderer.CornerRoundness = 0;
+			this.olvFiles.TreeColumnRenderer.FillBrush = new SolidBrush(Color.CornflowerBlue);
+			this.olvFiles.TreeColumnRenderer.FramePen = new Pen(Color.DarkBlue, 1);
 
+			this.olvFiles.UseFilterIndicator = true;
 
 			// Uncomment this block to see a darker theme
 			// 			this.olvFiles.UseAlternatingBackColors = false;
@@ -178,7 +267,7 @@ namespace VSLauncher
 			{
 				if (x is SolutionGroup sg)
 				{
-					return sg.Solutions;
+					return sg.Items;
 				}
 
 				return null;
@@ -194,6 +283,8 @@ namespace VSLauncher
 			// setup the Path column
 			//
 			this.olvColumnPath.AspectGetter = ColumnHelper.GetAspectForPath;
+			this.olvColumnPath.Hideable = false;
+			this.olvColumnPath.UseFiltering = false;
 
 			//
 			// setup the Date column
@@ -230,7 +321,7 @@ namespace VSLauncher
 			SimpleDropSink dropSink = new SimpleDropSink();
 			this.olvFiles.DropSink = dropSink;
 			dropSink.CanDropOnItem = true;
-			//dropSink.CanDropOnSubItem = true;
+			// dropSink.CanDropOnSubItem = true;
 			dropSink.FeedbackColor = Color.IndianRed; // just to be different
 
 			dropSink.ModelCanDrop += new EventHandler<ModelDropEventArgs>(delegate (object sender, ModelDropEventArgs e)
@@ -273,77 +364,6 @@ namespace VSLauncher
 		}
 
 		/// <summary>
-		/// Gets the list of installed visual studio versions.
-		/// </summary>
-		private void GetListOfInstalledVisualStudioVersions()
-		{
-		}
-
-		/// <summary>
-		/// lists the view files_ cell click.
-		/// </summary>
-		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
-		private void listViewFiles_CellClick(object sender, CellClickEventArgs e)
-		{
-			System.Diagnostics.Trace.WriteLine(String.Format("clicked ({0}, {1}). model {2}. click count: {3}",
-				e.RowIndex, e.ColumnIndex, e.Model, e.ClickCount));
-		}
-
-		/// <summary>
-		/// lists the view files_ cell right click.
-		/// </summary>
-		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
-		private void listViewFiles_CellRightClick(object sender, CellRightClickEventArgs e)
-		{
-			System.Diagnostics.Trace.WriteLine(String.Format("right clicked {0}, {1}). model {2}", e.RowIndex, e.ColumnIndex, e.Model));
-			// Show a menu if the click was on first column
-			if (e.ColumnIndex == 0)
-			{
-				e.MenuStrip = this.ctxMenu;
-				e.MenuStrip.Show();
-			}
-		}
-
-		/// <summary>
-		/// lists the view files_ cell tool tip showing.
-		/// </summary>
-		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
-		private void listViewFiles_CellToolTipShowing(object sender, ToolTipShowingEventArgs e)
-		{
-			if (e.Model is SolutionGroup)
-			{
-				e.Text = e.Item.Text;
-			}
-			else
-			{
-				e.Text = e.SubItem.Text;
-			}
-		}
-
-		/// <summary>
-		/// lists the view files_ item activate.
-		/// </summary>
-		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
-		private void listViewFiles_ItemActivate(object sender, EventArgs e)
-		{
-			Object rowObject = this.olvFiles.SelectedObject;
-			if (rowObject == null)
-				return;
-
-			if (rowObject is DirectoryInfo)
-			{
-			}
-			else
-			{
-				// ShellUtilities.Execute(((FileInfo)rowObject).FullName);
-			}
-		}
-
-		/// <summary>
 		/// mains the folder add_ click.
 		/// </summary>
 		/// <param name="sender">The sender.</param>
@@ -362,7 +382,7 @@ namespace VSLauncher
 				{
 					if (r.RowObject is SolutionGroup sg)
 					{
-						sg.Solutions.Add(dlg.Solution);
+						sg.Items.Add(dlg.Solution);
 					}
 					else
 					{
@@ -395,7 +415,7 @@ namespace VSLauncher
 					if (r.RowObject is SolutionGroup sg)
 					{
 						// add below selected item
-						sg.Solutions.Add(dlg.Solution);
+						sg.Items.Add(dlg.Solution);
 					}
 					else
 					{
@@ -427,7 +447,7 @@ namespace VSLauncher
 				{
 					if (r.RowObject is SolutionGroup sg)
 					{
-						sg.Solutions.Add(dlg.Solution);
+						sg.Items.Add(dlg.Solution);
 					}
 					else
 					{
@@ -449,11 +469,94 @@ namespace VSLauncher
 		}
 
 		/// <summary>
+		/// olvs the files_ after label edit.
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
+		private void olvFiles_AfterLabelEdit(object sender, LabelEditEventArgs e)
+		{
+
+		}
+
+		/// <summary>
+		/// lists the view files_ cell click.
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
+		private void olvFiles_CellClick(object sender, CellClickEventArgs e)
+		{
+			System.Diagnostics.Trace.WriteLine(String.Format("clicked ({0}, {1}). model {2}. click count: {3}",
+				e.RowIndex, e.ColumnIndex, e.Model, e.ClickCount));
+		}
+
+		/// <summary>
+		/// olvs the files_ cell edit finished.
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
+		private void olvFiles_CellEditFinished(object sender, CellEditEventArgs e)
+		{
+
+		}
+
+		/// <summary>
+		/// lists the view files_ cell right click.
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
+		private void olvFiles_CellRightClick(object sender, CellRightClickEventArgs e)
+		{
+			System.Diagnostics.Trace.WriteLine(String.Format("right clicked {0}, {1}). model {2}", e.RowIndex, e.ColumnIndex, e.Model));
+			// Show a menu if the click was on first column
+			{
+				e.MenuStrip = this.ctxMenu;
+				e.MenuStrip.Show();
+			}
+		}
+
+		/// <summary>
+		/// lists the view files_ cell tool tip showing.
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
+		private void olvFiles_CellToolTipShowing(object sender, ToolTipShowingEventArgs e)
+		{
+			if (e.Model is SolutionGroup)
+			{
+				e.Text = e.Item.Text;
+			}
+			else
+			{
+				e.Text = e.SubItem.Text;
+			}
+		}
+
+		/// <summary>
+		/// olvs the files_ double click.
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
+		private void olvFiles_DoubleClick(object sender, EventArgs e)
+		{
+
+		}
+
+		/// <summary>
+		/// olvs the files_ dropped.
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
+		private void olvFiles_Dropped(object sender, OlvDropEventArgs e)
+		{
+
+		}
+
+		/// <summary>
 		/// olv_S the hot item changed.
 		/// </summary>
 		/// <param name="sender">The sender.</param>
 		/// <param name="e">The e.</param>
-		private void olv_HotItemChanged(object sender, HotItemChangedEventArgs e)
+		private void olvFiles_HotItemChanged(object sender, HotItemChangedEventArgs e)
 		{
 			if (sender == null)
 			{
@@ -463,42 +566,52 @@ namespace VSLauncher
 		}
 
 		/// <summary>
-		/// trees the list view_ model can drop.
+		/// lists the view files_ item activate.
 		/// </summary>
 		/// <param name="sender">The sender.</param>
 		/// <param name="e">The e.</param>
-		private void treeListView_ModelCanDrop(object sender, ModelDropEventArgs e)
+		private void olvFiles_ItemActivate(object sender, EventArgs e)
 		{
-			e.Effect = DragDropEffects.None;
-			if (e.TargetModel != null)
+			Object rowObject = this.olvFiles.SelectedObject;
+			if (rowObject == null)
+				return;
+
+			if (rowObject is DirectoryInfo)
 			{
-				if (e.TargetModel is DirectoryInfo)
-					e.Effect = e.StandardDropActionFromKeys;
-				else
-					e.InfoMessage = "Can only drop on directories";
+			}
+			else
+			{
+				// ShellUtilities.Execute(((FileInfo)rowObject).FullName);
 			}
 		}
 
-		/// <summary>
-		/// trees the list view_ model dropped.
-		/// </summary>
-		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
-		private void treeListView_ModelDropped(object sender, ModelDropEventArgs e)
+		private void olvFiles_ModelCanDropHandler(object sender, ModelDropEventArgs e)
 		{
-			String msg = String.Format("{2} items were dropped on '{1}' as a {0} operation.",
-				e.Effect, ((DirectoryInfo)e.TargetModel).Name, e.SourceModels.Count);
-			MessageBox.Show(msg, "OLV Demo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+			e.Effect = DragDropEffects.None;
+			if (e.TargetModel == null)
+			{
+				return;
+			}
+
+			if (e.TargetModel is SolutionGroup)
+			{
+				e.Effect = e.StandardDropActionFromKeys;
+			}
+			else
+			{
+				e.InfoMessage = "Can only drop on directories";
+			}
 		}
 
-		/// <summary>
-		/// Updates the list.
-		/// </summary>
-		private void UpdateList()
+		private void olvFiles_ModelDroppedHandler(object sender, ModelDropEventArgs e)
 		{
-			// TODO: must verify items before loading, indicate missing items through warning icon
-			this.olvFiles.SetObjects(this.solutionGroups);
-			this.olvFiles.ExpandAll();
+			String msg = String.Format("{2} items were dropped on '{1}' as a {0} operation.",   e.Effect, ((DirectoryInfo) e.TargetModel).Name, e.SourceModels.Count);
+		}
+
+		private void RebuildFilters()
+		{
+			this.olvFiles.ModelFilter = String.IsNullOrEmpty(this.txtFilter.Text) ? null : new TextMatchFilter(this.olvFiles, this.txtFilter.Text);
+			// this.olvFiles.AdditionalFilter = filters.Count == 0 ? null : new CompositeAllFilter(filters);
 		}
 
 		/// <summary>
@@ -541,150 +654,60 @@ namespace VSLauncher
 				var icon = visualStudioInstances[selectVisualStudioVersion.SelectedIndex].AppIcon.ToBitmap();
 				string shortName = visualStudioInstances[selectVisualStudioVersion.SelectedIndex].ShortName;
 
-				btnMainStartVisualStudio1.Text = string.Format(btnMainStartVisualStudio1.Tag.ToString(), shortName);
+				btnMainStartVisualStudio1.Text = string.Format(btnMainStartVisualStudio1.Tag!.ToString(), shortName);
 				tooltipForButtons.SetToolTip(btnMainStartVisualStudio1, visualStudioInstances[selectVisualStudioVersion.SelectedIndex].ToString());
 				btnMainStartVisualStudio1.Image = icon;
 
-				btnMainStartVisualStudio2.Text = string.Format(btnMainStartVisualStudio2.Tag.ToString(), shortName);
+				btnMainStartVisualStudio2.Text = string.Format(btnMainStartVisualStudio2.Tag!.ToString(), shortName);
 				tooltipForButtons.SetToolTip(btnMainStartVisualStudio2, visualStudioInstances[selectVisualStudioVersion.SelectedIndex].ToString());
 				btnMainStartVisualStudio2.Image = icon;
 
-				btnMainStartVisualStudio3.Text = string.Format(btnMainStartVisualStudio3.Tag.ToString(), shortName);
+				btnMainStartVisualStudio3.Text = string.Format(btnMainStartVisualStudio3.Tag!.ToString(), shortName);
 				tooltipForButtons.SetToolTip(btnMainStartVisualStudio3, visualStudioInstances[selectVisualStudioVersion.SelectedIndex].ToString());
 				btnMainStartVisualStudio3.Image = icon;
 
-				btnMainStartVisualStudio4.Text = string.Format(btnMainStartVisualStudio4.Tag.ToString(), shortName);
+				btnMainStartVisualStudio4.Text = string.Format(btnMainStartVisualStudio4.Tag!.ToString(), shortName);
 				tooltipForButtons.SetToolTip(btnMainStartVisualStudio4, visualStudioInstances[selectVisualStudioVersion.SelectedIndex].ToString());
 				btnMainStartVisualStudio4.Image = icon;
 
-				btnMainStartVisualStudio5.Text = string.Format(btnMainStartVisualStudio5.Tag.ToString(), shortName);
+				btnMainStartVisualStudio5.Text = string.Format(btnMainStartVisualStudio5.Tag!.ToString(), shortName);
 				tooltipForButtons.SetToolTip(btnMainStartVisualStudio5, visualStudioInstances[selectVisualStudioVersion.SelectedIndex].ToString());
 				btnMainStartVisualStudio5.Image = icon;
 			}
 		}
 
 		/// <summary>
-		/// Handles click on the btnMainStartVisualStudio1 button (Start VS)
+		/// Setups the drag and drop.
 		/// </summary>
-		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
-		private void btnMainStartVisualStudio1_Click(object sender, EventArgs e)
+		private void SetupDragAndDrop()
 		{
-			this.Cursor = Cursors.WaitCursor;
-			var vs = visualStudioInstances[selectVisualStudioVersion.SelectedIndex];
-			vs.Execute();
-			this.Cursor = Cursors.Default;
+			// Setup the tree so that it can drop and drop.
+
+			this.olvFiles.IsSimpleDragSource = true;
+			this.olvFiles.IsSimpleDropSink = true;
+
+			this.olvFiles.ModelCanDrop += olvFiles_ModelCanDropHandler;
+			this.olvFiles.ModelDropped += olvFiles_ModelDroppedHandler;
 		}
 
 		/// <summary>
-		/// Handles click on the btnMainStartVisualStudio2 button (Start VS as admin)
+		/// Handles text changes in the filter field and updates the list
 		/// </summary>
 		/// <param name="sender">The sender.</param>
 		/// <param name="e">The e.</param>
-		private void btnMainStartVisualStudio2_Click(object sender, EventArgs e)
+		private void txtFilter_TextChanged(object sender, EventArgs e)
 		{
-			this.Cursor = Cursors.WaitCursor;
-			var vs = visualStudioInstances[selectVisualStudioVersion.SelectedIndex];
-			vs.ExecuteAsAdmin();
-			this.Cursor = Cursors.Default;
+			RebuildFilters();
 		}
 
 		/// <summary>
-		/// Handles click on the btnMainStartVisualStudio3 button (Start VS with an instance)
+		/// Updates the list.
 		/// </summary>
-		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
-		private void btnMainStartVisualStudio3_Click(object sender, EventArgs e)
+		private void UpdateList()
 		{
-			var dlg = new dlgNewInstance();
-			if (dlg.ShowDialog() == DialogResult.OK)
-			{
-				this.Cursor = Cursors.WaitCursor;
-				var vs = visualStudioInstances[selectVisualStudioVersion.SelectedIndex];
-
-				vs.ExecuteWithInstance(IsControlPressed(), dlg.InstanceName);
-				this.Cursor = Cursors.Default;
-			}
-		}
-
-		/// <summary>
-		/// Is the control key pressed.
-		/// </summary>
-		/// <returns>A bool.</returns>
-		private static bool IsControlPressed()
-		{
-			return (Control.ModifierKeys & Keys.Control) == Keys.Control;
-		}
-
-		/// <summary>
-		/// Handles click on the btnMainStartVisualStudio4 button (Start VS with new project)
-		/// </summary>
-		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
-		private void btnMainStartVisualStudio4_Click(object sender, EventArgs e)
-		{
-			this.Cursor = Cursors.WaitCursor;
-			var vs = visualStudioInstances[selectVisualStudioVersion.SelectedIndex];
-			vs.ExecuteNewProject(IsControlPressed());
-			this.Cursor = Cursors.Default;
-		}
-
-		/// <summary>
-		/// Handles click on the btnMainStartVisualStudio5 button (Start VS with dialog)
-		/// </summary>
-		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
-		private void btnMainStartVisualStudio5_Click(object sender, EventArgs e)
-		{
-			var dlg = new dlgExecuteVisualStudio(selectVisualStudioVersion.SelectedIndex);
-
-			if (dlg.ShowDialog() == DialogResult.OK)
-			{
-				this.Cursor = Cursors.WaitCursor;
-				var vs = dlg.Instance;
-				vs.ExecuteWith(dlg.AsAdmin, dlg.ShowSplash, dlg.ProjectOrSolution, dlg.InstanceName, dlg.Command);
-				this.Cursor = Cursors.Default;
-			}
-		}
-
-		/// <summary>
-		/// olvs the files_ after label edit.
-		/// </summary>
-		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
-		private void olvFiles_AfterLabelEdit(object sender, LabelEditEventArgs e)
-		{
-
-		}
-
-		/// <summary>
-		/// olvs the files_ double click.
-		/// </summary>
-		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
-		private void olvFiles_DoubleClick(object sender, EventArgs e)
-		{
-
-		}
-
-		/// <summary>
-		/// olvs the files_ cell edit finished.
-		/// </summary>
-		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
-		private void olvFiles_CellEditFinished(object sender, CellEditEventArgs e)
-		{
-
-		}
-
-		/// <summary>
-		/// olvs the files_ dropped.
-		/// </summary>
-		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
-		private void olvFiles_Dropped(object sender, OlvDropEventArgs e)
-		{
-
+			// TODO: must verify items before loading, indicate missing items through warning icon
+			this.olvFiles.SetObjects(this.solutionGroups);
+			this.olvFiles.ExpandAll();
 		}
 	}
 }

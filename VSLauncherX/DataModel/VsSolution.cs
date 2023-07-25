@@ -13,11 +13,11 @@
 			this.SolutionType =	eSolutionType.None;
 		}
 
-		public VsSolution(string name, string path) : base(name, path)
+		public VsSolution(string name, string path) : base(name, path, null)
 		{
 		}
 
-		public VsSolution(string name, string path, eSolutionType type) : base(name, path)
+		public VsSolution(string name, string path, eSolutionType type) : base(name, path, null)
 		{
 			this.SolutionType = type;
 		}

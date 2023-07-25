@@ -13,7 +13,7 @@
 			this.ProjectType = eProjectType.None;
 		}
 
-		public VsProject(string name, string path, eProjectType prType) : base(name, path)
+		public VsProject(string name, string path, eProjectType prType) : base(name, path, null)
 		{
 			this.ProjectType = prType;
 		}

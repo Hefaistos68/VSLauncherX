@@ -18,11 +18,11 @@
 		/// </summary>
 		/// <param name="name">The name.</param>
 		/// <param name="path">The path.</param>
-		public VsItem(string name, string path) : this()
+		public VsItem(string name, string path, DateTime? modified) : this()
 		{
 			this.Name = name ?? throw new ArgumentNullException(nameof(name));
 			this.Path = path ?? throw new ArgumentNullException(nameof(path));
-			this.LastModified = DateTime.Now;
+			this.LastModified = modified ?? DateTime.Now;
 		}
 
 		/// <summary>
@@ -37,6 +37,16 @@
 		/// <summary>
 		/// Gets the last modified.
 		/// </summary>
-		public DateTime LastModified { get; private set; }
+		public DateTime LastModified { get; set; }
+
+		/// <summary>
+		/// Gets or sets a value indicating whether changed.
+		/// </summary>
+		public bool Changed { get; set; }
+
+		/// <summary>
+		/// Gets or sets a value indicating whether checked.
+		/// </summary>
+		public bool Checked { get; set; }
     }
 }

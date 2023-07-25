@@ -93,8 +93,8 @@ namespace VSLauncher
 		private void btnOk_Click(object sender, EventArgs e)
 		{
 			this.Solution.Name = txtFoldername.Text;
-			this.Solution.RunBefore = string.IsNullOrEmpty(txtRunBefore.Text.Trim()) ? null : new VsItem(txtRunBefore.Text, txtRunBefore.Text);
-			this.Solution.RunAfter = string.IsNullOrEmpty(txtRunAfter.Text.Trim()) ? null : new VsItem(txtRunAfter.Text, txtRunAfter.Text);
+			this.Solution.RunBefore = string.IsNullOrEmpty(txtRunBefore.Text.Trim()) ? null : new VsItem(txtRunBefore.Text, txtRunBefore.Text, null);
+			this.Solution.RunAfter = string.IsNullOrEmpty(txtRunAfter.Text.Trim()) ? null : new VsItem(txtRunAfter.Text, txtRunAfter.Text, null);
 			this.Solution.RunAsAdmin = chkRunAsAdmin.Checked;
 
 		}

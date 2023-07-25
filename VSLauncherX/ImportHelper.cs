@@ -44,7 +44,7 @@ namespace VSLauncher
 				return new VsProject(name, path, eProjectType.TSProject);
 			}
 
-			return new VsItem(name, path);
+			return new VsItem(name, path, null);
 		}
 	}
 }

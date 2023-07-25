@@ -31,11 +31,14 @@ namespace VSLauncher
 		private void InitializeComponent()
 		{
 			this.components = new System.ComponentModel.Container();
+			ToolStripLabel toolStripLabel1;
 			System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainDialog));
 			mainPanel = new TableLayoutPanel();
 			leftSubPanel = new TableLayoutPanel();
 			label1 = new Label();
 			mainToolstrip = new ToolStrip();
+			txtFilter = new ToolStripTextBox();
+			toolStripSeparator1 = new ToolStripSeparator();
 			mainFolderAdd = new ToolStripButton();
 			mainImportFolder = new ToolStripButton();
 			mainImportVS = new ToolStripButton();
@@ -65,6 +68,7 @@ namespace VSLauncher
 			renameToolStripMenuItem = new ToolStripMenuItem();
 			toolStripMenuItem1 = new ToolStripSeparator();
 			settingsToolStripMenuItem = new ToolStripMenuItem();
+			toolStripLabel1 = new ToolStripLabel();
 			mainPanel.SuspendLayout();
 			leftSubPanel.SuspendLayout();
 			mainToolstrip.SuspendLayout();
@@ -72,6 +76,12 @@ namespace VSLauncher
 			flowLayoutPanel1.SuspendLayout();
 			ctxMenu.SuspendLayout();
 			SuspendLayout();
+			// 
+			// toolStripLabel1
+			// 
+			toolStripLabel1.Name = "toolStripLabel1";
+			toolStripLabel1.Size = new Size(45, 34);
+			toolStripLabel1.Text = "Search:";
 			// 
 			// mainPanel
 			// 
@@ -101,10 +111,9 @@ namespace VSLauncher
 			leftSubPanel.Margin = new Padding(4, 3, 4, 3);
 			leftSubPanel.Name = "leftSubPanel";
 			leftSubPanel.RowCount = 3;
-			leftSubPanel.RowStyles.Add(new RowStyle());
+			leftSubPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 26F));
 			leftSubPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 37F));
 			leftSubPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-			leftSubPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 23F));
 			leftSubPanel.Size = new Size(691, 513);
 			leftSubPanel.TabIndex = 0;
 			// 
@@ -125,14 +134,27 @@ namespace VSLauncher
 			mainToolstrip.Dock = DockStyle.Fill;
 			mainToolstrip.GripMargin = new Padding(0);
 			mainToolstrip.GripStyle = ToolStripGripStyle.Hidden;
-			mainToolstrip.Items.AddRange(new ToolStripItem[] { mainFolderAdd, mainImportFolder, mainImportVS, mainRefresh, _1, mainSettings });
-			mainToolstrip.Location = new Point(0, 23);
+			mainToolstrip.Items.AddRange(new ToolStripItem[] { toolStripLabel1, txtFilter, toolStripSeparator1, mainFolderAdd, mainImportFolder, mainImportVS, mainRefresh, _1, mainSettings });
+			mainToolstrip.Location = new Point(0, 26);
 			mainToolstrip.Name = "mainToolstrip";
 			mainToolstrip.Padding = new Padding(0);
 			mainToolstrip.RenderMode = ToolStripRenderMode.System;
 			mainToolstrip.Size = new Size(691, 37);
-			mainToolstrip.TabIndex = 2;
+			mainToolstrip.Stretch = true;
+			mainToolstrip.TabIndex = 1;
 			mainToolstrip.Text = "toolStrip1";
+			// 
+			// txtFilter
+			// 
+			txtFilter.MaxLength = 200;
+			txtFilter.Name = "txtFilter";
+			txtFilter.Size = new Size(200, 37);
+			txtFilter.TextChanged += txtFilter_TextChanged;
+			// 
+			// toolStripSeparator1
+			// 
+			toolStripSeparator1.Name = "toolStripSeparator1";
+			toolStripSeparator1.Size = new Size(6, 37);
 			// 
 			// mainFolderAdd
 			// 
@@ -142,6 +164,7 @@ namespace VSLauncher
 			mainFolderAdd.Name = "mainFolderAdd";
 			mainFolderAdd.Size = new Size(23, 34);
 			mainFolderAdd.Text = "&New";
+			mainFolderAdd.ToolTipText = "Add new group";
 			mainFolderAdd.Click += mainFolderAdd_Click;
 			// 
 			// mainImportFolder
@@ -173,6 +196,7 @@ namespace VSLauncher
 			mainRefresh.Name = "mainRefresh";
 			mainRefresh.Size = new Size(23, 34);
 			mainRefresh.Text = "He&lp";
+			mainRefresh.ToolTipText = "Reload";
 			// 
 			// _1
 			// 
@@ -203,29 +227,29 @@ namespace VSLauncher
 			olvFiles.EmptyListMsg = "Add a group to start";
 			olvFiles.EmptyListMsgFont = new Font("Segoe UI", 11.25F, FontStyle.Regular, GraphicsUnit.Point);
 			olvFiles.FullRowSelect = true;
-			olvFiles.Location = new Point(3, 63);
+			olvFiles.Location = new Point(3, 66);
 			olvFiles.MultiSelect = false;
 			olvFiles.Name = "olvFiles";
 			olvFiles.SelectColumnsOnRightClickBehaviour = ObjectListView.ColumnSelectBehaviour.Submenu;
 			olvFiles.ShowCommandMenuOnRightClick = true;
 			olvFiles.ShowGroups = false;
 			olvFiles.ShowItemToolTips = true;
-			olvFiles.Size = new Size(685, 447);
+			olvFiles.Size = new Size(685, 444);
 			olvFiles.SmallImageList = imageList3;
-			olvFiles.TabIndex = 13;
+			olvFiles.TabIndex = 1;
 			olvFiles.UseCompatibleStateImageBehavior = false;
 			olvFiles.UseFilterIndicator = true;
 			olvFiles.UseFiltering = true;
 			olvFiles.View = View.Details;
 			olvFiles.VirtualMode = true;
 			olvFiles.CellEditFinished += olvFiles_CellEditFinished;
-			olvFiles.CellClick += listViewFiles_CellClick;
-			olvFiles.CellRightClick += listViewFiles_CellRightClick;
-			olvFiles.CellToolTipShowing += listViewFiles_CellToolTipShowing;
+			olvFiles.CellClick += olvFiles_CellClick;
+			olvFiles.CellRightClick += olvFiles_CellRightClick;
+			olvFiles.CellToolTipShowing += olvFiles_CellToolTipShowing;
 			olvFiles.Dropped += olvFiles_Dropped;
-			olvFiles.HotItemChanged += olv_HotItemChanged;
+			olvFiles.HotItemChanged += olvFiles_HotItemChanged;
 			olvFiles.AfterLabelEdit += olvFiles_AfterLabelEdit;
-			olvFiles.ItemActivate += listViewFiles_ItemActivate;
+			olvFiles.ItemActivate += olvFiles_ItemActivate;
 			olvFiles.DoubleClick += olvFiles_DoubleClick;
 			// 
 			// olvColumnFilename
@@ -347,7 +371,7 @@ namespace VSLauncher
 			this.selectVisualStudioVersion.Location = new Point(3, 3);
 			this.selectVisualStudioVersion.Name = "selectVisualStudioVersion";
 			this.selectVisualStudioVersion.Size = new Size(229, 32);
-			this.selectVisualStudioVersion.TabIndex = 1;
+			this.selectVisualStudioVersion.TabIndex = 0;
 			this.selectVisualStudioVersion.DrawItem += selectVisualStudioVersion_DrawItem;
 			this.selectVisualStudioVersion.SelectedIndexChanged += selectVisualStudioVersion_SelectedIndexChanged;
 			// 
@@ -360,7 +384,7 @@ namespace VSLauncher
 			btnMainStartVisualStudio1.Margin = new Padding(0);
 			btnMainStartVisualStudio1.Name = "btnMainStartVisualStudio1";
 			btnMainStartVisualStudio1.Size = new Size(232, 57);
-			btnMainStartVisualStudio1.TabIndex = 0;
+			btnMainStartVisualStudio1.TabIndex = 1;
 			btnMainStartVisualStudio1.Tag = "Start {0}";
 			btnMainStartVisualStudio1.Text = "Start Visual Studio";
 			btnMainStartVisualStudio1.TextAlign = ContentAlignment.MiddleLeft;
@@ -378,7 +402,7 @@ namespace VSLauncher
 			btnMainStartVisualStudio2.Margin = new Padding(0);
 			btnMainStartVisualStudio2.Name = "btnMainStartVisualStudio2";
 			btnMainStartVisualStudio2.Size = new Size(232, 57);
-			btnMainStartVisualStudio2.TabIndex = 0;
+			btnMainStartVisualStudio2.TabIndex = 2;
 			btnMainStartVisualStudio2.Tag = "Start {0} as admin";
 			btnMainStartVisualStudio2.Text = "Start Visual Studio \r\nas Admin";
 			btnMainStartVisualStudio2.TextAlign = ContentAlignment.MiddleLeft;
@@ -396,7 +420,7 @@ namespace VSLauncher
 			btnMainStartVisualStudio3.Margin = new Padding(0);
 			btnMainStartVisualStudio3.Name = "btnMainStartVisualStudio3";
 			btnMainStartVisualStudio3.Size = new Size(232, 57);
-			btnMainStartVisualStudio3.TabIndex = 0;
+			btnMainStartVisualStudio3.TabIndex = 3;
 			btnMainStartVisualStudio3.Tag = "New {0} Instance...";
 			btnMainStartVisualStudio3.Text = "New Instance...";
 			btnMainStartVisualStudio3.TextAlign = ContentAlignment.MiddleLeft;
@@ -414,7 +438,7 @@ namespace VSLauncher
 			btnMainStartVisualStudio4.Margin = new Padding(0);
 			btnMainStartVisualStudio4.Name = "btnMainStartVisualStudio4";
 			btnMainStartVisualStudio4.Size = new Size(232, 57);
-			btnMainStartVisualStudio4.TabIndex = 0;
+			btnMainStartVisualStudio4.TabIndex = 4;
 			btnMainStartVisualStudio4.Tag = "New {0} Project...";
 			btnMainStartVisualStudio4.Text = "New Project...";
 			btnMainStartVisualStudio4.TextAlign = ContentAlignment.MiddleLeft;
@@ -432,7 +456,7 @@ namespace VSLauncher
 			btnMainStartVisualStudio5.Margin = new Padding(0);
 			btnMainStartVisualStudio5.Name = "btnMainStartVisualStudio5";
 			btnMainStartVisualStudio5.Size = new Size(232, 57);
-			btnMainStartVisualStudio5.TabIndex = 0;
+			btnMainStartVisualStudio5.TabIndex = 5;
 			btnMainStartVisualStudio5.Tag = "Start {0}...";
 			btnMainStartVisualStudio5.Text = "Start...";
 			btnMainStartVisualStudio5.TextAlign = ContentAlignment.MiddleLeft;
@@ -506,6 +530,7 @@ namespace VSLauncher
 			this.AutoScaleMode = AutoScaleMode.Font;
 			this.ClientSize = new Size(933, 519);
 			this.Controls.Add(mainPanel);
+			this.Icon = (Icon)resources.GetObject("$this.Icon");
 			this.Margin = new Padding(4, 3, 4, 3);
 			this.Name = "MainDialog";
 			this.Text = "Visual Studio Launcher";
@@ -556,6 +581,8 @@ namespace VSLauncher
 		private ToolStripMenuItem renameToolStripMenuItem;
 		private ToolStripSeparator toolStripMenuItem1;
 		private ToolStripMenuItem settingsToolStripMenuItem;
+		private ToolStripTextBox txtFilter;
+		private ToolStripSeparator toolStripSeparator1;
 	}
 }
 
