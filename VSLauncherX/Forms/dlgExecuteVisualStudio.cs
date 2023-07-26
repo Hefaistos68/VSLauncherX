@@ -40,11 +40,7 @@ namespace VSLauncher
 			InitializeComponent();
 			string version ="";
 
-			if (item is SolutionGroup g)
-			{
-				this.ProjectOrSolution = g.Path;
-			}
-			else if (item is VsProject p)
+			if (item is VsProject p)
 			{
 				this.ProjectOrSolution = p.Path;
 				this.AsAdmin = p.RunAsAdmin;
@@ -63,6 +59,8 @@ namespace VSLauncher
 			else if (item is VsFolder f)
 			{
 				this.ProjectOrSolution = f.Path;
+				this.AsAdmin = f.RunAsAdmin;
+				this.ShowSplash = f.ShowSplash;
 			}
 			else
 			{
@@ -71,7 +69,14 @@ namespace VSLauncher
 
 			if (this.visualStudioCombobox1.SelectedIndex == -1)
 			{
-				this.txtInfo.Text = $"VS {version} not found";
+				if(string.IsNullOrEmpty(version))
+				{
+					this.txtInfo.Text = $"no specific version required";
+				}
+				else
+				{
+					this.txtInfo.Text = $"VS {version} not found";
+				}
 			}
 			else
 			{
@@ -179,10 +184,8 @@ namespace VSLauncher
 
 		private void txtInfo_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
 		{
-			System.Diagnostics.Process.Start("explorer.exe", "https://visualstudio.microsoft.com/vs/older-downloads/");
-
 			// open a link in the default browser
-
+			System.Diagnostics.Process.Start("explorer.exe", "https://visualstudio.microsoft.com/vs/older-downloads/");
 		}
 	}
 }

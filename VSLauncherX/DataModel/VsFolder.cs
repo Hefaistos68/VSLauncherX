@@ -57,8 +57,13 @@ namespace VSLauncher.DataModel
 
 				foreach (var i in Items)
 				{
-					if (i is VsFolder)
+					if (i is VsFolder f)
 					{
+						var c = f.Checked;
+						if (c == true)
+							n1++;
+						else if (c == false)
+							n2++;
 					}
 					else if (i.Checked)
 						n1++;
@@ -73,9 +78,73 @@ namespace VSLauncher.DataModel
 				base.Checked = value ?? false;
 				foreach (var i in Items)
 				{
-					i.Checked = value ?? false;
+					if(i is VsFolder f)
+					{
+						f.Checked = value;
+					}
+					else
+					{
+						i.Checked = value ?? false;
+					}
 				}
 			}
+		}
+
+		/// <summary>
+		/// Containeds the solutions count.
+		/// </summary>
+		/// <returns>An int.</returns>
+		public int ContainedSolutionsCount()
+		{
+			int n = 0;
+
+			foreach (var i in this.Items)
+			{
+				if (i is VsFolder f)
+				{
+					n += f.ContainedSolutionsCount();
+				}
+				else if (i is VsSolution)
+				{
+					n++;
+				}
+			}
+
+			return n;
+		}
+
+		/// <summary>
+		/// Tos the string.
+		/// </summary>
+		/// <returns>A string? .</returns>
+		public override string? ToString()
+		{
+			return base.ToString();
+		}
+
+		/// <summary>
+		/// Finds the parent of the given item, recurses through all subitems
+		/// </summary>
+		/// <param name="item">The item.</param>
+		/// <returns>A VsFolder.</returns>
+		internal VsFolder FindParent(object item)
+		{
+			if (this.Items.Contains(item))
+				return this;
+
+			foreach(var i in this.Items)
+			{
+				if (i is VsFolder f)
+				{
+					var p = f.FindParent(item);
+					if (p != null)
+					{
+						return p;
+					}
+				}
+			}
+
+			return null;
 		}
 	}
 }

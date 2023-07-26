@@ -29,5 +29,10 @@
 		/// Gets or sets a value indicating whether run as admin.
 		/// </summary>
 		public bool RunAsAdmin { get; set; }
+
+		/// <summary>
+		/// Gets or sets a value indicating whether show splash.
+		/// </summary>
+		public bool ShowSplash { get; set; }
     }
 }

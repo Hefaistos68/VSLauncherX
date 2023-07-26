@@ -16,7 +16,7 @@ namespace VSLauncher
 		/// <summary>
 		/// Gets the solution group selected by the user
 		/// </summary>
-		public SolutionGroup Solution { get; private set; }
+		public VsFolder Solution { get; private set; }
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="dlgImportVisualStudio"/> class.
@@ -41,12 +41,12 @@ namespace VSLauncher
 
 			this.olvFiles.CanExpandGetter = delegate (object x)
 			{
-				return x is SolutionGroup;
+				return x is VsFolder;
 			};
 
 			this.olvFiles.ChildrenGetter = delegate (object x)
 			{
-				return x is SolutionGroup sg ? sg.Items : (IEnumerable?)null;
+				return x is VsFolder sg ? sg.Items : (IEnumerable?)null;
 			};
 			//
 			// setup the Name/Filename column
@@ -59,7 +59,7 @@ namespace VSLauncher
 			//
 			this.olvColumnPath.AspectGetter = ColumnHelper.GetAspectForPath;
 
-			this.Solution = new SolutionGroup();
+			this.Solution = new VsFolder();
 			this.olvFiles.SetObjects(GetRecentProjects());
 			this.olvFiles.ExpandAll();
 		}
@@ -85,7 +85,7 @@ namespace VSLauncher
 
 		public IEnumerable GetRecentProjects()
 		{
-			SolutionGroup solutionList = new SolutionGroup();
+			VsFolder solutionList = new VsFolder();
 
 			var vsDir = new DirectoryInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Microsoft",  "VisualStudio"));
 
@@ -115,7 +115,7 @@ namespace VSLauncher
 
 							if (!string.IsNullOrEmpty(groupName))
 							{
-								var group = new SolutionGroup(groupName);
+								var group = new VsFolder(groupName, dir.FullName);
 
 								// add the projects to the solution
 								foreach (var s in recentProjects)
@@ -179,7 +179,7 @@ namespace VSLauncher
 
 		private void listViewFiles_CellToolTipShowing(object sender, ToolTipShowingEventArgs e)
 		{
-			if (e.Model is SolutionGroup)
+			if (e.Model is VsFolder)
 			{
 				e.Text = e.Item.Text;
 			}

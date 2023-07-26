@@ -23,7 +23,7 @@ namespace VSLauncher
 		/// <summary>
 		/// Gets the solution group selected by the user
 		/// </summary>
-		public SolutionGroup Solution { get; private set; }
+		public VsFolder Solution { get; private set; }
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="dlgAddFolder"/> class.
@@ -31,7 +31,7 @@ namespace VSLauncher
 		public dlgAddFolder()
 		{
 			InitializeComponent();
-			this.Solution = new SolutionGroup();
+			this.Solution = new VsFolder();
 		}
 
 		/// <summary>

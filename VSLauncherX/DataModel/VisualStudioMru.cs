@@ -14,12 +14,18 @@ namespace VSLauncher.DataModel
 		public List<MruEntry> MruList { get; set; }
 	}
 
+	/// <summary>
+	/// The mru entry.
+	/// </summary>
 	public class MruEntry
 	{
 		public string Key { get; set; }
 		public MruData Value { get; set; }
 	}
 
+	/// <summary>
+	/// The mru data.
+	/// </summary>
 	public class MruData
 	{
 		public Localproperties LocalProperties { get; set; }
@@ -31,6 +37,9 @@ namespace VSLauncher.DataModel
 		public bool IsSourceControlled { get; set; }
 	}
 
+	/// <summary>
+	/// The localproperties.
+	/// </summary>
 	public class Localproperties
 	{
 		public string FullPath { get; set; }
@@ -38,6 +47,9 @@ namespace VSLauncher.DataModel
 		public object? SourceControl { get; set; }
 	}
 
+	/// <summary>
+	/// The remote info.
+	/// </summary>
 	public class RemoteInfo
 	{
 		public string Name { get; set; }

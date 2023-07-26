@@ -23,7 +23,7 @@ namespace VSLauncher
 		/// <summary>
 		/// Gets the solution group selected by the user
 		/// </summary>
-		public SolutionGroup Solution { get; private set; }
+		public VsFolder Solution { get; private set; }
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="dlgAddFolder"/> class.
@@ -32,7 +32,8 @@ namespace VSLauncher
 		{
 			InitializeComponent();
 			InitializeList();
-			this.Solution = new SolutionGroup();
+			this.Solution = new VsFolder();
+			this.chkSolutionOnly.Checked = true;
 		}
 
 		private void InitializeList()
@@ -125,8 +126,6 @@ namespace VSLauncher
 					var attributes = System.IO.File.GetAttributes(folder);
 					if (!attributes.HasFlag(FileAttributes.Hidden))
 					{
-						// 						var sub = new VsFolder(Path.GetFileName(folder), folder);
-						// 						sub.Items = IterateFolder(folder);
 						var subItems = IterateFolder(folder, bOnlySolutions);
 
 						if (subItems.Count > 0)
@@ -182,7 +181,7 @@ namespace VSLauncher
 			this.Solution.Name = txtFoldername.Text;
 
 			// remove not selected items from the solutions list
-			SolutionGroup sg = new SolutionGroup(txtFoldername.Text);
+			VsFolder sg = new VsFolder(txtFoldername.Text, txtFoldername.Text);
 			sg.Items = FilterItems(this.Solution.Items, this.olvFiles.CheckedObjects);
 		}
 
@@ -190,19 +189,60 @@ namespace VSLauncher
 		{
 			VsItemList list = new VsItemList(null);
 
+			bool bAdded = false;
 			foreach (var i in origin)
 			{
 				if(checkedItems.Contains(i))
 				{
 					list.Add(i);
+					bAdded = true;
 				}
 
 				if (i is VsFolder f)
 				{
-					var fi = FilterItems(f.Items, checkedItems);
+					var fi = FilterItems2(f.Items, checkedItems);
 					fi.Reparent(i);
 					list.Changed = true;
+
+					if(!bAdded)
+					{
+						// may be because the parent item is not in the checkedItems list
+						list.Add(i);
+					}
 				}
+
+				bAdded = false;
+			}
+
+			return list;
+		}
+		private VsItemList FilterItems2(VsItemList origin, IList checkedItems)
+		{
+			VsItemList list = new VsItemList(null);
+
+			bool bAdded = false;
+			foreach (var i in origin)
+			{
+				if(checkedItems.Contains(i))
+				{
+					list.Add(i);
+					bAdded = true;
+				}
+
+				if (i is VsFolder f)
+				{
+					var fi = FilterItems2(f.Items, checkedItems);
+					fi.Reparent(i);
+					list.Changed = true;
+
+					if (!bAdded)
+					{
+						// may be because the parent item is not in the checkedItems list
+						list.Add(i);
+					}
+				}
+
+				bAdded = false;
 			}
 
 			return list;
@@ -210,7 +250,8 @@ namespace VSLauncher
 
 		private void listViewFiles_CellToolTipShowing(object sender, ToolTipShowingEventArgs e)
 		{
-			e.Text = e.Item.Text;
+			// e.Text = e.Item.Text;
+			e.Text = ((VsItem)e.Item.RowObject).Path;
 		}
 
 		private void btnRefresh_Click(object sender, EventArgs e)

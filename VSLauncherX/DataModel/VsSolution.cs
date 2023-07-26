@@ -23,7 +23,7 @@ namespace VSLauncher.DataModel
 		public VsSolution(string name, string path) : base(name, path, null)
 		{
 			this.ItemType = eItemType.Solution;
-			Debug.WriteLine(this.GetRequiredVersion());
+			this.RequiredVersion = this.GetRequiredVersion();
 		}
 
 		/// <summary>
@@ -42,11 +42,11 @@ namespace VSLauncher.DataModel
 		/// Gets or sets the solution type.
 		/// </summary>
 		public eSolutionType SolutionType { get; set; }
-
+		
 		/// <summary>
-		/// Gets or sets a value indicating whether show splash.
+		/// Gets the required version.
 		/// </summary>
-		public bool ShowSplash { get; set; }
+		public string RequiredVersion { get; private set; }
 
 		/// <summary>
 		/// Gets the required version for the solution file
@@ -76,6 +76,12 @@ namespace VSLauncher.DataModel
 			}
 
 			return version;
+		}
+
+		/// <inheritdoc/>
+		public override string? ToString()
+		{
+			return $"{this.Name} ({this.SolutionType}, Visual Studio {this.RequiredVersion})";
 		}
 	}
 }

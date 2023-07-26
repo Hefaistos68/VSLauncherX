@@ -2,6 +2,9 @@
 
 namespace VSLauncher.DataModel
 {
+	/// <summary>
+	/// The item type, required for serialization mostly
+	/// </summary>
 	public enum eItemType
 	{
 		Solution,

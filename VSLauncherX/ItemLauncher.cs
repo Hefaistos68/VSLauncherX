@@ -23,7 +23,7 @@ namespace VSLauncher
 		/// <param name="target">The target.</param>
 		public ItemLauncher(VsItem item, VisualStudioInstance target)
 		{
-			this.Solution = new SolutionGroup("");
+			this.Solution = new VsFolder();
 			this.Solution.Items.Add(item);
 			this.Target = target;
 		}
@@ -33,7 +33,7 @@ namespace VSLauncher
 		/// </summary>
 		/// <param name="item">The item.</param>
 		/// <param name="target">The target.</param>
-		public ItemLauncher(SolutionGroup item, VisualStudioInstance target)
+		public ItemLauncher(VsFolder item, VisualStudioInstance target)
 		{
 			this.Solution = item;
 			this.Target = target;
@@ -42,7 +42,7 @@ namespace VSLauncher
 		/// <summary>
 		/// Gets the launch item.
 		/// </summary>
-		public SolutionGroup Solution { get; }
+		public VsFolder Solution { get; }
 
 		/// <summary>
 		/// Gets the target.

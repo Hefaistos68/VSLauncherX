@@ -9,11 +9,6 @@ namespace VSLauncher
 	{
 		public static string GetImageNameForFile(object row)
 		{
-			if (row is SolutionGroup sg)
-			{
-				return "ApplicationGroup";
-			}
-
 			if (row is VsFolder)
 			{
 				return "FolderClosed";
@@ -25,14 +20,9 @@ namespace VSLauncher
 
 		public static string GetImageNameForMru(object row)
 		{
-			if (row is SolutionGroup sg)
-			{
-				return "VSLogo";
-			}
-
 			if (row is VsFolder)
 			{
-				return "FolderClosed";
+				return "VSLogo";
 			}
 
 			return row is VsSolution ? "VsSolution" :
@@ -95,11 +85,14 @@ namespace VSLauncher
 		internal static CheckState SetCheckState(object rowObject, CheckState newValue)
 		{
 			bool b = newValue == CheckState.Checked;
-			((VsItem)rowObject).Checked = b;
 
 			if (rowObject is VsFolder f)
 			{
 				f.Checked = b;
+			}
+			else
+			{
+				((VsItem)rowObject).Checked = b;
 			}
 
 			return newValue;

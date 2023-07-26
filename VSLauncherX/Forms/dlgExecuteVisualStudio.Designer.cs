@@ -28,6 +28,7 @@
 		/// </summary>
 		private void InitializeComponent()
 		{
+			this.components = new System.ComponentModel.Container();
 			Label label1;
 			Label label2;
 			Label label3;
@@ -42,6 +43,7 @@
 			btnSelectFolder = new Button();
 			txtFoldername = new TextBox();
 			txtInfo = new LinkLabel();
+			toolTip1 = new ToolTip(this.components);
 			label1 = new Label();
 			label2 = new Label();
 			label3 = new Label();
@@ -188,6 +190,7 @@
 			txtInfo.TabStop = true;
 			txtInfo.Text = "?";
 			txtInfo.TextAlign = ContentAlignment.MiddleRight;
+			toolTip1.SetToolTip(txtInfo, "Information");
 			txtInfo.LinkClicked += txtInfo_LinkClicked;
 			// 
 			// dlgExecuteVisualStudio
@@ -237,5 +240,6 @@
 		private Button btnSelectFolder;
 		private TextBox txtFoldername;
 		private LinkLabel txtInfo;
+		private ToolTip toolTip1;
 	}
 }

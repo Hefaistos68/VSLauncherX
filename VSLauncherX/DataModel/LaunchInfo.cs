@@ -3,6 +3,6 @@
 	public class LaunchInfo
 	{
 		public string Target { get; set; }
-		public SolutionGroup Solution { get; set; }
+		public VsFolder Solution { get; set; }
 	}
 }

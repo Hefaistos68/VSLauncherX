@@ -11,7 +11,7 @@ namespace VSLauncher
 	/// </summary>
 	public partial class MainDialog : Form
 	{
-		private List<SolutionGroup> solutionGroups = new List<SolutionGroup>();
+		private List<VsFolder> solutionGroups = new List<VsFolder>();
 		private VisualStudioInstanceManager visualStudioInstances = new VisualStudioInstanceManager();
 
 		/// <summary>
@@ -158,18 +158,18 @@ namespace VSLauncher
 		/// </summary>
 		private void BuildTestData()
 		{
-			var sg1 = new SolutionGroup("Main");
+			var sg1 = new VsFolder("Main", "");
 			sg1.RunBefore = new VsItem("Explorer", "explorer.exe", null);
 			sg1.Items.Add(new VsSolution("ObjectListView", @"C:\dev\Repos\ObjectListViewDemo\ObjectListView2012.sln"));
 
-			var sg2 = new SolutionGroup("Some Group");
+			var sg2 = new VsFolder("Some Group", "");
 			sg2.RunAsAdmin = true;
 
 			sg2.Items.Add(new VsSolution("Solution 1", @"C:\TestSolution1.sln"));
 			sg2.Items.Add(new VsSolution("Solution 2", @"C:\Solution2\TestSolution2.sln"));
 			sg2.Items.Add(new VsSolution("Solution 3", @"C:\Solution3\TestSolution3.sln"));
 
-			var sg3 = new SolutionGroup("small sub group");
+			var sg3 = new VsFolder ("small sub group", "");
 			sg3.RunBefore = new VsItem("Explorer", "explorer.exe", null);
 			sg3.RunAsAdmin = true;
 			sg3.RunAfter = new VsItem("Explorer", "explorer.exe", null);
@@ -217,7 +217,7 @@ namespace VSLauncher
 		/// Initializes the listview.
 		/// </summary>
 		/// <param name="list">The list.</param>
-		private void InitializeListview(List<SolutionGroup> list)
+		private void InitializeListview(List<VsFolder> list)
 		{
 			this.olvFiles.FullRowSelect = true;
 			this.olvFiles.RowHeight = 26;
@@ -244,7 +244,7 @@ namespace VSLauncher
 
 			// The following line makes getting aspect about 10x faster. Since getting the aspect is
 			// the slowest part of building the ListView, it is worthwhile BUT NOT NECESSARY to do.
-			TypedObjectListView<SolutionGroup> tlist = new TypedObjectListView<SolutionGroup>(this.olvFiles);
+			TypedObjectListView<VsFolder> tlist = new TypedObjectListView<VsFolder>(this.olvFiles);
 			tlist.GenerateAspectGetters();
 			/* The line above the equivilent to typing the following:
 			tlist.GetColumn(0).AspectGetter = delegate(SolutionGroup x) { return x.Name; };
@@ -261,11 +261,11 @@ namespace VSLauncher
 			//
 			this.olvFiles.CanExpandGetter = delegate (object x)
 			{
-				return x is SolutionGroup;
+				return x is VsFolder;
 			};
 			this.olvFiles.ChildrenGetter = delegate (object x)
 			{
-				if (x is SolutionGroup sg)
+				if (x is VsFolder sg)
 				{
 					return sg.Items;
 				}
@@ -326,7 +326,7 @@ namespace VSLauncher
 
 			dropSink.ModelCanDrop += new EventHandler<ModelDropEventArgs>(delegate (object sender, ModelDropEventArgs e)
 			{
-				SolutionGroup SolutionGroup = e.TargetModel as SolutionGroup;
+				VsFolder SolutionGroup = e.TargetModel as VsFolder;
 				if (SolutionGroup == null)
 				{
 					e.Effect = DragDropEffects.None;
@@ -380,7 +380,7 @@ namespace VSLauncher
 				}
 				else
 				{
-					if (r.RowObject is SolutionGroup sg)
+					if (r.RowObject is VsFolder sg)
 					{
 						sg.Items.Add(dlg.Solution);
 					}
@@ -412,7 +412,7 @@ namespace VSLauncher
 				}
 				else
 				{
-					if (r.RowObject is SolutionGroup sg)
+					if (r.RowObject is VsFolder sg)
 					{
 						// add below selected item
 						sg.Items.Add(dlg.Solution);
@@ -445,7 +445,7 @@ namespace VSLauncher
 				}
 				else
 				{
-					if (r.RowObject is SolutionGroup sg)
+					if (r.RowObject is VsFolder sg)
 					{
 						sg.Items.Add(dlg.Solution);
 					}
@@ -521,7 +521,7 @@ namespace VSLauncher
 		/// <param name="e">The e.</param>
 		private void olvFiles_CellToolTipShowing(object sender, ToolTipShowingEventArgs e)
 		{
-			if (e.Model is SolutionGroup)
+			if (e.Model is VsFolder)
 			{
 				e.Text = e.Item.Text;
 			}
@@ -585,6 +585,11 @@ namespace VSLauncher
 			}
 		}
 
+		/// <summary>
+		/// olvs the files_ model can drop handler.
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
 		private void olvFiles_ModelCanDropHandler(object sender, ModelDropEventArgs e)
 		{
 			e.Effect = DragDropEffects.None;
@@ -593,7 +598,7 @@ namespace VSLauncher
 				return;
 			}
 
-			if (e.TargetModel is SolutionGroup)
+			if (e.TargetModel is VsFolder)
 			{
 				e.Effect = e.StandardDropActionFromKeys;
 			}
@@ -603,6 +608,11 @@ namespace VSLauncher
 			}
 		}
 
+		/// <summary>
+		/// olvs the files_ model dropped handler.
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
 		private void olvFiles_ModelDroppedHandler(object sender, ModelDropEventArgs e)
 		{
 			if (e.SourceModels.Count == 1)
@@ -616,6 +626,9 @@ namespace VSLauncher
 			}
 		}
 
+		/// <summary>
+		/// Rebuilds the filters.
+		/// </summary>
 		private void RebuildFilters()
 		{
 			this.olvFiles.ModelFilter = String.IsNullOrEmpty(this.txtFilter.Text) ? null : new TextMatchFilter(this.olvFiles, this.txtFilter.Text);
@@ -718,12 +731,17 @@ namespace VSLauncher
 			this.olvFiles.ExpandAll();
 		}
 
+		/// <summary>
+		/// runs the tool strip menu item_ click.
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
 		private void runToolStripMenuItem_Click(object sender, EventArgs e)
 		{
 			var item = olvFiles.SelectedItem.RowObject;
 			var vs = this.selectVisualStudioVersion.SelectedItem as VisualStudioInstance;
 
-			if (item is SolutionGroup sg)
+			if (item is VsFolder sg)
 			{
 				new ItemLauncher(sg, vs).Launch();
 			}
@@ -733,12 +751,17 @@ namespace VSLauncher
 			}
 		}
 
+		/// <summary>
+		/// runs the as admin tool strip menu item_ click.
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
 		private void runAsAdminToolStripMenuItem_Click(object sender, EventArgs e)
 		{
 			var item = olvFiles.SelectedItem.RowObject;
 			var vs = this.selectVisualStudioVersion.SelectedItem as VisualStudioInstance;
 
-			if (item is SolutionGroup sg)
+			if (item is VsFolder sg)
 			{
 				new ItemLauncher(sg, vs).Launch(true);
 			}
@@ -749,11 +772,21 @@ namespace VSLauncher
 
 		}
 
+		/// <summary>
+		/// renames the tool strip menu item_ click.
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
 		private void renameToolStripMenuItem_Click(object sender, EventArgs e)
 		{
 
 		}
 
+		/// <summary>
+		/// settings the tool strip menu item_ click.
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
 		private void settingsToolStripMenuItem_Click(object sender, EventArgs e)
 		{
 			object item = olvFiles.SelectedItem.RowObject;
@@ -761,29 +794,95 @@ namespace VSLauncher
 
 			if (dlg.ShowDialog() == DialogResult.OK)
 			{
-				if(item is VsSolution s)
+				if (item is VsSolution s)
 				{
-					s.RunAsAdmin= dlg.AsAdmin;
+					s.RunAsAdmin = dlg.AsAdmin;
 					s.ShowSplash = dlg.ShowSplash;
 					s.Path = dlg.ProjectOrSolution;
 					s.Instance = dlg.InstanceName;
 					s.Commands = dlg.Command;
 				}
-				else if(item is VsProject p)
+				else if (item is VsProject p)
 				{
-					p.RunAsAdmin= dlg.AsAdmin;
+					p.RunAsAdmin = dlg.AsAdmin;
 					p.ShowSplash = dlg.ShowSplash;
 					p.Path = dlg.ProjectOrSolution;
 					p.Instance = dlg.InstanceName;
 					p.Commands = dlg.Command;
 				}
-				else if (item is SolutionGroup sg)
+				else if (item is VsFolder sg)
 				{
 					sg.RunAsAdmin = dlg.AsAdmin;
 					sg.Path = dlg.ProjectOrSolution;
 					sg.Instance = dlg.InstanceName;
 					sg.Commands = dlg.Command;
 				}
+			}
+		}
+
+		/// <summary>
+		/// olvs the files_ selected index changed.
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
+		private void olvFiles_SelectedIndexChanged(object sender, EventArgs e)
+		{
+			// update status bar text with info on selected item
+			if (olvFiles.SelectedItem != null)
+			{
+				var item = olvFiles.SelectedItem.RowObject;
+				if (item is VsSolution s)
+				{
+					mainStatusLabel.Text = s.ToString();
+				}
+				else if (item is VsProject p)
+				{
+					mainStatusLabel.Text = p.ToString();
+				}
+				else if (item is VsFolder sg)
+				{
+					mainStatusLabel.Text = sg.ContainedSolutionsCount().ToString();
+				}
+			}
+			else
+			{
+				mainStatusLabel.Text = string.Empty;
+			}
+		}
+
+		/// <summary>
+		/// deletes the tool strip menu item_ click.
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
+		private void deleteToolStripMenuItem_Click(object sender, EventArgs e)
+		{
+			// ask user if he wants to delete this item really
+			if (MessageBox.Show("Are you sure you want to delete this item?", "Delete item", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+			{
+				// get the item
+				var item = olvFiles.SelectedItem.RowObject;
+
+				foreach (var f in this.solutionGroups)
+				{
+					if (f == item)
+					{
+						this.solutionGroups.Remove((VsFolder)item);
+						break;
+					}
+					else
+					{
+						VsFolder owner = f.FindParent(item);
+						if (owner != null)
+						{
+							owner.Items.Remove((VsItem)item);
+							break;
+						}
+					}
+				}
+
+				// update the list
+				UpdateList();
 			}
 		}
 	}

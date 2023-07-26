@@ -32,6 +32,8 @@ namespace VSLauncher
 		{
 			this.components = new System.ComponentModel.Container();
 			ToolStripLabel toolStripLabel1;
+			ToolStripSeparator toolStripMenuItem1;
+			ToolStripSeparator toolStripMenuItem2;
 			System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainDialog));
 			mainPanel = new TableLayoutPanel();
 			leftSubPanel = new TableLayoutPanel();
@@ -66,15 +68,20 @@ namespace VSLauncher
 			runToolStripMenuItem = new ToolStripMenuItem();
 			runAsAdminToolStripMenuItem = new ToolStripMenuItem();
 			renameToolStripMenuItem = new ToolStripMenuItem();
-			toolStripMenuItem1 = new ToolStripSeparator();
+			deleteToolStripMenuItem = new ToolStripMenuItem();
 			settingsToolStripMenuItem = new ToolStripMenuItem();
+			statusStrip1 = new StatusStrip();
+			mainStatusLabel = new ToolStripStatusLabel();
 			toolStripLabel1 = new ToolStripLabel();
+			toolStripMenuItem1 = new ToolStripSeparator();
+			toolStripMenuItem2 = new ToolStripSeparator();
 			mainPanel.SuspendLayout();
 			leftSubPanel.SuspendLayout();
 			mainToolstrip.SuspendLayout();
 			((System.ComponentModel.ISupportInitialize)olvFiles).BeginInit();
 			flowLayoutPanel1.SuspendLayout();
 			ctxMenu.SuspendLayout();
+			statusStrip1.SuspendLayout();
 			SuspendLayout();
 			// 
 			// toolStripLabel1
@@ -83,20 +90,30 @@ namespace VSLauncher
 			toolStripLabel1.Size = new Size(45, 34);
 			toolStripLabel1.Text = "Search:";
 			// 
+			// toolStripMenuItem1
+			// 
+			toolStripMenuItem1.Name = "toolStripMenuItem1";
+			toolStripMenuItem1.Size = new Size(145, 6);
+			// 
+			// toolStripMenuItem2
+			// 
+			toolStripMenuItem2.Name = "toolStripMenuItem2";
+			toolStripMenuItem2.Size = new Size(145, 6);
+			// 
 			// mainPanel
 			// 
+			mainPanel.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
 			mainPanel.ColumnCount = 2;
 			mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 75F));
 			mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25F));
 			mainPanel.Controls.Add(leftSubPanel, 0, 0);
 			mainPanel.Controls.Add(flowLayoutPanel1, 1, 0);
-			mainPanel.Dock = DockStyle.Fill;
 			mainPanel.Location = new Point(0, 0);
 			mainPanel.Margin = new Padding(4, 3, 4, 3);
 			mainPanel.Name = "mainPanel";
 			mainPanel.RowCount = 1;
 			mainPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-			mainPanel.Size = new Size(933, 519);
+			mainPanel.Size = new Size(933, 496);
 			mainPanel.TabIndex = 0;
 			// 
 			// leftSubPanel
@@ -114,7 +131,7 @@ namespace VSLauncher
 			leftSubPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 26F));
 			leftSubPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 37F));
 			leftSubPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-			leftSubPanel.Size = new Size(691, 513);
+			leftSubPanel.Size = new Size(691, 490);
 			leftSubPanel.TabIndex = 0;
 			// 
 			// label1
@@ -224,7 +241,7 @@ namespace VSLauncher
 			olvFiles.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
 			olvFiles.CellEditUseWholeCell = false;
 			olvFiles.Columns.AddRange(new ColumnHeader[] { olvColumnFilename, olvColumnPath, olvColumnDate, olvColumnOptions });
-			olvFiles.EmptyListMsg = "Add a group to start";
+			olvFiles.EmptyListMsg = "Add a group, import a folder or import recent items";
 			olvFiles.EmptyListMsgFont = new Font("Segoe UI", 11.25F, FontStyle.Regular, GraphicsUnit.Point);
 			olvFiles.FullRowSelect = true;
 			olvFiles.Location = new Point(3, 66);
@@ -234,7 +251,7 @@ namespace VSLauncher
 			olvFiles.ShowCommandMenuOnRightClick = true;
 			olvFiles.ShowGroups = false;
 			olvFiles.ShowItemToolTips = true;
-			olvFiles.Size = new Size(685, 444);
+			olvFiles.Size = new Size(685, 421);
 			olvFiles.SmallImageList = imageList3;
 			olvFiles.TabIndex = 1;
 			olvFiles.UseCompatibleStateImageBehavior = false;
@@ -250,6 +267,7 @@ namespace VSLauncher
 			olvFiles.HotItemChanged += olvFiles_HotItemChanged;
 			olvFiles.AfterLabelEdit += olvFiles_AfterLabelEdit;
 			olvFiles.ItemActivate += olvFiles_ItemActivate;
+			olvFiles.SelectedIndexChanged += olvFiles_SelectedIndexChanged;
 			olvFiles.DoubleClick += olvFiles_DoubleClick;
 			// 
 			// olvColumnFilename
@@ -358,7 +376,7 @@ namespace VSLauncher
 			flowLayoutPanel1.Location = new Point(699, 0);
 			flowLayoutPanel1.Margin = new Padding(0);
 			flowLayoutPanel1.Name = "flowLayoutPanel1";
-			flowLayoutPanel1.Size = new Size(234, 519);
+			flowLayoutPanel1.Size = new Size(234, 496);
 			flowLayoutPanel1.TabIndex = 1;
 			// 
 			// selectVisualStudioVersion
@@ -491,48 +509,66 @@ namespace VSLauncher
 			// 
 			// ctxMenu
 			// 
-			ctxMenu.Items.AddRange(new ToolStripItem[] { runToolStripMenuItem, runAsAdminToolStripMenuItem, renameToolStripMenuItem, toolStripMenuItem1, settingsToolStripMenuItem });
+			ctxMenu.Items.AddRange(new ToolStripItem[] { runToolStripMenuItem, runAsAdminToolStripMenuItem, renameToolStripMenuItem, toolStripMenuItem1, deleteToolStripMenuItem, toolStripMenuItem2, settingsToolStripMenuItem });
 			ctxMenu.Name = "ctxMenu";
-			ctxMenu.Size = new Size(181, 120);
+			ctxMenu.Size = new Size(149, 126);
 			// 
 			// runToolStripMenuItem
 			// 
 			runToolStripMenuItem.Name = "runToolStripMenuItem";
-			runToolStripMenuItem.Size = new Size(180, 22);
+			runToolStripMenuItem.Size = new Size(148, 22);
 			runToolStripMenuItem.Text = "Run";
 			runToolStripMenuItem.Click += runToolStripMenuItem_Click;
 			// 
 			// runAsAdminToolStripMenuItem
 			// 
 			runAsAdminToolStripMenuItem.Name = "runAsAdminToolStripMenuItem";
-			runAsAdminToolStripMenuItem.Size = new Size(180, 22);
+			runAsAdminToolStripMenuItem.Size = new Size(148, 22);
 			runAsAdminToolStripMenuItem.Text = "Run as Admin";
 			runAsAdminToolStripMenuItem.Click += runAsAdminToolStripMenuItem_Click;
 			// 
 			// renameToolStripMenuItem
 			// 
 			renameToolStripMenuItem.Name = "renameToolStripMenuItem";
-			renameToolStripMenuItem.Size = new Size(180, 22);
+			renameToolStripMenuItem.Size = new Size(148, 22);
 			renameToolStripMenuItem.Text = "Rename...";
 			renameToolStripMenuItem.Click += renameToolStripMenuItem_Click;
 			// 
-			// toolStripMenuItem1
+			// deleteToolStripMenuItem
 			// 
-			toolStripMenuItem1.Name = "toolStripMenuItem1";
-			toolStripMenuItem1.Size = new Size(177, 6);
+			deleteToolStripMenuItem.Name = "deleteToolStripMenuItem";
+			deleteToolStripMenuItem.Size = new Size(148, 22);
+			deleteToolStripMenuItem.Text = "Delete...";
+			deleteToolStripMenuItem.Click += deleteToolStripMenuItem_Click;
 			// 
 			// settingsToolStripMenuItem
 			// 
 			settingsToolStripMenuItem.Name = "settingsToolStripMenuItem";
-			settingsToolStripMenuItem.Size = new Size(180, 22);
+			settingsToolStripMenuItem.Size = new Size(148, 22);
 			settingsToolStripMenuItem.Text = "Settings...";
 			settingsToolStripMenuItem.Click += settingsToolStripMenuItem_Click;
+			// 
+			// statusStrip1
+			// 
+			statusStrip1.Items.AddRange(new ToolStripItem[] { mainStatusLabel });
+			statusStrip1.Location = new Point(0, 497);
+			statusStrip1.Name = "statusStrip1";
+			statusStrip1.Size = new Size(933, 22);
+			statusStrip1.TabIndex = 1;
+			statusStrip1.Text = "statusStrip1";
+			// 
+			// mainStatusLabel
+			// 
+			mainStatusLabel.Name = "mainStatusLabel";
+			mainStatusLabel.Size = new Size(94, 17);
+			mainStatusLabel.Text = "mainStatusLabel";
 			// 
 			// MainDialog
 			// 
 			this.AutoScaleDimensions = new SizeF(7F, 15F);
 			this.AutoScaleMode = AutoScaleMode.Font;
 			this.ClientSize = new Size(933, 519);
+			this.Controls.Add(statusStrip1);
 			this.Controls.Add(mainPanel);
 			this.Icon = (Icon)resources.GetObject("$this.Icon");
 			this.Margin = new Padding(4, 3, 4, 3);
@@ -546,7 +582,10 @@ namespace VSLauncher
 			((System.ComponentModel.ISupportInitialize)olvFiles).EndInit();
 			flowLayoutPanel1.ResumeLayout(false);
 			ctxMenu.ResumeLayout(false);
+			statusStrip1.ResumeLayout(false);
+			statusStrip1.PerformLayout();
 			ResumeLayout(false);
+			PerformLayout();
 		}
 
 		#endregion
@@ -587,6 +626,9 @@ namespace VSLauncher
 		private ToolStripMenuItem settingsToolStripMenuItem;
 		private ToolStripTextBox txtFilter;
 		private ToolStripSeparator toolStripSeparator1;
+		private StatusStrip statusStrip1;
+		private ToolStripStatusLabel mainStatusLabel;
+		private ToolStripMenuItem deleteToolStripMenuItem;
 	}
 }
 

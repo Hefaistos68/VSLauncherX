@@ -34,11 +34,6 @@ namespace VSLauncher.DataModel
 		public eProjectType ProjectType { get; set; }
 
 		/// <summary>
-		/// Gets or sets a value indicating whether show splash.
-		/// </summary>
-		public bool ShowSplash { get; set; }
-
-		/// <summary>
 		/// Gets the required version for the solution file
 		/// </summary>
 		/// <returns>A string.</returns>
@@ -65,6 +60,12 @@ namespace VSLauncher.DataModel
 			}
 
 			return version;
+		}
+
+		/// <inheritdoc/>
+		public override string? ToString()
+		{
+			return $"{this.Name} ({this.ProjectType})";
 		}
 	}
 }
