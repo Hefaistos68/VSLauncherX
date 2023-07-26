@@ -538,7 +538,7 @@ namespace VSLauncher
 		/// <param name="e">The e.</param>
 		private void olvFiles_DoubleClick(object sender, EventArgs e)
 		{
-
+			this.runToolStripMenuItem_Click(sender, e);
 		}
 
 		/// <summary>
@@ -605,7 +605,15 @@ namespace VSLauncher
 
 		private void olvFiles_ModelDroppedHandler(object sender, ModelDropEventArgs e)
 		{
-			String msg = String.Format("{2} items were dropped on '{1}' as a {0} operation.",   e.Effect, ((DirectoryInfo) e.TargetModel).Name, e.SourceModels.Count);
+			if (e.SourceModels.Count == 1)
+			{
+				object target = e.TargetModel;
+				object source = e.SourceModels[0];
+
+				if (e.Effect == System.Windows.Forms.DragDropEffects.Move)
+				{
+				}
+			}
 		}
 
 		private void RebuildFilters()
@@ -708,6 +716,75 @@ namespace VSLauncher
 			// TODO: must verify items before loading, indicate missing items through warning icon
 			this.olvFiles.SetObjects(this.solutionGroups);
 			this.olvFiles.ExpandAll();
+		}
+
+		private void runToolStripMenuItem_Click(object sender, EventArgs e)
+		{
+			var item = olvFiles.SelectedItem.RowObject;
+			var vs = this.selectVisualStudioVersion.SelectedItem as VisualStudioInstance;
+
+			if (item is SolutionGroup sg)
+			{
+				new ItemLauncher(sg, vs).Launch();
+			}
+			else if (item is VsSolution s)
+			{
+				new ItemLauncher(s, vs).Launch();
+			}
+		}
+
+		private void runAsAdminToolStripMenuItem_Click(object sender, EventArgs e)
+		{
+			var item = olvFiles.SelectedItem.RowObject;
+			var vs = this.selectVisualStudioVersion.SelectedItem as VisualStudioInstance;
+
+			if (item is SolutionGroup sg)
+			{
+				new ItemLauncher(sg, vs).Launch(true);
+			}
+			else if (item is VsSolution s)
+			{
+				new ItemLauncher(s, vs).Launch(true);
+			}
+
+		}
+
+		private void renameToolStripMenuItem_Click(object sender, EventArgs e)
+		{
+
+		}
+
+		private void settingsToolStripMenuItem_Click(object sender, EventArgs e)
+		{
+			object item = olvFiles.SelectedItem.RowObject;
+			var dlg = new dlgExecuteVisualStudio(item);
+
+			if (dlg.ShowDialog() == DialogResult.OK)
+			{
+				if(item is VsSolution s)
+				{
+					s.RunAsAdmin= dlg.AsAdmin;
+					s.ShowSplash = dlg.ShowSplash;
+					s.Path = dlg.ProjectOrSolution;
+					s.Instance = dlg.InstanceName;
+					s.Commands = dlg.Command;
+				}
+				else if(item is VsProject p)
+				{
+					p.RunAsAdmin= dlg.AsAdmin;
+					p.ShowSplash = dlg.ShowSplash;
+					p.Path = dlg.ProjectOrSolution;
+					p.Instance = dlg.InstanceName;
+					p.Commands = dlg.Command;
+				}
+				else if (item is SolutionGroup sg)
+				{
+					sg.RunAsAdmin = dlg.AsAdmin;
+					sg.Path = dlg.ProjectOrSolution;
+					sg.Instance = dlg.InstanceName;
+					sg.Commands = dlg.Command;
+				}
+			}
 		}
 	}
 }

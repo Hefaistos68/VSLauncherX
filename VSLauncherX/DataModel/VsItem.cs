@@ -1,5 +1,15 @@
-﻿namespace VSLauncher.DataModel
+﻿using Newtonsoft.Json;
+
+namespace VSLauncher.DataModel
 {
+	public enum eItemType
+	{
+		Solution,
+		Project,
+		Other,
+		Folder
+	}
+
 	/// <summary>
 	/// The vs item.
 	/// </summary>
@@ -10,7 +20,7 @@
 		/// </summary>
 		public VsItem() : base()
 		{
-
+			this.ItemType = eItemType.Other;
 		}
 
 		/// <summary>
@@ -29,24 +39,49 @@
 		/// Gets or sets the name.
 		/// </summary>
 		public string? Name { get; set; }
+
 		/// <summary>
 		/// Gets or sets the path.
 		/// </summary>
 		public string? Path { get; set; }
 
 		/// <summary>
+		/// Gets or sets the commands.
+		/// </summary>
+		public string? Commands { get; set; }
+
+		/// <summary>
+		/// Gets or sets the instance.
+		/// </summary>
+		[JsonIgnore]
+		public string? Instance { get; set; }
+
+		/// <summary>
 		/// Gets the last modified.
 		/// </summary>
+		[JsonIgnore]
 		public DateTime LastModified { get; set; }
 
 		/// <summary>
 		/// Gets or sets a value indicating whether changed.
 		/// </summary>
+		[JsonIgnore]
 		public bool Changed { get; set; }
+
+		/// <summary>
+		/// Gets or sets a value indicating whether wait for completion.
+		/// </summary>
+		public bool WaitForCompletion { get; set; }
+
+		/// <summary>
+		/// Gets or sets the item type.
+		/// </summary>
+		public eItemType ItemType { get; set; }
 
 		/// <summary>
 		/// Gets or sets a value indicating whether checked.
 		/// </summary>
+		[JsonIgnore]
 		public bool Checked { get; set; }
     }
 }

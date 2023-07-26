@@ -41,6 +41,7 @@
 			chkSplash = new CheckBox();
 			btnSelectFolder = new Button();
 			txtFoldername = new TextBox();
+			txtInfo = new LinkLabel();
 			label1 = new Label();
 			label2 = new Label();
 			label3 = new Label();
@@ -103,7 +104,8 @@
 			btnOk.Name = "btnOk";
 			btnOk.Size = new Size(100, 40);
 			btnOk.TabIndex = 12;
-			btnOk.Text = "Run";
+			btnOk.Tag = "&Save";
+			btnOk.Text = "&Run";
 			btnOk.TextImageRelation = TextImageRelation.ImageBeforeText;
 			btnOk.UseVisualStyleBackColor = true;
 			btnOk.Click += btnOk_Click;
@@ -176,6 +178,18 @@
 			txtFoldername.Size = new Size(356, 23);
 			txtFoldername.TabIndex = 7;
 			// 
+			// txtInfo
+			// 
+			txtInfo.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+			txtInfo.Location = new Point(166, 9);
+			txtInfo.Name = "txtInfo";
+			txtInfo.Size = new Size(233, 15);
+			txtInfo.TabIndex = 13;
+			txtInfo.TabStop = true;
+			txtInfo.Text = "?";
+			txtInfo.TextAlign = ContentAlignment.MiddleRight;
+			txtInfo.LinkClicked += txtInfo_LinkClicked;
+			// 
 			// dlgExecuteVisualStudio
 			// 
 			this.AcceptButton = btnOk;
@@ -184,6 +198,7 @@
 			this.CancelButton = btnCancel;
 			this.ClientSize = new Size(411, 400);
 			this.ControlBox = false;
+			this.Controls.Add(txtInfo);
 			this.Controls.Add(btnSelectFolder);
 			this.Controls.Add(txtFoldername);
 			this.Controls.Add(label4);
@@ -221,5 +236,6 @@
 		private CheckBox chkSplash;
 		private Button btnSelectFolder;
 		private TextBox txtFoldername;
+		private LinkLabel txtInfo;
 	}
 }

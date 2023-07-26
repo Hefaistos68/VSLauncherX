@@ -33,6 +33,67 @@ namespace VSLauncher
 		}
 
 		/// <summary>
+		/// Initializes a new instance of the <see cref="dlgExecuteVisualStudio"/> class.
+		/// </summary>
+		public dlgExecuteVisualStudio(object item)
+		{
+			InitializeComponent();
+			string version ="";
+
+			if (item is SolutionGroup g)
+			{
+				this.ProjectOrSolution = g.Path;
+			}
+			else if (item is VsProject p)
+			{
+				this.ProjectOrSolution = p.Path;
+				this.AsAdmin = p.RunAsAdmin;
+				this.ShowSplash = p.ShowSplash;
+				version = p.GetRequiredVersion();
+				this.visualStudioCombobox1.SelectFromVersion(version);
+			}
+			else if (item is VsSolution s)
+			{
+				this.ProjectOrSolution = s.Path;
+				this.AsAdmin = s.RunAsAdmin;
+				this.ShowSplash = s.ShowSplash;
+				version = s.GetRequiredVersion();
+				this.visualStudioCombobox1.SelectFromVersion(version);
+			}
+			else if (item is VsFolder f)
+			{
+				this.ProjectOrSolution = f.Path;
+			}
+			else
+			{
+				throw new ArgumentException("Unknown type of item");
+			}
+
+			if (this.visualStudioCombobox1.SelectedIndex == -1)
+			{
+				this.txtInfo.Text = $"VS {version} not found";
+			}
+			else
+			{
+
+			}
+
+			UpdateControlsFromData();
+
+			// make this a change dialog and add Save
+			this.btnOk.Text = this.btnOk.Tag as string;
+		}
+
+		private void UpdateControlsFromData()
+		{
+			this.txtFoldername.Text = this.ProjectOrSolution;
+			this.txtCommand.Text = this.Command;
+			this.cbxInstance.Text = this.InstanceName;
+			this.chkAdmin.Checked = this.AsAdmin;
+			this.chkSplash.Checked = this.ShowSplash;
+		}
+
+		/// <summary>
 		/// Gets a value indicating whether as admin.
 		/// </summary>
 		public bool AsAdmin { get; internal set; }
@@ -95,7 +156,7 @@ namespace VSLauncher
 		private void btnSelectFolder_Click(object sender, EventArgs e)
 		{
 			// let the user select a folder through the system dialog
-			using (OpenFileDialog openFileDialog = new ())
+			using (OpenFileDialog openFileDialog = new())
 			{
 				openFileDialog.Filter = solutionFilterString;
 				openFileDialog.FilterIndex = 1;
@@ -114,6 +175,14 @@ namespace VSLauncher
 					Properties.Settings.Default.LastExecuteFolder = Path.GetDirectoryName(folderPath);
 				}
 			}
+		}
+
+		private void txtInfo_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+		{
+			System.Diagnostics.Process.Start("explorer.exe", "https://visualstudio.microsoft.com/vs/older-downloads/");
+
+			// open a link in the default browser
+
 		}
 	}
 }

@@ -493,36 +493,40 @@ namespace VSLauncher
 			// 
 			ctxMenu.Items.AddRange(new ToolStripItem[] { runToolStripMenuItem, runAsAdminToolStripMenuItem, renameToolStripMenuItem, toolStripMenuItem1, settingsToolStripMenuItem });
 			ctxMenu.Name = "ctxMenu";
-			ctxMenu.Size = new Size(149, 98);
+			ctxMenu.Size = new Size(181, 120);
 			// 
 			// runToolStripMenuItem
 			// 
 			runToolStripMenuItem.Name = "runToolStripMenuItem";
-			runToolStripMenuItem.Size = new Size(148, 22);
+			runToolStripMenuItem.Size = new Size(180, 22);
 			runToolStripMenuItem.Text = "Run";
+			runToolStripMenuItem.Click += runToolStripMenuItem_Click;
 			// 
 			// runAsAdminToolStripMenuItem
 			// 
 			runAsAdminToolStripMenuItem.Name = "runAsAdminToolStripMenuItem";
-			runAsAdminToolStripMenuItem.Size = new Size(148, 22);
+			runAsAdminToolStripMenuItem.Size = new Size(180, 22);
 			runAsAdminToolStripMenuItem.Text = "Run as Admin";
+			runAsAdminToolStripMenuItem.Click += runAsAdminToolStripMenuItem_Click;
 			// 
 			// renameToolStripMenuItem
 			// 
 			renameToolStripMenuItem.Name = "renameToolStripMenuItem";
-			renameToolStripMenuItem.Size = new Size(148, 22);
+			renameToolStripMenuItem.Size = new Size(180, 22);
 			renameToolStripMenuItem.Text = "Rename...";
+			renameToolStripMenuItem.Click += renameToolStripMenuItem_Click;
 			// 
 			// toolStripMenuItem1
 			// 
 			toolStripMenuItem1.Name = "toolStripMenuItem1";
-			toolStripMenuItem1.Size = new Size(145, 6);
+			toolStripMenuItem1.Size = new Size(177, 6);
 			// 
 			// settingsToolStripMenuItem
 			// 
 			settingsToolStripMenuItem.Name = "settingsToolStripMenuItem";
-			settingsToolStripMenuItem.Size = new Size(148, 22);
+			settingsToolStripMenuItem.Size = new Size(180, 22);
 			settingsToolStripMenuItem.Text = "Settings...";
+			settingsToolStripMenuItem.Click += settingsToolStripMenuItem_Click;
 			// 
 			// MainDialog
 			// 

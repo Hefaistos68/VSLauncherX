@@ -1,4 +1,6 @@
-﻿namespace VSLauncher.DataModel
+﻿using Newtonsoft.Json;
+
+namespace VSLauncher.DataModel
 {
 	/// <summary>
 	/// The vs item list.
@@ -20,6 +22,7 @@
 		/// <summary>
 		/// Gets or sets a value indicating whether changed.
 		/// </summary>
+		[JsonIgnore]
 		public bool Changed { get => this.isChanged; set { this.isChanged = value; if (this.parent != null) this.parent.Changed = value; } }
 
 		/// <summary>
@@ -42,9 +45,13 @@
 			this.Changed = true;
 		}
 
+		/// <summary>
+		/// Reparents the list
+		/// </summary>
+		/// <param name="newParent">The new parent.</param>
 		public void Reparent(VsItem newParent)
 		{
-			if (this.parent != null) 
+			if (this.parent != null && this.parent != newParent) 
 			{
 				throw new Exception();
 			}

@@ -1,4 +1,6 @@
-﻿namespace VSLauncher.DataModel
+﻿using System.Text.Json.Serialization;
+
+namespace VSLauncher.DataModel
 {
 	/// <summary>
 	/// The vs folder.
@@ -12,7 +14,8 @@
 		/// </summary>
 		public VsFolder()
 		{
-			Items = new VsItemList(this);
+			this.Items = new VsItemList(this);
+			this.ItemType = eItemType.Folder;
 		}
 
 		/// <summary>
@@ -22,7 +25,8 @@
 		/// <param name="path">The path.</param>
 		public VsFolder(string name, string path) : base(name, path, null)
 		{
-			Items = new VsItemList(this);
+			this.Items = new VsItemList(this);
+			this.ItemType = eItemType.Folder;
 		}
 
 		/// <summary>
@@ -38,6 +42,7 @@
 			}
 		}
 
+		[JsonIgnore]
 		public new bool? Checked
 		{
 			get 

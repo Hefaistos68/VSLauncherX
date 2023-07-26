@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Diagnostics;
 using System.Reflection;
 using System.Xml.Linq;
+using System.Security.Principal;
 
 namespace VSLauncher.DataModel
 {
@@ -60,6 +61,9 @@ namespace VSLauncher.DataModel
 		/// </summary>
 		public string Location { get; }
 
+		/// <summary>
+		/// Gets the identifier.
+		/// </summary>
 		public string Identifier { get; }
 
 		/// <summary>
@@ -173,31 +177,55 @@ namespace VSLauncher.DataModel
 			var si = new ProcessStartInfo(Location)
 			{
 				Verb = bAdmin ? "runas" : "run",
-
 			};
+
+			if(SystemUtility.IsAdmin() && !bAdmin)
+			{
+				// TODO: must run as non-admin user, revert to user from admin
+			}
+
+			si.UseShellExecute = true;
+
+			BuildVisualStudioCommandline(bShowSplash, instance, command, projectOrSolution).ForEach(x => si.ArgumentList.Add(x));
+			
+			return si;
+		}
+
+		/// <summary>
+		/// Builds the visual studio commandline.
+		/// </summary>
+		/// <param name="bShowSplash">If true, b show splash.</param>
+		/// <param name="instance">The instance.</param>
+		/// <param name="command">The command.</param>
+		/// <param name="projectOrSolution">The project or solution.</param>
+		/// <returns>A list of string.</returns>
+		private List<string> BuildVisualStudioCommandline(bool bShowSplash = false, string? instance = null, string? command = null, string? projectOrSolution = null)
+		{
+			List<string> list = new();
 
 			if(!string.IsNullOrEmpty(projectOrSolution))
 			{
-				si.ArgumentList.Add(projectOrSolution);
+				list.Add(projectOrSolution);
 			}
 
 			if (bShowSplash == false)
 			{
-				si.ArgumentList.Add($"/noSplash");
+				list.Add($"/noSplash");
 			}
 
 			if (!string.IsNullOrEmpty(command))
 			{
-				si.ArgumentList.Add($"/command");
-				si.ArgumentList.Add(command);
+				list.Add($"/command");
+				list.Add(command);
 			}
 
 			if (!string.IsNullOrEmpty(instance))
 			{
-				si.ArgumentList.Add($"/rootSuffix {instance}");
+				list.Add($"/rootSuffix {instance}");
 			}
 
-			return si;
+			return list;
 		}
+
 	}
 }
