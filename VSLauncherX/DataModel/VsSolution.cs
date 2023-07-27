@@ -24,6 +24,14 @@ namespace VSLauncher.DataModel
 		{
 			this.ItemType = eItemType.Solution;
 			this.RequiredVersion = this.GetRequiredVersion();
+			try
+			{
+				this.LastModified = new FileInfo(this.Path).LastWriteTime;
+			}
+			catch (System.Exception ex)
+			{
+				this.LastModified = DateTime.MinValue;
+			}
 		}
 
 		/// <summary>
@@ -36,6 +44,7 @@ namespace VSLauncher.DataModel
 		{
 			this.SolutionType = type;
 			this.ItemType = eItemType.Solution;
+			this.RequiredVersion = this.GetRequiredVersion();
 		}
 
 		/// <summary>

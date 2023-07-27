@@ -31,6 +31,11 @@ namespace VSLauncher
 
 		public static object GetAspectForDate(object row)
 		{
+			if (row is VsFolder)
+			{
+				return string.Empty;
+			}
+
 			if (row is VsItem s)
 			{
 				return s.LastModified;
@@ -64,6 +69,11 @@ namespace VSLauncher
 
 		public static object GetAspectForPath(object row)
 		{
+			if (row is VsFolder)
+			{
+				return string.Empty;
+			}
+
 			return row is VsItem sg ? sg.Path ?? string.Empty : string.Empty;
 		}
 

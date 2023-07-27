@@ -34,5 +34,10 @@
 		/// Gets or sets a value indicating whether show splash.
 		/// </summary>
 		public bool ShowSplash { get; set; }
+
+		/// <summary>
+		/// Gets or sets a value indicating whether wait exit.
+		/// </summary>
+		public bool WaitExit { get; set; }
     }
 }

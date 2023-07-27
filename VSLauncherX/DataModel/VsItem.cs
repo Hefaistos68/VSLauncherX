@@ -27,6 +27,14 @@ namespace VSLauncher.DataModel
 		}
 
 		/// <summary>
+		/// Clones the object
+		/// </summary>
+		/// <returns>A VsItem.</returns>
+		public VsItem Clone()
+		{
+			return (VsItem)this.MemberwiseClone();
+		}
+		/// <summary>
 		/// Initializes a new instance of the <see cref="VsItem"/> class.
 		/// </summary>
 		/// <param name="name">The name.</param>
@@ -56,7 +64,6 @@ namespace VSLauncher.DataModel
 		/// <summary>
 		/// Gets or sets the instance.
 		/// </summary>
-		[JsonIgnore]
 		public string? Instance { get; set; }
 
 		/// <summary>

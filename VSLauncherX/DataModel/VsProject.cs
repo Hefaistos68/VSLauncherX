@@ -26,6 +26,14 @@ namespace VSLauncher.DataModel
 		{
 			this.ProjectType = prType;
 			this.ItemType = eItemType.Project;
+			try
+			{
+				this.LastModified = new FileInfo(this.Path).LastWriteTime;
+			}
+			catch (System.Exception ex)
+			{
+				this.LastModified = DateTime.MinValue;
+			}
 		}
 
 		/// <summary>

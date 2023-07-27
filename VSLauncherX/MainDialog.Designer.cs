@@ -214,6 +214,7 @@ namespace VSLauncher
 			mainRefresh.Size = new Size(23, 34);
 			mainRefresh.Text = "He&lp";
 			mainRefresh.ToolTipText = "Reload";
+			mainRefresh.Click += mainRefresh_Click;
 			// 
 			// _1
 			// 
@@ -342,8 +343,8 @@ namespace VSLauncher
 			imageList3.Images.SetKeyName(6, "ConnectArrow");
 			imageList3.Images.SetKeyName(7, "CPPProject");
 			imageList3.Images.SetKeyName(8, "CSProject");
-			imageList3.Images.SetKeyName(9, "FolderClosedBlue");
-			imageList3.Images.SetKeyName(10, "FolderOpenBlue");
+			imageList3.Images.SetKeyName(9, "FolderClosed");
+			imageList3.Images.SetKeyName(10, "FolderOpen");
 			imageList3.Images.SetKeyName(11, "FSProject");
 			imageList3.Images.SetKeyName(12, "OpenProjectFolder");
 			imageList3.Images.SetKeyName(13, "Refresh");

@@ -23,6 +23,9 @@ namespace VSLauncher
 															"TS/JS Projects (*.esproj, *.tsproj)|*.esproj" +
 															"Cxx Projects (*.vcxproj)|*.vcxproj" +
 															"All files (*.*)|*.*";
+
+		public VsItem Item;
+
 		/// <summary>
 		/// Initializes a new instance of the <see cref="dlgExecuteVisualStudio"/> class.
 		/// </summary>
@@ -30,6 +33,7 @@ namespace VSLauncher
 		{
 			InitializeComponent();
 			this.visualStudioCombobox1.SelectedIndex = index; // that is always the same as in the main dialog
+			this.Item = new VsItem();
 		}
 
 		/// <summary>
@@ -39,6 +43,7 @@ namespace VSLauncher
 		{
 			InitializeComponent();
 			string version ="";
+			this.Item = (VsItem)item;
 
 			if (item is VsProject p)
 			{
@@ -69,7 +74,7 @@ namespace VSLauncher
 
 			if (this.visualStudioCombobox1.SelectedIndex == -1)
 			{
-				if(string.IsNullOrEmpty(version))
+				if (string.IsNullOrEmpty(version))
 				{
 					this.txtInfo.Text = $"no specific version required";
 				}
@@ -156,6 +161,11 @@ namespace VSLauncher
 			this.ShowSplash = chkSplash.Checked;
 			this.Command = txtCommand.Text;
 			this.ProjectOrSolution = txtFoldername.Text;
+
+			this.Item.Path = txtFoldername.Text;
+			this.Item.RunAsAdmin = chkAdmin.Checked;
+			this.Item.ShowSplash = chkSplash.Checked;
+			// this.Item.Command = txtCommand.Text;
 		}
 
 		private void btnSelectFolder_Click(object sender, EventArgs e)
@@ -186,6 +196,21 @@ namespace VSLauncher
 		{
 			// open a link in the default browser
 			System.Diagnostics.Process.Start("explorer.exe", "https://visualstudio.microsoft.com/vs/older-downloads/");
+		}
+
+		private void btnBeforeAfter_Click(object sender, EventArgs e)
+		{
+			var dlg = new dlgBeforeAfter(this.Item, this.Item.Name);
+
+			if (dlg.ShowDialog() == DialogResult.OK)
+			{
+
+			}
+		}
+
+		private void txtFoldername_TextChanged(object sender, EventArgs e)
+		{
+			btnBeforeAfter.Enabled = !string.IsNullOrWhiteSpace(txtFoldername.Text);
 		}
 	}
 }

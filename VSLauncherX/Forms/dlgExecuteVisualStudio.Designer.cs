@@ -44,6 +44,7 @@
 			txtFoldername = new TextBox();
 			txtInfo = new LinkLabel();
 			toolTip1 = new ToolTip(this.components);
+			btnBeforeAfter = new Button();
 			label1 = new Label();
 			label2 = new Label();
 			label3 = new Label();
@@ -179,6 +180,7 @@
 			txtFoldername.Name = "txtFoldername";
 			txtFoldername.Size = new Size(356, 23);
 			txtFoldername.TabIndex = 7;
+			txtFoldername.TextChanged += txtFoldername_TextChanged;
 			// 
 			// txtInfo
 			// 
@@ -193,6 +195,17 @@
 			toolTip1.SetToolTip(txtInfo, "Information");
 			txtInfo.LinkClicked += txtInfo_LinkClicked;
 			// 
+			// btnBeforeAfter
+			// 
+			btnBeforeAfter.Enabled = false;
+			btnBeforeAfter.Location = new Point(12, 348);
+			btnBeforeAfter.Name = "btnBeforeAfter";
+			btnBeforeAfter.Size = new Size(100, 40);
+			btnBeforeAfter.TabIndex = 14;
+			btnBeforeAfter.Text = "Before/After...";
+			btnBeforeAfter.UseVisualStyleBackColor = true;
+			btnBeforeAfter.Click += btnBeforeAfter_Click;
+			// 
 			// dlgExecuteVisualStudio
 			// 
 			this.AcceptButton = btnOk;
@@ -201,6 +214,7 @@
 			this.CancelButton = btnCancel;
 			this.ClientSize = new Size(411, 400);
 			this.ControlBox = false;
+			this.Controls.Add(btnBeforeAfter);
 			this.Controls.Add(txtInfo);
 			this.Controls.Add(btnSelectFolder);
 			this.Controls.Add(txtFoldername);
@@ -241,5 +255,6 @@
 		private TextBox txtFoldername;
 		private LinkLabel txtInfo;
 		private ToolTip toolTip1;
+		private Button btnBeforeAfter;
 	}
 }

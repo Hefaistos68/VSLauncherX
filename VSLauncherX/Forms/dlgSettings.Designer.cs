@@ -1,6 +1,6 @@
-﻿namespace VSLauncher
+﻿namespace VSLauncher.Forms
 {
-	partial class dlgNewInstance
+	partial class dlgSettings
 	{
 		/// <summary>
 		/// Required designer variable.
@@ -28,83 +28,61 @@
 		/// </summary>
 		private void InitializeComponent()
 		{
-			Label label1;
+			System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(dlgSettings));
 			btnCancel = new Button();
 			btnOk = new Button();
-			txtInstanceName = new TextBox();
-			label1 = new Label();
 			SuspendLayout();
-			// 
-			// label1
-			// 
-			label1.AutoSize = true;
-			label1.Location = new Point(12, 9);
-			label1.Name = "label1";
-			label1.Size = new Size(152, 15);
-			label1.TabIndex = 0;
-			label1.Text = "Name for the new instance:";
 			// 
 			// btnCancel
 			// 
+			btnCancel.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
 			btnCancel.DialogResult = DialogResult.Cancel;
 			btnCancel.Image = Resources.Cancel_24x24;
-			btnCancel.Location = new Point(130, 78);
+			btnCancel.Location = new Point(334, 261);
 			btnCancel.Name = "btnCancel";
 			btnCancel.Size = new Size(100, 40);
-			btnCancel.TabIndex = 2;
+			btnCancel.TabIndex = 5;
 			btnCancel.Text = " Cancel";
 			btnCancel.TextImageRelation = TextImageRelation.ImageBeforeText;
 			btnCancel.UseVisualStyleBackColor = true;
 			// 
 			// btnOk
 			// 
+			btnOk.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
 			btnOk.DialogResult = DialogResult.OK;
 			btnOk.Image = Resources.Check_24x24;
-			btnOk.Location = new Point(236, 78);
+			btnOk.Location = new Point(440, 261);
 			btnOk.Name = "btnOk";
 			btnOk.Size = new Size(100, 40);
-			btnOk.TabIndex = 3;
+			btnOk.TabIndex = 6;
 			btnOk.Text = " Ok";
 			btnOk.TextImageRelation = TextImageRelation.ImageBeforeText;
 			btnOk.UseVisualStyleBackColor = true;
 			// 
-			// txtInstanceName
-			// 
-			txtInstanceName.Location = new Point(12, 27);
-			txtInstanceName.Name = "txtInstanceName";
-			txtInstanceName.Size = new Size(322, 23);
-			txtInstanceName.TabIndex = 1;
-			txtInstanceName.TextChanged += txtInstanceName_TextChanged;
-			// 
-			// dlgNewInstance
+			// dlgSettings
 			// 
 			this.AcceptButton = btnOk;
 			this.AutoScaleDimensions = new SizeF(7F, 15F);
 			this.AutoScaleMode = AutoScaleMode.Font;
 			this.CancelButton = btnCancel;
-			this.ClientSize = new Size(347, 136);
+			this.ClientSize = new Size(552, 313);
 			this.ControlBox = false;
 			this.Controls.Add(btnCancel);
 			this.Controls.Add(btnOk);
-			this.Controls.Add(txtInstanceName);
-			this.Controls.Add(label1);
 			this.FormBorderStyle = FormBorderStyle.FixedDialog;
+			this.Icon = (Icon)resources.GetObject("$this.Icon");
 			this.MaximizeBox = false;
-			this.MdiChildrenMinimizedAnchorBottom = false;
 			this.MinimizeBox = false;
-			this.Name = "dlgNewInstance";
-			this.ShowIcon = false;
+			this.Name = "dlgSettings";
 			this.SizeGripStyle = SizeGripStyle.Hide;
 			this.StartPosition = FormStartPosition.CenterParent;
-			this.Text = "New Instance";
+			this.Text = "Visual Studio Launcher General Settings";
 			ResumeLayout(false);
-			PerformLayout();
 		}
 
 		#endregion
 
 		private Button btnCancel;
 		private Button btnOk;
-		private TextBox txtInstanceName;
 	}
 }

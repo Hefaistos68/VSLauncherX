@@ -5,9 +5,7 @@ VisualStudioVersion = 17.6.33801.468
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VSLauncherX", "VSLauncherX\VSLauncherX.csproj", "{80AC68CF-63FB-49BF-87AD-5B958B9C662B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestApp", "TestApp\TestApp.csproj", "{C082FB19-B6D9-45B4-922D-C934DC98E490}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BackgroundLaunch", "BackgroundLaunch\BackgroundLaunch.csproj", "{786D3E74-0560-4355-9B8A-01EA298043D2}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BackgroundLaunch", "BackgroundLaunch\BackgroundLaunch.csproj", "{786D3E74-0560-4355-9B8A-01EA298043D2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -19,10 +17,6 @@ Global
 		{80AC68CF-63FB-49BF-87AD-5B958B9C662B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{80AC68CF-63FB-49BF-87AD-5B958B9C662B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{80AC68CF-63FB-49BF-87AD-5B958B9C662B}.Release|Any CPU.Build.0 = Release|Any CPU
-		{C082FB19-B6D9-45B4-922D-C934DC98E490}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{C082FB19-B6D9-45B4-922D-C934DC98E490}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{C082FB19-B6D9-45B4-922D-C934DC98E490}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{C082FB19-B6D9-45B4-922D-C934DC98E490}.Release|Any CPU.Build.0 = Release|Any CPU
 		{786D3E74-0560-4355-9B8A-01EA298043D2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{786D3E74-0560-4355-9B8A-01EA298043D2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{786D3E74-0560-4355-9B8A-01EA298043D2}.Release|Any CPU.ActiveCfg = Release|Any CPU

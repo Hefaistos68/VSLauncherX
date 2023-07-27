@@ -36,6 +36,9 @@ namespace VSLauncher
 			this.chkSolutionOnly.Checked = true;
 		}
 
+		/// <summary>
+		/// Initializes the list.
+		/// </summary>
 		private void InitializeList()
 		{
 			this.olvFiles.FullRowSelect = true;
@@ -111,7 +114,7 @@ namespace VSLauncher
 		/// </summary>
 		/// <param name="folderPath">The folder path.</param>
 		/// <returns>An IEnumerable.</returns>
-		private VsItemList IterateFolder(string folderPath, bool bOnlySolutions)
+		private VsFolder IterateFolder(string folderPath, bool bOnlySolutions)
 		{
 			VsItemList sg = new(null);
 
@@ -126,11 +129,11 @@ namespace VSLauncher
 					var attributes = System.IO.File.GetAttributes(folder);
 					if (!attributes.HasFlag(FileAttributes.Hidden))
 					{
-						var subItems = IterateFolder(folder, bOnlySolutions);
+						var subItem = IterateFolder(folder, bOnlySolutions);
 
-						if (subItems.Count > 0)
+						if (subItem.Items.Count > 0)
 						{
-							root.Items.Add(subItems.First());
+							root.Items.Add(subItem);
 						}
 					}
 				}
@@ -142,19 +145,23 @@ namespace VSLauncher
 				{
 					if (IsOfInterest(file, bOnlySolutions))
 					{
-						root.Items.Add(ImportHelper.GetItemFromExtension(Path.GetFileNameWithoutExtension(file), file));
+						var item = ImportHelper.GetItemFromExtension(Path.GetFileNameWithoutExtension(file), file);
+						item.LastModified = new FileInfo(file).LastAccessTime;
+
+						root.Items.Add(item);
 					}
 				}
 			}
 
-			if (root.Items.Count > 0)
-			{
-				sg.Add(root);
-			}
-
-			return sg;
+			return root;
 		}
 
+		/// <summary>
+		/// Are the of interest.
+		/// </summary>
+		/// <param name="file">The file.</param>
+		/// <param name="bOnlySolutions">If true, b only solutions.</param>
+		/// <returns>A bool.</returns>
 		private bool IsOfInterest(string file, bool bOnlySolutions)
 		{
 			if (bOnlySolutions)
@@ -176,6 +183,11 @@ namespace VSLauncher
 			btnRefresh.Enabled = txtFoldername.Text.Length > 0;
 		}
 
+		/// <summary>
+		/// btns the ok_ click.
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
 		private void btnOk_Click(object sender, EventArgs e)
 		{
 			this.Solution.Name = txtFoldername.Text;
@@ -183,8 +195,15 @@ namespace VSLauncher
 			// remove not selected items from the solutions list
 			VsFolder sg = new VsFolder(txtFoldername.Text, txtFoldername.Text);
 			sg.Items = FilterItems(this.Solution.Items, this.olvFiles.CheckedObjects);
+			sg.Checked = false;
 		}
 
+		/// <summary>
+		/// Filters the items.
+		/// </summary>
+		/// <param name="origin">The origin.</param>
+		/// <param name="checkedItems">The checked items.</param>
+		/// <returns>A VsItemList.</returns>
 		private VsItemList FilterItems(VsItemList origin, IList checkedItems)
 		{
 			VsItemList list = new VsItemList(null);
@@ -216,6 +235,12 @@ namespace VSLauncher
 
 			return list;
 		}
+		/// <summary>
+		/// Filters the items2.
+		/// </summary>
+		/// <param name="origin">The origin.</param>
+		/// <param name="checkedItems">The checked items.</param>
+		/// <returns>A VsItemList.</returns>
 		private VsItemList FilterItems2(VsItemList origin, IList checkedItems)
 		{
 			VsItemList list = new VsItemList(null);
@@ -248,17 +273,32 @@ namespace VSLauncher
 			return list;
 		}
 
+		/// <summary>
+		/// lists the view files_ cell tool tip showing.
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
 		private void listViewFiles_CellToolTipShowing(object sender, ToolTipShowingEventArgs e)
 		{
 			// e.Text = e.Item.Text;
 			e.Text = ((VsItem)e.Item.RowObject).Path;
 		}
 
+		/// <summary>
+		/// btns the refresh_ click.
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
 		private void btnRefresh_Click(object sender, EventArgs e)
 		{
 			UpdateList();
 		}
 
+		/// <summary>
+		/// dlgs the import folder_ load.
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
 		private void dlgImportFolder_Load(object sender, EventArgs e)
 		{
 			// when the last used folder is empty, already invoke the folder selection dialog
@@ -268,18 +308,27 @@ namespace VSLauncher
 			}
 		}
 
+		/// <summary>
+		/// chks the solution only_ checked changed.
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
 		private void chkSolutionOnly_CheckedChanged(object sender, EventArgs e)
 		{
 			this.bSolutionOnly = chkSolutionOnly.Checked;
 			UpdateList();
 		}
 
+		/// <summary>
+		/// Updates the list.
+		/// </summary>
 		private void UpdateList()
 		{
 			if (Path.IsPathFullyQualified(txtFoldername.Text))
 			{
 				this.Cursor = Cursors.WaitCursor;
-				this.Solution.Items = IterateFolder(txtFoldername.Text, this.chkSolutionOnly.Checked);
+				this.Solution.Items.Clear();
+				this.Solution.Items.Add(IterateFolder(txtFoldername.Text, this.chkSolutionOnly.Checked));
 				this.olvFiles.SetObjects(this.Solution.Items);
 				this.olvFiles.ExpandAll();
 				this.Cursor = Cursors.Default;

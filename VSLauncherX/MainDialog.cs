@@ -3,6 +3,9 @@
 using Microsoft.Win32;
 
 using VSLauncher.DataModel;
+using VSLauncher.Forms;
+using Newtonsoft.Json;
+using System.Diagnostics;
 
 namespace VSLauncher
 {
@@ -11,7 +14,7 @@ namespace VSLauncher
 	/// </summary>
 	public partial class MainDialog : Form
 	{
-		private List<VsFolder> solutionGroups = new List<VsFolder>();
+		private VsFolder solutionGroups = new VsFolder();
 		private VisualStudioInstanceManager visualStudioInstances = new VisualStudioInstanceManager();
 
 		/// <summary>
@@ -19,11 +22,15 @@ namespace VSLauncher
 		/// </summary>
 		public MainDialog()
 		{
+			LoadSolutionData();
+
+			this.solutionGroups.Items.OnChanged += SolutionData_OnChanged;
+
 			InitializeComponent();
-			InitializeListview(this.solutionGroups);
+			InitializeListview(this.solutionGroups.Items);
 			SetupDragAndDrop();
 
-			BuildTestData();
+			// BuildTestData();
 
 
 			if (!string.IsNullOrEmpty(Properties.Settings.Default.SelectedVSversion))
@@ -47,27 +54,90 @@ namespace VSLauncher
 		}
 
 		/// <summary>
+		/// Loads the solution data.
+		/// </summary>
+		private void LoadSolutionData()
+		{
+			// load this.solutionGroups data from a JSON file in the users data folder
+			string fileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "VSLauncher", "VSLauncher.json");
+
+			if (File.Exists(fileName))
+			{
+				string json = File.ReadAllText(fileName);
+				JsonSerializerSettings settings = new JsonSerializerSettings()
+				{
+					TypeNameHandling = TypeNameHandling.All
+				};
+				var data = JsonConvert.DeserializeObject<VsFolder>(json, settings);
+
+				if (data is null)
+				{
+					// alert the user that the datafile was unreadable
+					MessageBox.Show($"The datafile was unreadable. Please check the file in '{fileName}' and try again.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+				}
+				else
+				{
+					this.solutionGroups = data;
+					this.solutionGroups.Items.OnChanged += SolutionData_OnChanged;
+				}
+			}
+		}
+
+		/// <summary>
+		/// Solutions the data_ on changed.
+		/// </summary>
+		private bool SolutionData_OnChanged(bool changed)
+		{
+			if (changed)
+			{
+				this.solutionGroups.LastModified = DateTime.Now;
+				SaveSolutionData();
+				UpdateList();
+			}
+
+			return false;
+		}
+
+		/// <summary>
+		/// Saves the solution data.
+		/// </summary>
+		private void SaveSolutionData()
+		{
+			// save this.solutionGroups data to a JSON file in the users data folder
+			string fileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "VSLauncher", "VSLauncher.json");
+
+			try
+			{
+				// make sure the path exists
+				Directory.CreateDirectory(Path.GetDirectoryName(fileName));
+
+				JsonSerializerSettings settings = new JsonSerializerSettings()
+				{
+					Formatting = Formatting.Indented,
+					TypeNameHandling = TypeNameHandling.All
+				};
+
+				string json = JsonConvert.SerializeObject(this.solutionGroups, settings);
+				try
+				{
+					File.WriteAllText(fileName, json);
+				}
+				catch (System.Exception ex)
+				{
+					// alert user of an error saving the data
+					MessageBox.Show($"There was an error saving the data. \r\n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+				}
+			}
+			catch (System.Exception ex)
+			{
+				MessageBox.Show($"There was an error saving the data. \r\n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+			}
+		}
+
+		/// <summary>
 		/// Gets a value indicating whether show tool tips on files.
 		/// </summary>
 		public bool showToolTipsOnFiles { get; private set; }
-		/// <summary>
-		/// Move the given item to the given index in the given group
-		/// </summary>
-		/// <remarks>The item and group must belong to the same ListView</remarks>
-		public void MoveToGroup(ListViewItem lvi, ListViewGroup group, int indexInGroup)
-		{
-			group.ListView?.BeginUpdate();
-			lvi.Group = null;
-			ListViewItem[] items = new ListViewItem[group.Items.Count + 1];
-			group.Items.CopyTo(items, 0);
-			Array.Copy(items, indexInGroup, items, indexInGroup + 1, group.Items.Count - indexInGroup);
-			items[indexInGroup] = lvi;
-			for (int i = 0; i < items.Length; i++)
-				items[i].Group = null;
-			for (int i = 0; i < items.Length; i++)
-				group.Items.Add(items[i]);
-			group.ListView?.EndUpdate();
-		}
 
 		/// <summary>
 		/// Is the control key pressed.
@@ -78,6 +148,7 @@ namespace VSLauncher
 			return (Control.ModifierKeys & Keys.Control) == Keys.Control;
 		}
 
+		#region Main Buttons
 		/// <summary>
 		/// Handles click on the btnMainStartVisualStudio1 button (Start VS)
 		/// </summary>
@@ -153,6 +224,8 @@ namespace VSLauncher
 			}
 		}
 
+		#endregion
+
 		/// <summary>
 		/// Builds the test data.
 		/// </summary>
@@ -179,8 +252,8 @@ namespace VSLauncher
 
 			sg2.Items.Add(sg3);
 
-			solutionGroups.Add(sg1);
-			solutionGroups.Add(sg2);
+			solutionGroups.Items.Add(sg1);
+			solutionGroups.Items.Add(sg2);
 			UpdateList();
 		}
 
@@ -217,7 +290,7 @@ namespace VSLauncher
 		/// Initializes the listview.
 		/// </summary>
 		/// <param name="list">The list.</param>
-		private void InitializeListview(List<VsFolder> list)
+		private void InitializeListview(VsItemList list)
 		{
 			this.olvFiles.FullRowSelect = true;
 			this.olvFiles.RowHeight = 26;
@@ -232,29 +305,10 @@ namespace VSLauncher
 
 			this.olvFiles.UseFilterIndicator = true;
 
-			// Uncomment this block to see a darker theme
-			// 			this.olvFiles.UseAlternatingBackColors = false;
-			// 			this.olvFiles.BackColor = Color.FromArgb(20, 20, 25);
-			// 			this.olvFiles.AlternateRowBackColor = Color.FromArgb(40, 40, 45);
-			// 			this.olvFiles.ForeColor = Color.WhiteSmoke;
-			// 			this.olvFiles.DisabledItemStyle = new SimpleItemStyle();
-			// 			this.olvFiles.DisabledItemStyle.ForeColor = Color.Gray;
-			// 			this.olvFiles.DisabledItemStyle.BackColor = Color.FromArgb(30, 30, 35);
-			// 			this.olvFiles.DisabledItemStyle.Font = new Font("Stencil", 10);
-
 			// The following line makes getting aspect about 10x faster. Since getting the aspect is
 			// the slowest part of building the ListView, it is worthwhile BUT NOT NECESSARY to do.
 			TypedObjectListView<VsFolder> tlist = new TypedObjectListView<VsFolder>(this.olvFiles);
 			tlist.GenerateAspectGetters();
-			/* The line above the equivilent to typing the following:
-			tlist.GetColumn(0).AspectGetter = delegate(SolutionGroup x) { return x.Name; };
-			tlist.GetColumn(1).AspectGetter = delegate(SolutionGroup x) { return x.Occupation; };
-			tlist.GetColumn(2).AspectGetter = delegate(SolutionGroup x) { return x.CulinaryRating; };
-			tlist.GetColumn(3).AspectGetter = delegate(SolutionGroup x) { return x.YearOfBirth; };
-			tlist.GetColumn(4).AspectGetter = delegate(SolutionGroup x) { return x.BirthDate; };
-			tlist.GetColumn(5).AspectGetter = delegate(SolutionGroup x) { return x.GetRate(); };
-			tlist.GetColumn(6).AspectGetter = delegate(SolutionGroup x) { return x.Comments; };
-			*/
 
 			//
 			// setup the files list
@@ -300,65 +354,21 @@ namespace VSLauncher
 			// Show the attributes for this object
 			// A FlagRenderer masks off various values and draws zero or more images based
 			// on the presence of individual bits.
-			FlagRenderer attributesRenderer = new FlagRenderer();
-			attributesRenderer.ImageList = imageList3;
+			FlagRenderer attributesRenderer = new FlagRenderer
+			{
+				ImageList = imageList3
+			};
 			attributesRenderer.Add(eOptions.RunBeforeOn, "RunBefore");
 			attributesRenderer.Add(eOptions.RunBeforeOff, "None");
 			attributesRenderer.Add(eOptions.RunAsAdminOn, "RunAsAdmin");
 			attributesRenderer.Add(eOptions.RunAsAdminOff, "None");
 			attributesRenderer.Add(eOptions.RunAfterOn, "RunAfter");
 			attributesRenderer.Add(eOptions.RunAfterOff, "None");
+
 			this.olvColumnOptions.Renderer = attributesRenderer;
 
 			// Tell the filtering subsystem that the attributes column is a collection of flags
 			this.olvColumnOptions.ClusteringStrategy = new FlagClusteringStrategy(typeof(eOptions));
-
-			// Drag and drop support
-			// You can set up drag and drop explicitly (like this) or, in the IDE, you can set
-			// IsSimpleDropSource and IsSimpleDragSource and respond to CanDrop and Dropped events
-
-			this.olvFiles.DragSource = new SimpleDragSource();
-			SimpleDropSink dropSink = new SimpleDropSink();
-			this.olvFiles.DropSink = dropSink;
-			dropSink.CanDropOnItem = true;
-			// dropSink.CanDropOnSubItem = true;
-			dropSink.FeedbackColor = Color.IndianRed; // just to be different
-
-			dropSink.ModelCanDrop += new EventHandler<ModelDropEventArgs>(delegate (object sender, ModelDropEventArgs e)
-			{
-				VsFolder SolutionGroup = e.TargetModel as VsFolder;
-				if (SolutionGroup == null)
-				{
-					e.Effect = DragDropEffects.None;
-				}
-				else
-				{
-					if (false)
-					{
-						e.Effect = DragDropEffects.None;
-						e.InfoMessage = "Can't drop on someone who is already married";
-					}
-					else
-					{
-						e.Effect = DragDropEffects.Move;
-					}
-				}
-			});
-
-			dropSink.ModelDropped += new EventHandler<ModelDropEventArgs>(delegate (object sender, ModelDropEventArgs e)
-			{
-				if (e.TargetModel == null)
-					return;
-				/*
-				// Change the dropped people plus the target SolutionGroup to be married
-				((SolutionGroup)e.TargetModel).MaritalStatus = MaritalStatus.Married;
-				foreach (SolutionGroup p in e.SourceModels)
-					p.MaritalStatus = MaritalStatus.Married;
-				*/
-				// Force them to refresh
-				e.ListView.RefreshObject(e.TargetModel);
-				e.ListView.RefreshObjects(e.SourceModels);
-			});
 
 			this.olvFiles.SetObjects(list);
 		}
@@ -376,7 +386,7 @@ namespace VSLauncher
 				var r = this.olvFiles.SelectedItem;
 				if (r == null)
 				{
-					solutionGroups.Add(dlg.Solution);
+					solutionGroups.Items.Add(dlg.Solution);
 				}
 				else
 				{
@@ -408,23 +418,23 @@ namespace VSLauncher
 				if (r == null)
 				{
 					// nothing selected, add to the end
-					this.solutionGroups.Add(dlg.Solution);
+					this.solutionGroups.Items.Add(dlg.Solution.Items.First());
 				}
 				else
 				{
 					if (r.RowObject is VsFolder sg)
 					{
 						// add below selected item
-						sg.Items.Add(dlg.Solution);
+						sg.Items.Add(dlg.Solution.Items.First());
 					}
 					else
 					{
 						// add at the end
-						this.solutionGroups.Add(dlg.Solution);
+						this.solutionGroups.Items.Add(dlg.Solution.Items.First());
 					}
 				}
 
-				UpdateList();
+				// 				UpdateList();
 			}
 		}
 
@@ -441,7 +451,7 @@ namespace VSLauncher
 				var r = this.olvFiles.SelectedItem;
 				if (r == null)
 				{
-					solutionGroups.Add(dlg.Solution);
+					solutionGroups.Items.Add(dlg.Solution);
 				}
 				else
 				{
@@ -455,7 +465,7 @@ namespace VSLauncher
 					}
 				}
 
-				UpdateList();
+				// 				UpdateList();
 			}
 		}
 
@@ -466,6 +476,8 @@ namespace VSLauncher
 		/// <param name="e">The e.</param>
 		private void mainSettings_Click(object sender, EventArgs e)
 		{
+			var dlg = new dlgSettings();
+			dlg.ShowDialog();
 		}
 
 		/// <summary>
@@ -485,8 +497,7 @@ namespace VSLauncher
 		/// <param name="e">The e.</param>
 		private void olvFiles_CellClick(object sender, CellClickEventArgs e)
 		{
-			System.Diagnostics.Trace.WriteLine(String.Format("clicked ({0}, {1}). model {2}. click count: {3}",
-				e.RowIndex, e.ColumnIndex, e.Model, e.ClickCount));
+			System.Diagnostics.Trace.WriteLine(String.Format("clicked ({0}, {1}). model {2}. click count: {3}", e.RowIndex, e.ColumnIndex, e.Model, e.ClickCount));
 		}
 
 		/// <summary>
@@ -506,12 +517,10 @@ namespace VSLauncher
 		/// <param name="e">The e.</param>
 		private void olvFiles_CellRightClick(object sender, CellRightClickEventArgs e)
 		{
-			System.Diagnostics.Trace.WriteLine(String.Format("right clicked {0}, {1}). model {2}", e.RowIndex, e.ColumnIndex, e.Model));
-			// Show a menu if the click was on first column
-			{
-				e.MenuStrip = this.ctxMenu;
-				e.MenuStrip.Show();
-			}
+			// System.Diagnostics.Trace.WriteLine(String.Format("right clicked {0}, {1}). model {2}", e.RowIndex, e.ColumnIndex, e.Model));
+
+			e.MenuStrip = this.ctxMenu;
+			e.MenuStrip.Show();
 		}
 
 		/// <summary>
@@ -598,13 +607,18 @@ namespace VSLauncher
 				return;
 			}
 
+			if(e.SourceModels[0] == e.TargetModel)
+			{
+				return;
+			}
+
 			if (e.TargetModel is VsFolder)
 			{
 				e.Effect = e.StandardDropActionFromKeys;
 			}
 			else
 			{
-				e.InfoMessage = "Can only drop on directories";
+				e.InfoMessage = "Can only drop on a group";
 			}
 		}
 
@@ -617,12 +631,46 @@ namespace VSLauncher
 		{
 			if (e.SourceModels.Count == 1)
 			{
-				object target = e.TargetModel;
+				VsFolder target = e.TargetModel as VsFolder;
 				object source = e.SourceModels[0];
+
+				if (e.TargetModel == e.SourceModels[0])
+					return;
 
 				if (e.Effect == System.Windows.Forms.DragDropEffects.Move)
 				{
+					var parent = solutionGroups.FindParent(source);
+					parent?.Items.Remove((VsItem)source);
+
+					if (source is VsFolder f)
+					{
+						target.Items.Add(f);
+					}
+					else
+					{
+						target.Items.Add((VsItem)source);
+					}
+
+
+					if (parent == null)
+					{
+						Debug.WriteLine("parent is null");
+					}
+					// update source and target models
+					this.olvFiles.UpdateObject(target);
+					this.olvFiles.UpdateObject(source);
+					this.olvFiles.UpdateObject(parent);
 				}
+				if (e.Effect == System.Windows.Forms.DragDropEffects.Copy)
+				{
+					// make sure to add "copy" if same parent
+
+					target.Items.Add(((VsItem)source).Clone());
+					this.olvFiles.UpdateObject(target);
+					this.olvFiles.UpdateObject(source);
+				}
+
+				this.solutionGroups.Items.Changed = true;
 			}
 		}
 
@@ -703,7 +751,21 @@ namespace VSLauncher
 		private void SetupDragAndDrop()
 		{
 			// Setup the tree so that it can drop and drop.
+			// Drag and drop support
+			// You can set up drag and drop explicitly (like this) or, in the IDE, you can set
+			// IsSimpleDropSource and IsSimpleDragSource and respond to CanDrop and Dropped events
 
+			this.olvFiles.DragSource = new SimpleDragSource();
+			/*
+			SimpleDropSink dropSink = new SimpleDropSink();
+			this.olvFiles.DropSink = dropSink;
+			dropSink.CanDropOnItem = true;
+			// dropSink.CanDropOnSubItem = true;
+			dropSink.FeedbackColor = Color.IndianRed; // just to be different
+
+			dropSink.ModelCanDrop += olvFiles_ModelCanDropHandler;
+			dropSink.ModelDropped += olvFiles_ModelDroppedHandler;
+			*/
 			this.olvFiles.IsSimpleDragSource = true;
 			this.olvFiles.IsSimpleDropSink = true;
 
@@ -727,7 +789,7 @@ namespace VSLauncher
 		private void UpdateList()
 		{
 			// TODO: must verify items before loading, indicate missing items through warning icon
-			this.olvFiles.SetObjects(this.solutionGroups);
+			this.olvFiles.SetObjects(this.solutionGroups.Items);
 			this.olvFiles.ExpandAll();
 		}
 
@@ -857,33 +919,32 @@ namespace VSLauncher
 		/// <param name="e">The e.</param>
 		private void deleteToolStripMenuItem_Click(object sender, EventArgs e)
 		{
+			var item = olvFiles.SelectedItem.RowObject;
 			// ask user if he wants to delete this item really
-			if (MessageBox.Show("Are you sure you want to delete this item?", "Delete item", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+			if (MessageBox.Show($"Are you sure you want to delete '{((VsItem)item).Name}'", "Delete item", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
 			{
-				// get the item
-				var item = olvFiles.SelectedItem.RowObject;
-
-				foreach (var f in this.solutionGroups)
+				VsFolder? owner = this.solutionGroups.FindParent(item);
+				if (owner != null)
 				{
-					if (f == item)
-					{
-						this.solutionGroups.Remove((VsFolder)item);
-						break;
-					}
-					else
-					{
-						VsFolder owner = f.FindParent(item);
-						if (owner != null)
-						{
-							owner.Items.Remove((VsItem)item);
-							break;
-						}
-					}
+					owner.Items.Remove((VsItem)item);
 				}
 
 				// update the list
 				UpdateList();
 			}
+		}
+
+		/// <summary>
+		/// mains the refresh_ click.
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
+		private void mainRefresh_Click(object sender, EventArgs e)
+		{
+			LoadSolutionData();
+			this.solutionGroups.Items.OnChanged += SolutionData_OnChanged;
+
+			UpdateList();
 		}
 	}
 }

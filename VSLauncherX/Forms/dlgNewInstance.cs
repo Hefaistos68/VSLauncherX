@@ -36,6 +36,7 @@ namespace VSLauncher
 		private void txtInstanceName_TextChanged(object sender, EventArgs e)
 		{
 			this.InstanceName = this.txtInstanceName.Text;
+			this.btnOk.Enabled = !string.IsNullOrWhiteSpace(this.InstanceName);
 		}
 	}
 }

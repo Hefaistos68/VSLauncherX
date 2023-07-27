@@ -41,6 +41,8 @@
 			txtFoldername = new TextBox();
 			btnOk = new Button();
 			btnCancel = new Button();
+			chkWaitExitAfter = new CheckBox();
+			chkWaitExitBefore = new CheckBox();
 			label1 = new Label();
 			groupBox1 = new GroupBox();
 			label2 = new Label();
@@ -59,10 +61,12 @@
 			// 
 			// groupBox1
 			// 
+			groupBox1.Controls.Add(txtRunAfter);
+			groupBox1.Controls.Add(chkWaitExitBefore);
+			groupBox1.Controls.Add(chkWaitExitAfter);
 			groupBox1.Controls.Add(btnSelectAfter);
 			groupBox1.Controls.Add(btnSelectBefore);
 			groupBox1.Controls.Add(chkRunAsAdmin);
-			groupBox1.Controls.Add(txtRunAfter);
 			groupBox1.Controls.Add(label2);
 			groupBox1.Controls.Add(txtRunBefore);
 			groupBox1.Controls.Add(label3);
@@ -71,14 +75,14 @@
 			groupBox1.Size = new Size(368, 167);
 			groupBox1.TabIndex = 2;
 			groupBox1.TabStop = false;
-			groupBox1.Text = "Options for all items";
+			groupBox1.Text = "Options for all items in this folder";
 			// 
 			// btnSelectAfter
 			// 
 			btnSelectAfter.Location = new Point(333, 130);
 			btnSelectAfter.Name = "btnSelectAfter";
 			btnSelectAfter.Size = new Size(25, 25);
-			btnSelectAfter.TabIndex = 6;
+			btnSelectAfter.TabIndex = 7;
 			btnSelectAfter.Text = "...";
 			btnSelectAfter.UseVisualStyleBackColor = true;
 			btnSelectAfter.Click += btnSelectAfter_Click;
@@ -100,7 +104,7 @@
 			chkRunAsAdmin.Name = "chkRunAsAdmin";
 			chkRunAsAdmin.RightToLeft = RightToLeft.Yes;
 			chkRunAsAdmin.Size = new Size(105, 19);
-			chkRunAsAdmin.TabIndex = 3;
+			chkRunAsAdmin.TabIndex = 4;
 			chkRunAsAdmin.Text = "Require Admin";
 			chkRunAsAdmin.UseVisualStyleBackColor = true;
 			// 
@@ -111,7 +115,7 @@
 			txtRunAfter.Name = "txtRunAfter";
 			txtRunAfter.ReadOnly = true;
 			txtRunAfter.Size = new Size(321, 23);
-			txtRunAfter.TabIndex = 5;
+			txtRunAfter.TabIndex = 6;
 			// 
 			// label2
 			// 
@@ -119,7 +123,7 @@
 			label2.Location = new Point(6, 113);
 			label2.Name = "label2";
 			label2.Size = new Size(57, 15);
-			label2.TabIndex = 4;
+			label2.TabIndex = 5;
 			label2.Text = "Run After";
 			// 
 			// txtRunBefore
@@ -156,7 +160,7 @@
 			btnOk.Name = "btnOk";
 			btnOk.Size = new Size(100, 40);
 			btnOk.TabIndex = 4;
-			btnOk.Text = " Ok";
+			btnOk.Text = "&Add";
 			btnOk.TextImageRelation = TextImageRelation.ImageBeforeText;
 			btnOk.UseVisualStyleBackColor = true;
 			btnOk.Click += btnOk_Click;
@@ -172,6 +176,30 @@
 			btnCancel.Text = " Cancel";
 			btnCancel.TextImageRelation = TextImageRelation.ImageBeforeText;
 			btnCancel.UseVisualStyleBackColor = true;
+			// 
+			// chkWaitExitAfter
+			// 
+			chkWaitExitAfter.AutoSize = true;
+			chkWaitExitAfter.Enabled = false;
+			chkWaitExitAfter.Location = new Point(255, 112);
+			chkWaitExitAfter.Name = "chkWaitExitAfter";
+			chkWaitExitAfter.RightToLeft = RightToLeft.Yes;
+			chkWaitExitAfter.Size = new Size(72, 19);
+			chkWaitExitAfter.TabIndex = 8;
+			chkWaitExitAfter.Text = "Wait exit";
+			chkWaitExitAfter.UseVisualStyleBackColor = true;
+			// 
+			// chkWaitExitBefore
+			// 
+			chkWaitExitBefore.AutoSize = true;
+			chkWaitExitBefore.Enabled = false;
+			chkWaitExitBefore.Location = new Point(255, 18);
+			chkWaitExitBefore.Name = "chkWaitExitBefore";
+			chkWaitExitBefore.RightToLeft = RightToLeft.Yes;
+			chkWaitExitBefore.Size = new Size(72, 19);
+			chkWaitExitBefore.TabIndex = 3;
+			chkWaitExitBefore.Text = "Wait exit";
+			chkWaitExitBefore.UseVisualStyleBackColor = true;
 			// 
 			// dlgAddFolder
 			// 
@@ -214,5 +242,7 @@
 		private Button btnCancel;
 		private Button btnSelectAfter;
 		private Button btnSelectBefore;
+		private CheckBox chkWaitExitAfter;
+		private CheckBox chkWaitExitBefore;
 	}
 }

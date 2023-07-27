@@ -128,6 +128,7 @@ namespace VSLauncher
 									else
 									{
 										var item = ImportHelper.GetItemFromExtension(Path.GetFileNameWithoutExtension(s.Key), s.Value.LocalProperties.FullPath);
+										item.LastModified = new FileInfo(s.Key).LastAccessTime;
 										group.Items.Add(item);
 									}
 								}

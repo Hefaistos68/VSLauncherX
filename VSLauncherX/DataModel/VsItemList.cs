@@ -23,7 +23,27 @@ namespace VSLauncher.DataModel
 		/// Gets or sets a value indicating whether changed.
 		/// </summary>
 		[JsonIgnore]
-		public bool Changed { get => this.isChanged; set { this.isChanged = value; if (this.parent != null) this.parent.Changed = value; } }
+		public bool Changed
+		{
+			get => this.isChanged;
+			set
+			{
+				this.isChanged = value;
+				
+				if (this.parent != null)
+				{
+					this.parent.Changed = value;
+				}
+
+				if(OnChanged != null)
+				{
+					this.isChanged = OnChanged.Invoke(value);
+				}
+			}
+		}
+
+		public delegate bool OnChangedHandler(bool changed);
+		public event OnChangedHandler? OnChanged;
 
 		/// <summary>
 		/// Adds the.

@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization;
+﻿using Newtonsoft.Json;
 
 namespace VSLauncher.DataModel
 {
@@ -32,6 +32,7 @@ namespace VSLauncher.DataModel
 		/// <summary>
 		/// Gets or sets the items.
 		/// </summary>
+		[JsonProperty("FolderItems")]
 		public VsItemList Items
 		{
 			get { return items; }
@@ -91,7 +92,7 @@ namespace VSLauncher.DataModel
 		}
 
 		/// <summary>
-		/// Containeds the solutions count.
+		/// Reutrns the number of solutions this item holds.
 		/// </summary>
 		/// <returns>An int.</returns>
 		public int ContainedSolutionsCount()
@@ -105,6 +106,28 @@ namespace VSLauncher.DataModel
 					n += f.ContainedSolutionsCount();
 				}
 				else if (i is VsSolution)
+				{
+					n++;
+				}
+			}
+
+			return n;
+		}
+		/// <summary>
+		/// Reutrns the number of projects this item holds.
+		/// </summary>
+		/// <returns>An int.</returns>
+		public int ContainedProjectsCount()
+		{
+			int n = 0;
+
+			foreach (var i in this.Items)
+			{
+				if (i is VsFolder f)
+				{
+					n += f.ContainedProjectsCount();
+				}
+				else if (i is VsProject)
 				{
 					n++;
 				}
@@ -127,7 +150,7 @@ namespace VSLauncher.DataModel
 		/// </summary>
 		/// <param name="item">The item.</param>
 		/// <returns>A VsFolder.</returns>
-		internal VsFolder FindParent(object item)
+		internal VsFolder? FindParent(object item)
 		{
 			if (this.Items.Contains(item))
 				return this;
