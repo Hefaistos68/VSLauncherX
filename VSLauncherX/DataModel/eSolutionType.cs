@@ -4,8 +4,8 @@
 	/// The solution type.
 	/// </summary>
 	public enum eSolutionType
-    {
-        None,
+	{
+		None,
 		CSProject,
 		VBProject,
 		WebSite,
@@ -13,5 +13,6 @@
 		CPPProject,
 		JSProject,
 		TSProject,
+		Mixed,
 	}
 }

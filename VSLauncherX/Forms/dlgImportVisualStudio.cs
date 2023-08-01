@@ -8,15 +8,15 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 
 using VSLauncher.DataModel;
+using VSLauncher.Helpers;
 
 namespace VSLauncher
 {
 	public partial class dlgImportVisualStudio : Form
 	{
-		/// <summary>
-		/// Gets the solution group selected by the user
-		/// </summary>
-		public VsFolder Solution { get; private set; }
+		private DescribedTaskRenderer itemRenderer;
+
+		private VisualStudioInstanceManager visualStudioVersions = new VisualStudioInstanceManager();
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="dlgImportVisualStudio"/> class.
@@ -27,10 +27,50 @@ namespace VSLauncher
 			InitializeList();
 		}
 
+		/// <summary>
+		/// Gets the solution group selected by the user
+		/// </summary>
+		public VsFolder Solution { get; private set; }
+		
+		private void btnOk_Click(object sender, EventArgs e)
+		{
+		}
+
+		/// <summary>
+		/// Handles Click events for the btnSelectAfter button.
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
+		private void btnRefresh_Click(object sender, EventArgs e)
+		{
+
+		}
+
+		private DescribedTaskRenderer CreateDescribedRenderer()
+		{
+			// Let's create an appropriately configured renderer.
+			DescribedTaskRenderer renderer = new DescribedTaskRenderer
+			{
+				DescriptionGetter = ColumnHelper.GetDescription,
+
+				// Change the formatting slightly
+				TitleFont = new Font("Verdana", 11, FontStyle.Bold),
+				DescriptionFont = new Font("Verdana", 8),
+				ImageTextSpace = 8,
+				TitleDescriptionSpace = 1,
+
+				// Use older Gdi renderering, since most people think the text looks clearer
+				UseGdiTextRendering = true
+			};
+
+			return renderer;
+		}
+
 		private void InitializeList()
 		{
 			this.olvFiles.FullRowSelect = true;
-			this.olvFiles.RowHeight = 26;
+			this.olvFiles.RowHeight = 56;
+			this.olvFiles.OwnerDraw = true;
 
 			this.olvFiles.HierarchicalCheckboxes = true;
 			this.olvFiles.TreeColumnRenderer.IsShowLines = true;
@@ -51,133 +91,23 @@ namespace VSLauncher
 			//
 			// setup the Name/Filename column
 			//
-			this.olvColumnFilename.ImageGetter = ColumnHelper.GetImageNameForMru;
-			this.olvColumnFilename.AspectGetter = ColumnHelper.GetAspectForFile;
+			this.itemRenderer = CreateDescribedRenderer();
 
-			//
-			// setup the Path column
-			//
-			this.olvColumnPath.AspectGetter = ColumnHelper.GetAspectForPath;
+			this.olvFiles.TreeColumnRenderer.SubRenderer = this.itemRenderer;
+			this.olvColumnFilename.AspectName = "Name";
+			this.olvColumnFilename.ImageGetter = ColumnHelper.GetImageNameForMru;
+			this.olvColumnFilename.CellPadding = new Rectangle(4, 2, 4, 2);
+			// 			this.olvColumnFilename.AspectGetter = ColumnHelper.GetAspectForFile;
 
 			this.Solution = new VsFolder();
-			this.olvFiles.SetObjects(GetRecentProjects());
+			var items = this.visualStudioVersions.GetRecentProjects();
+
+			this.Solution.Items = items;
+
+			this.olvFiles.SetObjects(items);
 			this.olvFiles.ExpandAll();
 		}
-
-		/// <summary>
-		/// Handles Click events for the btnSelectAfter button.
-		/// </summary>
-		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
-		private void btnSelectFolder_Click(object sender, EventArgs e)
-		{
-			// let the user select a folder through the system dialog
-
-		}
-
-		static string vsDirectory_pattern = "(\\d\\d\\.\\d)_(........)(.*)";
-		Dictionary<string, string> vsVersions = new Dictionary<string, string>()
-		{
-			{ "15", "2017" },
-			{ "16", "2019" },
-			{ "17", "2022" }
-		};
-
-		public IEnumerable GetRecentProjects()
-		{
-			VsFolder solutionList = new VsFolder();
-
-			var vsDir = new DirectoryInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Microsoft",  "VisualStudio"));
-
-			foreach (var dir in vsDir.GetDirectories("*", SearchOption.AllDirectories))
-			{
-				try
-				{
-					foreach (var file in dir.GetFiles("ApplicationPrivateSettings.xml"))
-					{
-						var xdoc = XDocument.Load(file.FullName);
-						XElement codeContainersOffline = xdoc.Descendants("collection").FirstOrDefault(c => c.Attribute("name")?.Value == "CodeContainers.Offline");
-						string codeContainersOfflineValue = codeContainersOffline?.Descendants("value").FirstOrDefault(v => v.Attribute("name")?.Value == "value")?.Value;
-
-						List<MruEntry>? recentProjects = null;
-						try
-						{
-							recentProjects = JsonConvert.DeserializeObject<List<MruEntry>>(codeContainersOfflineValue);
-						}
-						catch
-						{
-						}
-
-						if (recentProjects != null)
-						{
-							// build Visual Studio name and version as a string from the directory name, parse the string with regex into version and instance
-							string? groupName = ParseDirectoryNameIntoVsVersion(dir.Name);
-
-							if (!string.IsNullOrEmpty(groupName))
-							{
-								var group = new VsFolder(groupName, dir.FullName);
-
-								// add the projects to the solution
-								foreach (var s in recentProjects)
-								{
-									if (s.Value.LocalProperties.Type == 1)
-									{
-										var item = new VsFolder(Path.GetFileNameWithoutExtension(s.Key), s.Value.LocalProperties.FullPath);
-										group.Items.Add(item);
-									}
-									else
-									{
-										var item = ImportHelper.GetItemFromExtension(Path.GetFileNameWithoutExtension(s.Key), s.Value.LocalProperties.FullPath);
-										item.LastModified = new FileInfo(s.Key).LastAccessTime;
-										group.Items.Add(item);
-									}
-								}
-
-								solutionList.Items.Add(group);
-							}
-						}
-					}
-				}
-				catch (DirectoryNotFoundException)
-				{
-				}
-			}
-
-			return solutionList.Items;
-		}
-
-		private string? ParseDirectoryNameIntoVsVersion(string name)
-		{
-			var regex = new Regex(vsDirectory_pattern);
-			var match = regex.Match(name);
-			if (match.Success)
-			{
-				string versionNumber = match.Groups[1].Value;
-				string version = "unknown";
-				string instance = match.Groups[3].Value;
-
-				// parse the version string into the correct visual studio version
-				string mainVersion = versionNumber.Substring(0, 2);
-				if (vsVersions.ContainsKey(mainVersion))
-				{
-					version = vsVersions[mainVersion];
-				}
-				string groupName = $"Visual Studio {version} ({versionNumber})";
-				if (!string.IsNullOrEmpty(instance))
-				{
-					groupName += $" /{instance}";
-				}
-
-				return groupName;
-			}
-
-			return null;
-		}
-
-		private void btnOk_Click(object sender, EventArgs e)
-		{
-		}
-
+		
 		private void listViewFiles_CellToolTipShowing(object sender, ToolTipShowingEventArgs e)
 		{
 			if (e.Model is VsFolder)

@@ -49,7 +49,6 @@ namespace VSLauncher
 			mainSettings = new ToolStripButton();
 			olvFiles = new TreeListView();
 			olvColumnFilename = new OLVColumn();
-			olvColumnPath = new OLVColumn();
 			olvColumnDate = new OLVColumn();
 			olvColumnOptions = new OLVColumn();
 			optionsRenderer = new MultiImageRenderer();
@@ -235,13 +234,12 @@ namespace VSLauncher
 			// olvFiles
 			// 
 			olvFiles.AllColumns.Add(olvColumnFilename);
-			olvFiles.AllColumns.Add(olvColumnPath);
 			olvFiles.AllColumns.Add(olvColumnDate);
 			olvFiles.AllColumns.Add(olvColumnOptions);
 			olvFiles.AllowDrop = true;
 			olvFiles.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
 			olvFiles.CellEditUseWholeCell = false;
-			olvFiles.Columns.AddRange(new ColumnHeader[] { olvColumnFilename, olvColumnPath, olvColumnDate, olvColumnOptions });
+			olvFiles.Columns.AddRange(new ColumnHeader[] { olvColumnFilename, olvColumnDate, olvColumnOptions });
 			olvFiles.EmptyListMsg = "Add a group, import a folder or import recent items";
 			olvFiles.EmptyListMsgFont = new Font("Segoe UI", 11.25F, FontStyle.Regular, GraphicsUnit.Point);
 			olvFiles.FullRowSelect = true;
@@ -274,25 +272,12 @@ namespace VSLauncher
 			// olvColumnFilename
 			// 
 			olvColumnFilename.AspectName = "Name";
+			olvColumnFilename.FillsFreeSpace = true;
 			olvColumnFilename.Hideable = false;
-			olvColumnFilename.IsTileViewColumn = true;
-			olvColumnFilename.MaximumWidth = 200;
 			olvColumnFilename.MinimumWidth = 100;
 			olvColumnFilename.Text = "Name";
-			olvColumnFilename.ToolTipText = "Blah ";
+			olvColumnFilename.ToolTipText = "";
 			olvColumnFilename.Width = 140;
-			// 
-			// olvColumnPath
-			// 
-			olvColumnPath.AspectName = "Path";
-			olvColumnPath.FillsFreeSpace = true;
-			olvColumnPath.Groupable = false;
-			olvColumnPath.IsEditable = false;
-			olvColumnPath.MaximumWidth = 800;
-			olvColumnPath.MinimumWidth = 100;
-			olvColumnPath.Text = "Path";
-			olvColumnPath.ToolTipText = "Blah ";
-			olvColumnPath.Width = 140;
 			// 
 			// olvColumnDate
 			// 
@@ -402,7 +387,8 @@ namespace VSLauncher
 			btnMainStartVisualStudio1.Location = new Point(0, 38);
 			btnMainStartVisualStudio1.Margin = new Padding(0);
 			btnMainStartVisualStudio1.Name = "btnMainStartVisualStudio1";
-			btnMainStartVisualStudio1.Size = new Size(232, 57);
+			btnMainStartVisualStudio1.Padding = new Padding(4);
+			btnMainStartVisualStudio1.Size = new Size(232, 64);
 			btnMainStartVisualStudio1.TabIndex = 1;
 			btnMainStartVisualStudio1.Tag = "Start {0}";
 			btnMainStartVisualStudio1.Text = "Start Visual Studio";
@@ -417,10 +403,11 @@ namespace VSLauncher
 			btnMainStartVisualStudio2.Font = new Font("Segoe UI", 10F, FontStyle.Bold, GraphicsUnit.Point);
 			btnMainStartVisualStudio2.Image = (Image)resources.GetObject("btnMainStartVisualStudio2.Image");
 			btnMainStartVisualStudio2.ImageAlign = ContentAlignment.MiddleLeft;
-			btnMainStartVisualStudio2.Location = new Point(0, 95);
+			btnMainStartVisualStudio2.Location = new Point(0, 102);
 			btnMainStartVisualStudio2.Margin = new Padding(0);
 			btnMainStartVisualStudio2.Name = "btnMainStartVisualStudio2";
-			btnMainStartVisualStudio2.Size = new Size(232, 57);
+			btnMainStartVisualStudio2.Padding = new Padding(4);
+			btnMainStartVisualStudio2.Size = new Size(232, 64);
 			btnMainStartVisualStudio2.TabIndex = 2;
 			btnMainStartVisualStudio2.Tag = "Start {0} as admin";
 			btnMainStartVisualStudio2.Text = "Start Visual Studio \r\nas Admin";
@@ -435,10 +422,11 @@ namespace VSLauncher
 			btnMainStartVisualStudio3.Font = new Font("Segoe UI", 10F, FontStyle.Bold, GraphicsUnit.Point);
 			btnMainStartVisualStudio3.Image = (Image)resources.GetObject("btnMainStartVisualStudio3.Image");
 			btnMainStartVisualStudio3.ImageAlign = ContentAlignment.MiddleLeft;
-			btnMainStartVisualStudio3.Location = new Point(0, 152);
+			btnMainStartVisualStudio3.Location = new Point(0, 166);
 			btnMainStartVisualStudio3.Margin = new Padding(0);
 			btnMainStartVisualStudio3.Name = "btnMainStartVisualStudio3";
-			btnMainStartVisualStudio3.Size = new Size(232, 57);
+			btnMainStartVisualStudio3.Padding = new Padding(4);
+			btnMainStartVisualStudio3.Size = new Size(232, 64);
 			btnMainStartVisualStudio3.TabIndex = 3;
 			btnMainStartVisualStudio3.Tag = "New {0} Instance...";
 			btnMainStartVisualStudio3.Text = "New Instance...";
@@ -453,10 +441,11 @@ namespace VSLauncher
 			btnMainStartVisualStudio4.Font = new Font("Segoe UI", 10F, FontStyle.Bold, GraphicsUnit.Point);
 			btnMainStartVisualStudio4.Image = (Image)resources.GetObject("btnMainStartVisualStudio4.Image");
 			btnMainStartVisualStudio4.ImageAlign = ContentAlignment.MiddleLeft;
-			btnMainStartVisualStudio4.Location = new Point(0, 209);
+			btnMainStartVisualStudio4.Location = new Point(0, 230);
 			btnMainStartVisualStudio4.Margin = new Padding(0);
 			btnMainStartVisualStudio4.Name = "btnMainStartVisualStudio4";
-			btnMainStartVisualStudio4.Size = new Size(232, 57);
+			btnMainStartVisualStudio4.Padding = new Padding(4);
+			btnMainStartVisualStudio4.Size = new Size(232, 64);
 			btnMainStartVisualStudio4.TabIndex = 4;
 			btnMainStartVisualStudio4.Tag = "New {0} Project...";
 			btnMainStartVisualStudio4.Text = "New Project...";
@@ -471,10 +460,11 @@ namespace VSLauncher
 			btnMainStartVisualStudio5.Font = new Font("Segoe UI", 10F, FontStyle.Bold, GraphicsUnit.Point);
 			btnMainStartVisualStudio5.Image = (Image)resources.GetObject("btnMainStartVisualStudio5.Image");
 			btnMainStartVisualStudio5.ImageAlign = ContentAlignment.MiddleLeft;
-			btnMainStartVisualStudio5.Location = new Point(0, 266);
+			btnMainStartVisualStudio5.Location = new Point(0, 294);
 			btnMainStartVisualStudio5.Margin = new Padding(0);
 			btnMainStartVisualStudio5.Name = "btnMainStartVisualStudio5";
-			btnMainStartVisualStudio5.Size = new Size(232, 57);
+			btnMainStartVisualStudio5.Padding = new Padding(4);
+			btnMainStartVisualStudio5.Size = new Size(232, 64);
 			btnMainStartVisualStudio5.TabIndex = 5;
 			btnMainStartVisualStudio5.Tag = "Start {0}...";
 			btnMainStartVisualStudio5.Text = "Start...";
@@ -575,6 +565,7 @@ namespace VSLauncher
 			this.Margin = new Padding(4, 3, 4, 3);
 			this.Name = "MainDialog";
 			this.Text = "Visual Studio Launcher";
+			Load += MainDialog_Load;
 			mainPanel.ResumeLayout(false);
 			leftSubPanel.ResumeLayout(false);
 			leftSubPanel.PerformLayout();
@@ -596,7 +587,6 @@ namespace VSLauncher
 		private ToolStripButton mainSettings;
 		private TreeListView olvFiles;
 		private OLVColumn olvColumnFilename;
-		private OLVColumn olvColumnPath;
 		private OLVColumn olvColumnOptions;
 		private OLVColumn olvColumnDate;
 

@@ -31,6 +31,9 @@
 			System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(dlgSettings));
 			btnCancel = new Button();
 			btnOk = new Button();
+			chkAlwaysAdmin = new CheckBox();
+			chkSync = new CheckBox();
+			chkShowPath = new CheckBox();
 			SuspendLayout();
 			// 
 			// btnCancel
@@ -59,6 +62,36 @@
 			btnOk.TextImageRelation = TextImageRelation.ImageBeforeText;
 			btnOk.UseVisualStyleBackColor = true;
 			// 
+			// chkAlwaysAdmin
+			// 
+			chkAlwaysAdmin.AutoSize = true;
+			chkAlwaysAdmin.Location = new Point(12, 12);
+			chkAlwaysAdmin.Name = "chkAlwaysAdmin";
+			chkAlwaysAdmin.Size = new Size(142, 19);
+			chkAlwaysAdmin.TabIndex = 7;
+			chkAlwaysAdmin.Text = "Always start as Admin";
+			chkAlwaysAdmin.UseVisualStyleBackColor = true;
+			// 
+			// chkSync
+			// 
+			chkSync.AutoSize = true;
+			chkSync.Location = new Point(12, 37);
+			chkSync.Name = "chkSync";
+			chkSync.Size = new Size(192, 19);
+			chkSync.TabIndex = 7;
+			chkSync.Text = "Synchronize with VS Recent List";
+			chkSync.UseVisualStyleBackColor = true;
+			// 
+			// chkShowPath
+			// 
+			chkShowPath.AutoSize = true;
+			chkShowPath.Location = new Point(12, 62);
+			chkShowPath.Name = "chkShowPath";
+			chkShowPath.Size = new Size(219, 19);
+			chkShowPath.TabIndex = 7;
+			chkShowPath.Text = "Show path for solutions and projects";
+			chkShowPath.UseVisualStyleBackColor = true;
+			// 
 			// dlgSettings
 			// 
 			this.AcceptButton = btnOk;
@@ -67,6 +100,9 @@
 			this.CancelButton = btnCancel;
 			this.ClientSize = new Size(552, 313);
 			this.ControlBox = false;
+			this.Controls.Add(chkShowPath);
+			this.Controls.Add(chkSync);
+			this.Controls.Add(chkAlwaysAdmin);
 			this.Controls.Add(btnCancel);
 			this.Controls.Add(btnOk);
 			this.FormBorderStyle = FormBorderStyle.FixedDialog;
@@ -78,11 +114,15 @@
 			this.StartPosition = FormStartPosition.CenterParent;
 			this.Text = "Visual Studio Launcher General Settings";
 			ResumeLayout(false);
+			PerformLayout();
 		}
 
 		#endregion
 
 		private Button btnCancel;
 		private Button btnOk;
+		private CheckBox chkAlwaysAdmin;
+		private CheckBox chkSync;
+		private CheckBox chkShowPath;
 	}
 }

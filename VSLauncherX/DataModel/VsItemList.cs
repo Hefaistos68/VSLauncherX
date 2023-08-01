@@ -32,10 +32,10 @@ namespace VSLauncher.DataModel
 				
 				if (this.parent != null)
 				{
-					this.parent.Changed = value;
+					((VsFolder)this.parent).Changed = value;
 				}
 
-				if(OnChanged != null)
+				if (OnChanged != null)
 				{
 					this.isChanged = OnChanged.Invoke(value);
 				}
@@ -71,10 +71,10 @@ namespace VSLauncher.DataModel
 		/// <param name="newParent">The new parent.</param>
 		public void Reparent(VsItem newParent)
 		{
-			if (this.parent != null && this.parent != newParent) 
-			{
-				throw new Exception();
-			}
+// 			if (this.parent != null && this.parent != newParent) 
+// 			{
+// 				throw new Exception();
+// 			}
 
 			this.parent = newParent; 
 		}

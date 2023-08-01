@@ -11,6 +11,7 @@
     <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
     <RootNamespace>VSLauncher</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>
@@ -52,9 +53,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="ObjectListView">
-      <HintPath>reference\ObjectListView.dll</HintPath>
-    </Reference>
+    <ProjectReference Include="..\ObjectListView\ObjectListView2022.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -96,6 +95,10 @@
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="reference\" />
   </ItemGroup>
 
 </Project>

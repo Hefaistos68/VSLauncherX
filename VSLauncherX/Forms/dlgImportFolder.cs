@@ -12,6 +12,7 @@ using System.Windows.Forms;
 using BrightIdeasSoftware;
 
 using VSLauncher.DataModel;
+using VSLauncher.Helpers;
 
 namespace VSLauncher
 {
@@ -19,6 +20,7 @@ namespace VSLauncher
 	{
 		private readonly List<string> extensionsHandled  = new List<string>() { ".sln", ".csproj", ".tsproj", ".esproj", ".vcxproj", ".fsproj", ".vbproj"};
 		private bool bSolutionOnly;
+		private bool bFlat;
 
 		/// <summary>
 		/// Gets the solution group selected by the user
@@ -70,7 +72,7 @@ namespace VSLauncher
 			//
 			// setup the Name/Filename column
 			//
-			this.olvColumnFilename.ImageGetter = ColumnHelper.GetImageNameForFile;
+			this.olvColumnFilename.ImageGetter = ColumnHelper.GetImageNameForFileImport;
 			this.olvColumnFilename.AspectGetter = ColumnHelper.GetAspectForFile;
 		}
 
@@ -114,7 +116,7 @@ namespace VSLauncher
 		/// </summary>
 		/// <param name="folderPath">The folder path.</param>
 		/// <returns>An IEnumerable.</returns>
-		private VsFolder IterateFolder(string folderPath, bool bOnlySolutions)
+		private VsFolder IterateFolder(string folderPath, bool bOnlySolutions, bool bFlat)
 		{
 			VsItemList sg = new(null);
 
@@ -126,20 +128,27 @@ namespace VSLauncher
 				// get the attributes and check if the folder is hidden
 				if (!folder.StartsWith('.'))
 				{
-					var attributes = System.IO.File.GetAttributes(folder);
+					var attributes = File.GetAttributes(folder);
 					if (!attributes.HasFlag(FileAttributes.Hidden))
 					{
-						var subItem = IterateFolder(folder, bOnlySolutions);
+						var subItem = IterateFolder(folder, bOnlySolutions, bFlat);
 
 						if (subItem.Items.Count > 0)
 						{
-							root.Items.Add(subItem);
+							if (!bFlat)
+							{
+								root.Items.Add(subItem);
+							}
+							else
+							{
+								subItem.Items.ForEach(x => root.Items.Add(x));
+							}
 						}
 					}
 				}
 			}
 
-			foreach (var file in System.IO.Directory.GetFiles(folderPath))
+			foreach (var file in Directory.GetFiles(folderPath))
 			{
 				if (!file.StartsWith('.'))
 				{
@@ -211,7 +220,7 @@ namespace VSLauncher
 			bool bAdded = false;
 			foreach (var i in origin)
 			{
-				if(checkedItems.Contains(i))
+				if (checkedItems.Contains(i))
 				{
 					list.Add(i);
 					bAdded = true;
@@ -219,11 +228,11 @@ namespace VSLauncher
 
 				if (i is VsFolder f)
 				{
-					var fi = FilterItems2(f.Items, checkedItems);
+					var fi = FilterItems(f.Items, checkedItems);
 					fi.Reparent(i);
 					list.Changed = true;
 
-					if(!bAdded)
+					if (!bAdded)
 					{
 						// may be because the parent item is not in the checkedItems list
 						list.Add(i);
@@ -248,7 +257,7 @@ namespace VSLauncher
 			bool bAdded = false;
 			foreach (var i in origin)
 			{
-				if(checkedItems.Contains(i))
+				if (checkedItems.Contains(i))
 				{
 					list.Add(i);
 					bAdded = true;
@@ -320,6 +329,17 @@ namespace VSLauncher
 		}
 
 		/// <summary>
+		/// chks the solution only_ checked changed.
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
+		private void chkFlat_CheckedChanged(object sender, EventArgs e)
+		{
+			this.bFlat = chkFlat.Checked;
+			UpdateList();
+		}
+
+		/// <summary>
 		/// Updates the list.
 		/// </summary>
 		private void UpdateList()
@@ -328,7 +348,17 @@ namespace VSLauncher
 			{
 				this.Cursor = Cursors.WaitCursor;
 				this.Solution.Items.Clear();
-				this.Solution.Items.Add(IterateFolder(txtFoldername.Text, this.chkSolutionOnly.Checked));
+				var items = IterateFolder(txtFoldername.Text, this.bSolutionOnly, this.bFlat);
+
+				if (!this.bFlat)
+				{
+					this.Solution.Items.Add(items);
+				}
+				else
+				{
+					items.Items.ForEach(x => this.Solution.Items.Add(x));
+				}
+
 				this.olvFiles.SetObjects(this.Solution.Items);
 				this.olvFiles.ExpandAll();
 				this.Cursor = Cursors.Default;

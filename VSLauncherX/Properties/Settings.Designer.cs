@@ -58,5 +58,17 @@ namespace VSLauncher.Properties {
                 this["SelectedVSversion"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool ShowPathForSolutions {
+            get {
+                return ((bool)(this["ShowPathForSolutions"]));
+            }
+            set {
+                this["ShowPathForSolutions"] = value;
+            }
+        }
     }
 }

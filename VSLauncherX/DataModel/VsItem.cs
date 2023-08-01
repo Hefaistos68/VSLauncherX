@@ -93,5 +93,12 @@ namespace VSLauncher.DataModel
 		/// </summary>
 		[JsonIgnore]
 		public bool Checked { get; set; }
+
+		/// <summary>
+		/// Refreshes the item
+		/// </summary>
+		public virtual void Refresh()
+		{
+		}
     }
 }

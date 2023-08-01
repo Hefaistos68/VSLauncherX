@@ -7,13 +7,14 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Xml.Linq;
 using System.Security.Principal;
+using VSLauncher.Helpers;
 
 namespace VSLauncher.DataModel
 {
-	/// <summary>
-	/// The visual studio instance.
-	/// </summary>
-	public class VisualStudioInstance
+    /// <summary>
+    /// The visual studio instance.
+    /// </summary>
+    public class VisualStudioInstance
 	{
 		/// <summary>
 		/// Initializes a new instance of the <see cref="VisualStudioInstance"/> class.

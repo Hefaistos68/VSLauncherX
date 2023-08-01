@@ -1,4 +1,5 @@
 using VSLauncher;
+using VSLauncher.DataModel;
 
 namespace VSLauncher
 {
@@ -7,6 +8,9 @@ namespace VSLauncher
 	/// </summary>
 	internal static class Program
 	{
+		public static FileIcons VisualStudioFileIcons16 = new FileIcons(false);
+		public static FileIcons VisualStudioFileIcons32 = new FileIcons(true);
+
 		/// <summary>
 		///  The main entry point for the application.
 		/// </summary>
@@ -17,8 +21,8 @@ namespace VSLauncher
 			// see https://aka.ms/applicationconfiguration.
 			ApplicationConfiguration.Initialize();
 
-			Test();
-
+			VisualStudioFileIcons16.GetIcon("Solution");
+			VisualStudioFileIcons32.GetIcon("Solution");
 
 			Application.Run(new MainDialog());
 		}

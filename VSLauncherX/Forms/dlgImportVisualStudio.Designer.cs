@@ -39,7 +39,6 @@ namespace VSLauncher
 			btnRefresh = new Button();
 			olvFiles = new TreeListView();
 			olvColumnFilename = new OLVColumn();
-			olvColumnPath = new OLVColumn();
 			imageList = new ImageList(this.components);
 			label1 = new Label();
 			((System.ComponentModel.ISupportInitialize)olvFiles).BeginInit();
@@ -96,22 +95,30 @@ namespace VSLauncher
 			btnRefresh.Size = new Size(25, 25);
 			btnRefresh.TabIndex = 6;
 			btnRefresh.UseVisualStyleBackColor = true;
-			btnRefresh.Click += btnSelectFolder_Click;
+			btnRefresh.Click += btnRefresh_Click;
 			// 
 			// olvFiles
 			// 
 			olvFiles.AllColumns.Add(olvColumnFilename);
-			olvFiles.AllColumns.Add(olvColumnPath);
 			olvFiles.AllowDrop = true;
 			olvFiles.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
 			olvFiles.CellEditUseWholeCell = false;
+			olvFiles.CellVerticalAlignment = StringAlignment.Near;
 			olvFiles.CheckBoxes = true;
-			olvFiles.Columns.AddRange(new ColumnHeader[] { olvColumnFilename, olvColumnPath });
+			olvFiles.Columns.AddRange(new ColumnHeader[] { olvColumnFilename});
 			olvFiles.EmptyListMsg = "";
 			olvFiles.FullRowSelect = true;
+			olvFiles.HeaderWordWrap = true;
+			olvFiles.IncludeColumnHeadersInCopy = true;
 			olvFiles.Location = new Point(12, 40);
 			olvFiles.Name = "olvFiles";
-			olvFiles.SelectColumnsOnRightClickBehaviour = ObjectListView.ColumnSelectBehaviour.Submenu;
+			olvFiles.OverlayText.Alignment = ContentAlignment.BottomLeft;
+			olvFiles.OverlayText.BorderColor = Color.FromArgb(192, 192, 0);
+			olvFiles.OverlayText.BorderWidth = 2F;
+			olvFiles.OverlayText.Rotation = -20;
+			olvFiles.OverlayText.Text = "";
+			olvFiles.SelectColumnsOnRightClick = false;
+			olvFiles.SelectColumnsOnRightClickBehaviour = ObjectListView.ColumnSelectBehaviour.None;
 			olvFiles.ShowCommandMenuOnRightClick = true;
 			olvFiles.ShowGroups = false;
 			olvFiles.ShowImagesOnSubItems = true;
@@ -119,6 +126,7 @@ namespace VSLauncher
 			olvFiles.Size = new Size(756, 304);
 			olvFiles.SmallImageList = imageList;
 			olvFiles.TabIndex = 7;
+			olvFiles.UseCellFormatEvents = true;
 			olvFiles.UseCompatibleStateImageBehavior = false;
 			olvFiles.View = View.Details;
 			olvFiles.VirtualMode = true;
@@ -130,25 +138,13 @@ namespace VSLauncher
 			olvColumnFilename.Hideable = false;
 			olvColumnFilename.IsEditable = false;
 			olvColumnFilename.IsTileViewColumn = true;
-			olvColumnFilename.MaximumWidth = 1000;
+			olvColumnFilename.FillsFreeSpace = true;
 			olvColumnFilename.MinimumWidth = 100;
 			olvColumnFilename.Searchable = false;
-			olvColumnFilename.Sortable = false;
+			olvColumnFilename.Sortable = true;
 			olvColumnFilename.Text = "Name";
-			olvColumnFilename.ToolTipText = "";
+			olvColumnFilename.ToolTipText = "Path";
 			olvColumnFilename.Width = 140;
-			// 
-			// olvColumnPath
-			// 
-			olvColumnPath.AspectName = "Path";
-			olvColumnPath.FillsFreeSpace = true;
-			olvColumnPath.Groupable = false;
-			olvColumnPath.IsEditable = false;
-			olvColumnPath.MaximumWidth = 800;
-			olvColumnPath.MinimumWidth = 100;
-			olvColumnPath.Text = "Path";
-			olvColumnPath.ToolTipText = "";
-			olvColumnPath.Width = 140;
 			// 
 			// imageList
 			// 
@@ -167,6 +163,7 @@ namespace VSLauncher
 			imageList.Images.SetKeyName(9, "VsSolution");
 			imageList.Images.SetKeyName(10, "WebProject");
 			imageList.Images.SetKeyName(11, "VSLogo");
+			imageList.Images.SetKeyName(12, "OverlayWarning");
 			// 
 			// dlgImportVisualStudio
 			// 
@@ -203,7 +200,6 @@ namespace VSLauncher
 
 		private TreeListView olvFiles;
 		private OLVColumn olvColumnFilename;
-		private OLVColumn olvColumnPath;
 		private ImageList imageList;
 	}
 }

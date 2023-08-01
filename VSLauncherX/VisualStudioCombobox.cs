@@ -41,6 +41,14 @@ namespace VSLauncher
 				return;
 			}
 			this.SelectedIndex = -1;
+
+			var k = this.visualStudioVersions.All.FindIndex(x => x.Version.StartsWith(v));
+			if (k >= 0)
+			{
+				this.SelectedIndex = k;
+				return;
+			}
+
 		}
 
 		/// <summary>

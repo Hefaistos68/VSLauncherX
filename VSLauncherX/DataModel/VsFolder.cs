@@ -43,6 +43,9 @@ namespace VSLauncher.DataModel
 			}
 		}
 
+		/// <summary>
+		/// Gets or sets a value indicating whether checked.
+		/// </summary>
 		[JsonIgnore]
 		public new bool? Checked
 		{
@@ -92,6 +95,13 @@ namespace VSLauncher.DataModel
 		}
 
 		/// <summary>
+		/// Gets or sets the icon.
+		/// </summary>
+		[JsonIgnore]
+		public Icon? Icon
+		{ get; set; }
+
+		/// <summary>
 		/// Reutrns the number of solutions this item holds.
 		/// </summary>
 		/// <returns>An int.</returns>
@@ -113,6 +123,7 @@ namespace VSLauncher.DataModel
 
 			return n;
 		}
+		
 		/// <summary>
 		/// Reutrns the number of projects this item holds.
 		/// </summary>
@@ -168,6 +179,15 @@ namespace VSLauncher.DataModel
 			}
 
 			return null;
+		}
+
+		/// <inheritdoc/>
+		public override void Refresh()
+		{
+			foreach (var i in this.Items)
+			{
+				i.Refresh();
+			}
 		}
 	}
 }

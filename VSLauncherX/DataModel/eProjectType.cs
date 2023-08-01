@@ -13,5 +13,6 @@
 		CPPProject,
 		JSProject,
 		TSProject,
+		Mixed
 	}
 }

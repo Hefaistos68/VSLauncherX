@@ -45,6 +45,7 @@ namespace VSLauncher
 			olvColumnFilename = new OLVColumn();
 			imageList = new ImageList(this.components);
 			chkSolutionOnly = new CheckBox();
+			chkFlat = new CheckBox();
 			label1 = new Label();
 			((System.ComponentModel.ISupportInitialize)olvFiles).BeginInit();
 			SuspendLayout();
@@ -64,7 +65,7 @@ namespace VSLauncher
 			btnSelectFolder.Location = new Point(632, 26);
 			btnSelectFolder.Name = "btnSelectFolder";
 			btnSelectFolder.Size = new Size(25, 25);
-			btnSelectFolder.TabIndex = 0;
+			btnSelectFolder.TabIndex = 1;
 			btnSelectFolder.Text = "...";
 			btnSelectFolder.UseVisualStyleBackColor = true;
 			// 
@@ -86,7 +87,7 @@ namespace VSLauncher
 			btnOk.Location = new Point(585, 352);
 			btnOk.Name = "btnOk";
 			btnOk.Size = new Size(100, 40);
-			btnOk.TabIndex = 4;
+			btnOk.TabIndex = 7;
 			btnOk.Text = " Ok";
 			btnOk.TextImageRelation = TextImageRelation.ImageBeforeText;
 			btnOk.UseVisualStyleBackColor = true;
@@ -100,7 +101,7 @@ namespace VSLauncher
 			btnCancel.Location = new Point(479, 352);
 			btnCancel.Name = "btnCancel";
 			btnCancel.Size = new Size(100, 40);
-			btnCancel.TabIndex = 3;
+			btnCancel.TabIndex = 6;
 			btnCancel.Text = " Cancel";
 			btnCancel.TextImageRelation = TextImageRelation.ImageBeforeText;
 			btnCancel.UseVisualStyleBackColor = true;
@@ -118,7 +119,7 @@ namespace VSLauncher
 			btnRefresh.Location = new Point(660, 26);
 			btnRefresh.Name = "btnRefresh";
 			btnRefresh.Size = new Size(25, 25);
-			btnRefresh.TabIndex = 1;
+			btnRefresh.TabIndex = 2;
 			btnRefresh.UseVisualStyleBackColor = true;
 			btnRefresh.Click += btnRefresh_Click;
 			// 
@@ -142,7 +143,7 @@ namespace VSLauncher
 			olvFiles.ShowItemToolTips = true;
 			olvFiles.Size = new Size(673, 290);
 			olvFiles.SmallImageList = imageList;
-			olvFiles.TabIndex = 2;
+			olvFiles.TabIndex = 3;
 			olvFiles.UseCompatibleStateImageBehavior = false;
 			olvFiles.UseFilterIndicator = true;
 			olvFiles.UseFiltering = true;
@@ -186,10 +187,21 @@ namespace VSLauncher
 			chkSolutionOnly.Location = new Point(12, 352);
 			chkSolutionOnly.Name = "chkSolutionOnly";
 			chkSolutionOnly.Size = new Size(152, 19);
-			chkSolutionOnly.TabIndex = 6;
+			chkSolutionOnly.TabIndex = 4;
 			chkSolutionOnly.Text = "Show only Solution files";
 			chkSolutionOnly.UseVisualStyleBackColor = true;
 			chkSolutionOnly.CheckedChanged += chkSolutionOnly_CheckedChanged;
+			// 
+			// chkFlat
+			// 
+			chkFlat.AutoSize = true;
+			chkFlat.Location = new Point(12, 373);
+			chkFlat.Name = "chkFlat";
+			chkFlat.Size = new Size(149, 19);
+			chkFlat.TabIndex = 5;
+			chkFlat.Text = "Flat, no folder structure";
+			chkFlat.UseVisualStyleBackColor = true;
+			chkFlat.CheckedChanged += chkFlat_CheckedChanged;
 			// 
 			// dlgImportFolder
 			// 
@@ -199,6 +211,7 @@ namespace VSLauncher
 			this.CancelButton = btnCancel;
 			this.ClientSize = new Size(697, 407);
 			this.ControlBox = false;
+			this.Controls.Add(chkFlat);
 			this.Controls.Add(chkSolutionOnly);
 			this.Controls.Add(olvFiles);
 			this.Controls.Add(btnSelectFolder);
@@ -234,5 +247,6 @@ namespace VSLauncher
 		private OLVColumn olvColumnFilename;
 		private ImageList imageList;
 		private CheckBox chkSolutionOnly;
+		private CheckBox chkFlat;
 	}
 }

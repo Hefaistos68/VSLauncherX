@@ -6,6 +6,8 @@ using VSLauncher.DataModel;
 using VSLauncher.Forms;
 using Newtonsoft.Json;
 using System.Diagnostics;
+using VSLauncher.Helpers;
+using System.Linq;
 
 namespace VSLauncher
 {
@@ -16,6 +18,12 @@ namespace VSLauncher
 	{
 		private VsFolder solutionGroups = new VsFolder();
 		private VisualStudioInstanceManager visualStudioInstances = new VisualStudioInstanceManager();
+		private DescribedTaskRenderer itemRenderer;
+		
+		/// <summary>
+		/// used to indicate that some internal update is going on
+		/// </summary>
+		private bool bInUpdate;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="MainDialog"/> class.
@@ -33,22 +41,19 @@ namespace VSLauncher
 			// BuildTestData();
 
 
+			this.bInUpdate = true;
+			
 			if (!string.IsNullOrEmpty(Properties.Settings.Default.SelectedVSversion))
 			{
-				foreach (var v in this.selectVisualStudioVersion.Versions)
-				{
-					if (v.Identifier == Properties.Settings.Default.SelectedVSversion)
-					{
-						this.selectVisualStudioVersion.SelectedItem = v;
-						break;
-					}
-				}
-
+				var v = this.selectVisualStudioVersion.Versions.Where(v => v.Identifier == Properties.Settings.Default.SelectedVSversion).Single();
+				this.selectVisualStudioVersion.SelectedItem = v;
 			}
 			else
 			{
 				this.selectVisualStudioVersion.SelectedIndex = 0;
 			}
+			
+			this.bInUpdate = false;
 
 			UpdateList();
 		}
@@ -77,8 +82,8 @@ namespace VSLauncher
 				}
 				else
 				{
+					data.Refresh();
 					this.solutionGroups = data;
-					this.solutionGroups.Items.OnChanged += SolutionData_OnChanged;
 				}
 			}
 		}
@@ -133,11 +138,6 @@ namespace VSLauncher
 				MessageBox.Show($"There was an error saving the data. \r\n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
 			}
 		}
-
-		/// <summary>
-		/// Gets a value indicating whether show tool tips on files.
-		/// </summary>
-		public bool showToolTipsOnFiles { get; private set; }
 
 		/// <summary>
 		/// Is the control key pressed.
@@ -261,7 +261,7 @@ namespace VSLauncher
 		/// Creates the described task renderer.
 		/// </summary>
 		/// <returns>A DescribedTaskRenderer.</returns>
-		private DescribedTaskRenderer CreateDescribedTaskRenderer()
+		private DescribedTaskRenderer CreateDescribedRenderer()
 		{
 			// Let's create an appropriately configured renderer.
 			DescribedTaskRenderer renderer = new DescribedTaskRenderer();
@@ -272,16 +272,17 @@ namespace VSLauncher
 			renderer.ImageList = this.imageListMainIcons;
 
 			// Tell the renderer which property holds the text to be used as a description
-			renderer.DescriptionAspectName = "Description";
+			renderer.DescriptionGetter = ColumnHelper.GetDescription;
 
 			// Change the formatting slightly
-			renderer.TitleFont = new Font("Tahoma", 11, FontStyle.Bold);
-			renderer.DescriptionFont = new Font("Tahoma", 9);
+			renderer.TitleFont = new Font("Verdana", 11, FontStyle.Bold);
+			renderer.DescriptionFont = new Font("Verdana", 8);
 			renderer.ImageTextSpace = 8;
 			renderer.TitleDescriptionSpace = 1;
 
 			// Use older Gdi renderering, since most people think the text looks clearer
 			renderer.UseGdiTextRendering = true;
+			renderer.Aspect = "Name";
 
 			return renderer;
 		}
@@ -293,11 +294,13 @@ namespace VSLauncher
 		private void InitializeListview(VsItemList list)
 		{
 			this.olvFiles.FullRowSelect = true;
-			this.olvFiles.RowHeight = 26;
+			this.olvFiles.RowHeight = 56;
+			this.olvFiles.UseHotItem = false;
+			this.olvFiles.OwnerDraw = true;
 
 			// Add a more interesting focus for editing operations
-			this.olvFiles.AddDecoration(new EditingCellBorderDecoration(true));
-			this.olvFiles.TreeColumnRenderer.IsShowLines = false;
+			// this.olvFiles.AddDecoration(new EditingCellBorderDecoration(true));
+			this.olvFiles.TreeColumnRenderer.IsShowLines = true;
 			this.olvFiles.TreeColumnRenderer.UseTriangles = true;
 			this.olvFiles.TreeColumnRenderer.CornerRoundness = 0;
 			this.olvFiles.TreeColumnRenderer.FillBrush = new SolidBrush(Color.CornflowerBlue);
@@ -307,7 +310,7 @@ namespace VSLauncher
 
 			// The following line makes getting aspect about 10x faster. Since getting the aspect is
 			// the slowest part of building the ListView, it is worthwhile BUT NOT NECESSARY to do.
-			TypedObjectListView<VsFolder> tlist = new TypedObjectListView<VsFolder>(this.olvFiles);
+			TypedObjectListView<VsItem> tlist = new TypedObjectListView<VsItem>(this.olvFiles);
 			tlist.GenerateAspectGetters();
 
 			//
@@ -327,18 +330,19 @@ namespace VSLauncher
 				return null;
 			};
 
-			//
-			// setup the Name/Filename column
-			//
-			this.olvColumnFilename.ImageGetter = ColumnHelper.GetImageNameForFile;
-			this.olvColumnFilename.AspectGetter = ColumnHelper.GetAspectForFile;
+			this.itemRenderer = CreateDescribedRenderer();
 
-			//
-			// setup the Path column
-			//
-			this.olvColumnPath.AspectGetter = ColumnHelper.GetAspectForPath;
-			this.olvColumnPath.Hideable = false;
-			this.olvColumnPath.UseFiltering = false;
+			this.olvFiles.TreeColumnRenderer.SubRenderer = this.itemRenderer;
+			this.olvColumnFilename.AspectName = "Name";
+			this.olvColumnFilename.ImageGetter = ColumnHelper.GetImageNameForFile;
+			this.olvColumnFilename.CellPadding = new Rectangle(4, 2, 4, 2);
+
+			// 			//
+			// 			// setup the Path column
+			// 			//
+			// 			this.olvColumnPath.AspectGetter = ColumnHelper.GetAspectForPath;
+			// 			this.olvColumnPath.Hideable = false;
+			// 			this.olvColumnPath.UseFiltering = false;
 
 			//
 			// setup the Date column
@@ -370,7 +374,7 @@ namespace VSLauncher
 			// Tell the filtering subsystem that the attributes column is a collection of flags
 			this.olvColumnOptions.ClusteringStrategy = new FlagClusteringStrategy(typeof(eOptions));
 
-			this.olvFiles.SetObjects(list);
+			// 			this.olvFiles.SetObjects(list);
 		}
 
 		/// <summary>
@@ -607,7 +611,7 @@ namespace VSLauncher
 				return;
 			}
 
-			if(e.SourceModels[0] == e.TargetModel)
+			if (e.SourceModels[0] == e.TargetModel)
 			{
 				return;
 			}
@@ -717,7 +721,11 @@ namespace VSLauncher
 			{
 
 				// save the selected item as last selected item
-				Properties.Settings.Default.SelectedVSversion = visualStudioInstances[selectVisualStudioVersion.SelectedIndex].Identifier;
+				if(!this.bInUpdate)
+				{
+					Properties.Settings.Default.SelectedVSversion = visualStudioInstances[selectVisualStudioVersion.SelectedIndex].Identifier;
+					Properties.Settings.Default.Save();
+				}
 
 				// set icon and text according to selection onto all buttons
 				var icon = visualStudioInstances[selectVisualStudioVersion.SelectedIndex].AppIcon.ToBitmap();
@@ -756,16 +764,6 @@ namespace VSLauncher
 			// IsSimpleDropSource and IsSimpleDragSource and respond to CanDrop and Dropped events
 
 			this.olvFiles.DragSource = new SimpleDragSource();
-			/*
-			SimpleDropSink dropSink = new SimpleDropSink();
-			this.olvFiles.DropSink = dropSink;
-			dropSink.CanDropOnItem = true;
-			// dropSink.CanDropOnSubItem = true;
-			dropSink.FeedbackColor = Color.IndianRed; // just to be different
-
-			dropSink.ModelCanDrop += olvFiles_ModelCanDropHandler;
-			dropSink.ModelDropped += olvFiles_ModelDroppedHandler;
-			*/
 			this.olvFiles.IsSimpleDragSource = true;
 			this.olvFiles.IsSimpleDropSink = true;
 
@@ -895,15 +893,15 @@ namespace VSLauncher
 				var item = olvFiles.SelectedItem.RowObject;
 				if (item is VsSolution s)
 				{
-					mainStatusLabel.Text = s.ToString();
+					mainStatusLabel.Text = $"Visual Studio Solution: {s.Projects?.Count} Projects, {s.TypeAsName()}";
 				}
 				else if (item is VsProject p)
 				{
-					mainStatusLabel.Text = p.ToString();
+					mainStatusLabel.Text = $"Visual Studio Project: {p.TypeAsName()}, .NET {p.FrameworkVersion}";
 				}
 				else if (item is VsFolder sg)
 				{
-					mainStatusLabel.Text = sg.ContainedSolutionsCount().ToString();
+					mainStatusLabel.Text = $"Contains {sg.ContainedSolutionsCount()} solution{((sg.ContainedSolutionsCount() != 1) ? 's' : "")}";
 				}
 			}
 			else
@@ -929,8 +927,7 @@ namespace VSLauncher
 					owner.Items.Remove((VsItem)item);
 				}
 
-				// update the list
-				UpdateList();
+				this.solutionGroups.Items.Changed = true;
 			}
 		}
 
@@ -941,10 +938,17 @@ namespace VSLauncher
 		/// <param name="e">The e.</param>
 		private void mainRefresh_Click(object sender, EventArgs e)
 		{
+			this.solutionGroups.Items.OnChanged -= SolutionData_OnChanged;
+			this.solutionGroups.Items.Clear();
 			LoadSolutionData();
 			this.solutionGroups.Items.OnChanged += SolutionData_OnChanged;
 
 			UpdateList();
+		}
+
+		private void MainDialog_Load(object sender, EventArgs e)
+		{
+			txtFilter.Focus();
 		}
 	}
 }
