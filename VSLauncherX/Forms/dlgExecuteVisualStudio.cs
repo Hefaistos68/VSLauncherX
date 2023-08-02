@@ -42,10 +42,193 @@ namespace VSLauncher
 		public dlgExecuteVisualStudio(object item)
 		{
 			InitializeComponent();
-			string version ="";
+
 			this.Item = (VsItem)item;
 
-			if (item is VsProject p)
+			// make this a change dialog and add Save
+			this.btnOk.Text = this.btnOk.Tag as string;
+		}
+
+		/// <summary>
+		/// Updates the controls from data.
+		/// </summary>
+		private void UpdateControlsFromData()
+		{
+			this.txtFoldername.Text = this.Item.Path;
+			this.txtCommand.Text = this.Item.Commands;
+			this.cbxInstance.Text = string.IsNullOrWhiteSpace(this.Item.Instance) ? "<default>" : this.Item.Instance;
+			this.chkAdmin.Checked = this.Item.RunAsAdmin;
+			this.chkSplash.Checked = this.Item.ShowSplash;
+		}
+
+		/// <summary>
+		/// Gets a value indicating whether as admin.
+		/// </summary>
+		public bool AsAdmin { get; internal set; }
+
+		/// <summary>
+		/// Gets a value indicating whether show splash.
+		/// </summary>
+		public bool ShowSplash { get; internal set; }
+
+		/// <summary>
+		/// Gets the instance name.
+		/// </summary>
+		public string InstanceName { get; private set; } = string.Empty;
+
+		/// <summary>
+		/// Gets the command.
+		/// </summary>
+		public string Command { get; internal set; }
+
+		/// <summary>
+		/// Gets the project or solution.
+		/// </summary>
+		public string ProjectOrSolution { get; private set; }
+
+		/// <summary>
+		/// Gets the vs version.
+		/// </summary>
+		public VisualStudioInstance VsVersion { get; private set; }
+
+		/// <summary>
+		/// Handles text changes
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
+		private void txtInstanceName_TextChanged(object sender, EventArgs e)
+		{
+			this.InstanceName = this.cbxInstance.Text;
+		}
+
+		/// <summary>
+		/// visuals the studio combobox1_ selected index changed.
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
+		private void visualStudioCombobox1_SelectedIndexChanged(object sender, EventArgs e)
+		{
+			var s = this.visualStudioCombobox1.Versions[visualStudioCombobox1.SelectedIndex].GetInstances();
+			this.cbxInstance.Items.Clear();
+			this.cbxInstance.Items.AddRange(s.ToArray());
+			this.cbxInstance.SelectedIndex = 0;
+
+			this.VsVersion = this.visualStudioCombobox1.Versions[visualStudioCombobox1.SelectedIndex];
+		}
+
+		/// <summary>
+		/// cbxes the instance_ selected index changed.
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
+		private void cbxInstance_SelectedIndexChanged(object sender, EventArgs e)
+		{
+			this.InstanceName = cbxInstance.Text == "<default>" ? "" : cbxInstance.Text;
+		}
+
+		/// <summary>
+		/// cbxes the instance_ text update.
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
+		private void cbxInstance_TextUpdate(object sender, EventArgs e)
+		{
+			this.InstanceName = cbxInstance.Text == "<default>" ? "" : cbxInstance.Text;
+		}
+
+		/// <summary>
+		/// btns the ok_ click.
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
+		private void btnOk_Click(object sender, EventArgs e)
+		{
+			this.AsAdmin = chkAdmin.Checked;
+			this.ShowSplash = chkSplash.Checked;
+			this.Command = txtCommand.Text;
+			this.ProjectOrSolution = txtFoldername.Text;
+
+			this.Item.Path = txtFoldername.Text;
+			this.Item.RunAsAdmin = chkAdmin.Checked;
+			this.Item.ShowSplash = chkSplash.Checked;
+			this.Item.Commands = txtCommand.Text;
+		}
+
+		/// <summary>
+		/// btns the select folder_ click.
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
+		private void btnSelectFolder_Click(object sender, EventArgs e)
+		{
+			// let the user select a folder through the system dialog
+			using (OpenFileDialog openFileDialog = new())
+			{
+				openFileDialog.Filter = solutionFilterString;
+				openFileDialog.FilterIndex = 1;
+				openFileDialog.CheckFileExists = true;
+				openFileDialog.Multiselect = false;
+				openFileDialog.InitialDirectory = Properties.Settings.Default.LastExecuteFolder;
+				openFileDialog.RestoreDirectory = true;
+
+				if (openFileDialog.ShowDialog() == DialogResult.OK)
+				{
+					//Get the path of specified file
+					var folderPath = openFileDialog.FileName;
+					txtFoldername.Text = folderPath;
+
+					// store current folderPath in application settings
+					Properties.Settings.Default.LastExecuteFolder = Path.GetDirectoryName(folderPath);
+				}
+			}
+		}
+
+		/// <summary>
+		/// txts the info_ link clicked.
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
+		private void txtInfo_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+		{
+			// open a link in the default browser
+			System.Diagnostics.Process.Start("explorer.exe", "https://visualstudio.microsoft.com/vs/older-downloads/");
+		}
+
+		/// <summary>
+		/// btns the before after_ click.
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
+		private void btnBeforeAfter_Click(object sender, EventArgs e)
+		{
+			var dlg = new dlgBeforeAfter(this.Item, this.Item.Name);
+
+			if (dlg.ShowDialog() == DialogResult.OK)
+			{
+
+			}
+		}
+
+		/// <summary>
+		/// txts the foldername_ text changed.
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
+		private void txtFoldername_TextChanged(object sender, EventArgs e)
+		{
+			btnBeforeAfter.Enabled = !string.IsNullOrWhiteSpace(txtFoldername.Text);
+		}
+
+		/// <summary>
+		/// dlgs the execute visual studio_ load.
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
+		private void dlgExecuteVisualStudio_Load(object sender, EventArgs e)
+		{
+			string version ="";
+
+			if (this.Item is VsProject p)
 			{
 				this.ProjectOrSolution = p.Path;
 				this.AsAdmin = p.RunAsAdmin;
@@ -53,7 +236,7 @@ namespace VSLauncher
 				version = p.GetRequiredVersion();
 				this.visualStudioCombobox1.SelectFromVersion(version);
 			}
-			else if (item is VsSolution s)
+			else if (this.Item is VsSolution s)
 			{
 				this.ProjectOrSolution = s.Path;
 				this.AsAdmin = s.RunAsAdmin;
@@ -61,7 +244,7 @@ namespace VSLauncher
 				version = s.GetRequiredVersion();
 				this.visualStudioCombobox1.SelectFromVersion(version);
 			}
-			else if (item is VsFolder f)
+			else if (this.Item is VsFolder f)
 			{
 				this.ProjectOrSolution = f.Path;
 				this.AsAdmin = f.RunAsAdmin;
@@ -89,128 +272,6 @@ namespace VSLauncher
 			}
 
 			UpdateControlsFromData();
-
-			// make this a change dialog and add Save
-			this.btnOk.Text = this.btnOk.Tag as string;
-		}
-
-		private void UpdateControlsFromData()
-		{
-			this.txtFoldername.Text = this.ProjectOrSolution;
-			this.txtCommand.Text = this.Command;
-			this.cbxInstance.Text = this.InstanceName;
-			this.chkAdmin.Checked = this.AsAdmin;
-			this.chkSplash.Checked = this.ShowSplash;
-		}
-
-		/// <summary>
-		/// Gets a value indicating whether as admin.
-		/// </summary>
-		public bool AsAdmin { get; internal set; }
-
-		/// <summary>
-		/// Gets a value indicating whether show splash.
-		/// </summary>
-		public bool ShowSplash { get; internal set; }
-
-		/// <summary>
-		/// Gets the instance name.
-		/// </summary>
-		public string InstanceName { get; private set; } = string.Empty;
-
-		/// <summary>
-		/// Gets the command.
-		/// </summary>
-		public string Command { get; internal set; }
-		public string ProjectOrSolution { get; private set; }
-		public VisualStudioInstance Instance { get; private set; }
-
-		/// <summary>
-		/// Handles text changes
-		/// </summary>
-		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
-		private void txtInstanceName_TextChanged(object sender, EventArgs e)
-		{
-			this.InstanceName = this.cbxInstance.Text;
-		}
-
-		private void visualStudioCombobox1_SelectedIndexChanged(object sender, EventArgs e)
-		{
-			var s = this.visualStudioCombobox1.Versions[visualStudioCombobox1.SelectedIndex].GetInstances();
-			this.cbxInstance.Items.Clear();
-			this.cbxInstance.Items.AddRange(s.ToArray());
-			this.cbxInstance.SelectedIndex = 0;
-
-			this.Instance = this.visualStudioCombobox1.Versions[visualStudioCombobox1.SelectedIndex];
-		}
-
-		private void cbxInstance_SelectedIndexChanged(object sender, EventArgs e)
-		{
-			this.InstanceName = cbxInstance.Text == "<default>" ? "" : cbxInstance.Text;
-		}
-
-		private void cbxInstance_TextUpdate(object sender, EventArgs e)
-		{
-			this.InstanceName = cbxInstance.Text == "<default>" ? "" : cbxInstance.Text;
-		}
-
-		private void btnOk_Click(object sender, EventArgs e)
-		{
-			this.AsAdmin = chkAdmin.Checked;
-			this.ShowSplash = chkSplash.Checked;
-			this.Command = txtCommand.Text;
-			this.ProjectOrSolution = txtFoldername.Text;
-
-			this.Item.Path = txtFoldername.Text;
-			this.Item.RunAsAdmin = chkAdmin.Checked;
-			this.Item.ShowSplash = chkSplash.Checked;
-			// this.Item.Command = txtCommand.Text;
-		}
-
-		private void btnSelectFolder_Click(object sender, EventArgs e)
-		{
-			// let the user select a folder through the system dialog
-			using (OpenFileDialog openFileDialog = new())
-			{
-				openFileDialog.Filter = solutionFilterString;
-				openFileDialog.FilterIndex = 1;
-				openFileDialog.CheckFileExists = true;
-				openFileDialog.Multiselect = false;
-				openFileDialog.InitialDirectory = Properties.Settings.Default.LastExecuteFolder;
-				openFileDialog.RestoreDirectory = true;
-
-				if (openFileDialog.ShowDialog() == DialogResult.OK)
-				{
-					//Get the path of specified file
-					var folderPath = openFileDialog.FileName;
-					txtFoldername.Text = folderPath;
-
-					// store current folderPath in application settings
-					Properties.Settings.Default.LastExecuteFolder = Path.GetDirectoryName(folderPath);
-				}
-			}
-		}
-
-		private void txtInfo_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
-		{
-			// open a link in the default browser
-			System.Diagnostics.Process.Start("explorer.exe", "https://visualstudio.microsoft.com/vs/older-downloads/");
-		}
-
-		private void btnBeforeAfter_Click(object sender, EventArgs e)
-		{
-			var dlg = new dlgBeforeAfter(this.Item, this.Item.Name);
-
-			if (dlg.ShowDialog() == DialogResult.OK)
-			{
-
-			}
-		}
-
-		private void txtFoldername_TextChanged(object sender, EventArgs e)
-		{
-			btnBeforeAfter.Enabled = !string.IsNullOrWhiteSpace(txtFoldername.Text);
 		}
 	}
 }

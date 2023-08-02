@@ -10,7 +10,8 @@ namespace VSLauncher.DataModel
 		Solution,
 		Project,
 		Other,
-		Folder
+		Folder,
+		VisualStudio
 	}
 
 	/// <summary>
@@ -34,6 +35,7 @@ namespace VSLauncher.DataModel
 		{
 			return (VsItem)this.MemberwiseClone();
 		}
+		
 		/// <summary>
 		/// Initializes a new instance of the <see cref="VsItem"/> class.
 		/// </summary>
@@ -79,11 +81,6 @@ namespace VSLauncher.DataModel
 		public bool Changed { get; set; }
 
 		/// <summary>
-		/// Gets or sets a value indicating whether wait for completion.
-		/// </summary>
-		public bool WaitForCompletion { get; set; }
-
-		/// <summary>
 		/// Gets or sets the item type.
 		/// </summary>
 		public eItemType ItemType { get; set; }
@@ -93,6 +90,12 @@ namespace VSLauncher.DataModel
 		/// </summary>
 		[JsonIgnore]
 		public bool Checked { get; set; }
+
+		/// <summary>
+		/// Gets or sets a value indicating whether this solution is possibly inaccessible
+		/// </summary>
+		[JsonIgnore]
+		public bool Warning { get; set; }
 
 		/// <summary>
 		/// Refreshes the item

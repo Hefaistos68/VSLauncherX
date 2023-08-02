@@ -44,7 +44,7 @@ namespace VSLauncher
 		private void InitializeList()
 		{
 			this.olvFiles.FullRowSelect = true;
-			this.olvFiles.RowHeight = 26;
+			this.olvFiles.RowHeight = 32;
 
 			this.olvFiles.HierarchicalCheckboxes = true;
 			this.olvFiles.TreeColumnRenderer.IsShowLines = true;
@@ -203,83 +203,10 @@ namespace VSLauncher
 
 			// remove not selected items from the solutions list
 			VsFolder sg = new VsFolder(txtFoldername.Text, txtFoldername.Text);
-			sg.Items = FilterItems(this.Solution.Items, this.olvFiles.CheckedObjects);
+			sg.Items = ImportHelper.FilterCheckedItems(this.Solution.Items, this.olvFiles.CheckedObjects);
 			sg.Checked = false;
-		}
+			this.Solution = sg;
 
-		/// <summary>
-		/// Filters the items.
-		/// </summary>
-		/// <param name="origin">The origin.</param>
-		/// <param name="checkedItems">The checked items.</param>
-		/// <returns>A VsItemList.</returns>
-		private VsItemList FilterItems(VsItemList origin, IList checkedItems)
-		{
-			VsItemList list = new VsItemList(null);
-
-			bool bAdded = false;
-			foreach (var i in origin)
-			{
-				if (checkedItems.Contains(i))
-				{
-					list.Add(i);
-					bAdded = true;
-				}
-
-				if (i is VsFolder f)
-				{
-					var fi = FilterItems(f.Items, checkedItems);
-					fi.Reparent(i);
-					list.Changed = true;
-
-					if (!bAdded)
-					{
-						// may be because the parent item is not in the checkedItems list
-						list.Add(i);
-					}
-				}
-
-				bAdded = false;
-			}
-
-			return list;
-		}
-		/// <summary>
-		/// Filters the items2.
-		/// </summary>
-		/// <param name="origin">The origin.</param>
-		/// <param name="checkedItems">The checked items.</param>
-		/// <returns>A VsItemList.</returns>
-		private VsItemList FilterItems2(VsItemList origin, IList checkedItems)
-		{
-			VsItemList list = new VsItemList(null);
-
-			bool bAdded = false;
-			foreach (var i in origin)
-			{
-				if (checkedItems.Contains(i))
-				{
-					list.Add(i);
-					bAdded = true;
-				}
-
-				if (i is VsFolder f)
-				{
-					var fi = FilterItems2(f.Items, checkedItems);
-					fi.Reparent(i);
-					list.Changed = true;
-
-					if (!bAdded)
-					{
-						// may be because the parent item is not in the checkedItems list
-						list.Add(i);
-					}
-				}
-
-				bAdded = false;
-			}
-
-			return list;
 		}
 
 		/// <summary>
@@ -314,6 +241,10 @@ namespace VSLauncher
 			if (string.IsNullOrEmpty(Properties.Settings.Default.LastImportFolder))
 			{
 				btnSelectFolder_Click(sender, e);
+			}
+			else
+			{
+				UpdateList();
 			}
 		}
 

@@ -40,6 +40,7 @@ namespace VSLauncher
 			olvFiles = new TreeListView();
 			olvColumnFilename = new OLVColumn();
 			imageList = new ImageList(this.components);
+			chkDefaultInstance = new CheckBox();
 			label1 = new Label();
 			((System.ComponentModel.ISupportInitialize)olvFiles).BeginInit();
 			SuspendLayout();
@@ -105,7 +106,7 @@ namespace VSLauncher
 			olvFiles.CellEditUseWholeCell = false;
 			olvFiles.CellVerticalAlignment = StringAlignment.Near;
 			olvFiles.CheckBoxes = true;
-			olvFiles.Columns.AddRange(new ColumnHeader[] { olvColumnFilename});
+			olvFiles.Columns.AddRange(new ColumnHeader[] { olvColumnFilename });
 			olvFiles.EmptyListMsg = "";
 			olvFiles.FullRowSelect = true;
 			olvFiles.HeaderWordWrap = true;
@@ -135,13 +136,12 @@ namespace VSLauncher
 			// olvColumnFilename
 			// 
 			olvColumnFilename.AspectName = "Name";
+			olvColumnFilename.FillsFreeSpace = true;
 			olvColumnFilename.Hideable = false;
 			olvColumnFilename.IsEditable = false;
 			olvColumnFilename.IsTileViewColumn = true;
-			olvColumnFilename.FillsFreeSpace = true;
 			olvColumnFilename.MinimumWidth = 100;
 			olvColumnFilename.Searchable = false;
-			olvColumnFilename.Sortable = true;
 			olvColumnFilename.Text = "Name";
 			olvColumnFilename.ToolTipText = "Path";
 			olvColumnFilename.Width = 140;
@@ -165,6 +165,18 @@ namespace VSLauncher
 			imageList.Images.SetKeyName(11, "VSLogo");
 			imageList.Images.SetKeyName(12, "OverlayWarning");
 			// 
+			// chkDefaultInstance
+			// 
+			chkDefaultInstance.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+			chkDefaultInstance.AutoSize = true;
+			chkDefaultInstance.Location = new Point(12, 350);
+			chkDefaultInstance.Name = "chkDefaultInstance";
+			chkDefaultInstance.Size = new Size(181, 19);
+			chkDefaultInstance.TabIndex = 8;
+			chkDefaultInstance.Text = "Show only default instance(s)";
+			chkDefaultInstance.UseVisualStyleBackColor = true;
+			chkDefaultInstance.CheckedChanged += chkDefaultInstance_CheckedChanged;
+			// 
 			// dlgImportVisualStudio
 			// 
 			this.AcceptButton = btnOk;
@@ -173,6 +185,7 @@ namespace VSLauncher
 			this.CancelButton = btnCancel;
 			this.ClientSize = new Size(780, 405);
 			this.ControlBox = false;
+			this.Controls.Add(chkDefaultInstance);
 			this.Controls.Add(olvFiles);
 			this.Controls.Add(btnRefresh);
 			this.Controls.Add(btnCancel);
@@ -185,6 +198,7 @@ namespace VSLauncher
 			this.SizeGripStyle = SizeGripStyle.Show;
 			this.StartPosition = FormStartPosition.CenterParent;
 			this.Text = "Import from Visual Studio Recent List";
+			Load += dlgImportVisualStudio_Load;
 			((System.ComponentModel.ISupportInitialize)olvFiles).EndInit();
 			ResumeLayout(false);
 			PerformLayout();
@@ -201,5 +215,6 @@ namespace VSLauncher
 		private TreeListView olvFiles;
 		private OLVColumn olvColumnFilename;
 		private ImageList imageList;
+		private CheckBox chkDefaultInstance;
 	}
 }

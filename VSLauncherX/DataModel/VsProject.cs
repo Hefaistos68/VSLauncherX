@@ -44,10 +44,9 @@ namespace VSLauncher.DataModel
 		public string FrameworkVersion { get; private set; }
 
 		/// <summary>
-		/// Gets or sets a value indicating whether this solution is possibly inaccessible
+		/// Gets the required visual studio version, this is the instance identifier
 		/// </summary>
-		[JsonIgnore]
-		public bool Warning { get; set; }
+		public string VsVersion { get; set; }
 
 		/// <summary>
 		/// Checks the is accessible.
@@ -80,23 +79,43 @@ namespace VSLauncher.DataModel
 		/// <returns>A string.</returns>
 		public string GetDotNetVersion()
 		{
+			bool isSdk = false;
 			try
 			{
 				// load solution file as XML, find the TargetFrameworkVersion node and read the value
 				var xdoc = XDocument.Load(this.Path);
 				var ns = xdoc.Root.GetDefaultNamespace();
-				var node = xdoc.Root.Descendants(ns + "TargetFrameworkVersion").FirstOrDefault();
-				
-				if (node != null)
+				var project = xdoc.Root.Descendants(ns + "Project").FirstOrDefault();
+
+				if(project != null)
 				{
-					return node.Value;
+					var sdk = project.Attribute("Sdk");
+					if(sdk != null)
+					{
+						isSdk = true;
+					}
 				}
-	
-				// not found, read the other value
-				node = xdoc.Root.Descendants(ns + "TargetFramework").FirstOrDefault();
-				if (node != null)
+
+				if (isSdk)
 				{
-					return node.Value;
+
+					var node = xdoc.Root.Descendants(ns + "TargetFrameworkVersion").FirstOrDefault();
+
+					if (node != null)
+					{
+						return node.Value;
+					}
+
+					// not found, read the other value
+					node = xdoc.Root.Descendants(ns + "TargetFramework").FirstOrDefault();
+					if (node != null)
+					{
+						return node.Value;
+					}
+				}
+				else
+				{
+					return "Framework?";
 				}
 			}
 			catch (System.Exception)

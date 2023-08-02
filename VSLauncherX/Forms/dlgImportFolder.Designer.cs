@@ -183,6 +183,7 @@ namespace VSLauncher
 			// 
 			// chkSolutionOnly
 			// 
+			chkSolutionOnly.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
 			chkSolutionOnly.AutoSize = true;
 			chkSolutionOnly.Location = new Point(12, 352);
 			chkSolutionOnly.Name = "chkSolutionOnly";
@@ -194,6 +195,7 @@ namespace VSLauncher
 			// 
 			// chkFlat
 			// 
+			chkFlat.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
 			chkFlat.AutoSize = true;
 			chkFlat.Location = new Point(12, 373);
 			chkFlat.Name = "chkFlat";

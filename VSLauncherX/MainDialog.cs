@@ -19,7 +19,7 @@ namespace VSLauncher
 		private VsFolder solutionGroups = new VsFolder();
 		private VisualStudioInstanceManager visualStudioInstances = new VisualStudioInstanceManager();
 		private DescribedTaskRenderer itemRenderer;
-		
+
 		/// <summary>
 		/// used to indicate that some internal update is going on
 		/// </summary>
@@ -42,7 +42,7 @@ namespace VSLauncher
 
 
 			this.bInUpdate = true;
-			
+
 			if (!string.IsNullOrEmpty(Properties.Settings.Default.SelectedVSversion))
 			{
 				var v = this.selectVisualStudioVersion.Versions.Where(v => v.Identifier == Properties.Settings.Default.SelectedVSversion).Single();
@@ -52,7 +52,7 @@ namespace VSLauncher
 			{
 				this.selectVisualStudioVersion.SelectedIndex = 0;
 			}
-			
+
 			this.bInUpdate = false;
 
 			UpdateList();
@@ -218,7 +218,7 @@ namespace VSLauncher
 			if (dlg.ShowDialog() == DialogResult.OK)
 			{
 				this.Cursor = Cursors.WaitCursor;
-				var vs = dlg.Instance;
+				var vs = dlg.VsVersion;
 				vs.ExecuteWith(dlg.AsAdmin, dlg.ShowSplash, dlg.ProjectOrSolution, dlg.InstanceName, dlg.Command);
 				this.Cursor = Cursors.Default;
 			}
@@ -400,11 +400,15 @@ namespace VSLauncher
 					}
 					else
 					{
-
+						var p = this.solutionGroups.FindParent(r.RowObject);
+						if(p != null)
+						{
+							p.Items.Insert(p.Items.IndexOf(r.RowObject as VsItem), dlg.Solution);
+						}
 					}
 				}
 
-				UpdateList();
+				this.SolutionData_OnChanged(true);
 			}
 		}
 
@@ -438,7 +442,7 @@ namespace VSLauncher
 					}
 				}
 
-				// 				UpdateList();
+				this.SolutionData_OnChanged(true);
 			}
 		}
 
@@ -455,7 +459,7 @@ namespace VSLauncher
 				var r = this.olvFiles.SelectedItem;
 				if (r == null)
 				{
-					solutionGroups.Items.Add(dlg.Solution);
+					solutionGroups = dlg.Solution;
 				}
 				else
 				{
@@ -469,7 +473,7 @@ namespace VSLauncher
 					}
 				}
 
-				// 				UpdateList();
+				this.SolutionData_OnChanged(true);
 			}
 		}
 
@@ -481,7 +485,10 @@ namespace VSLauncher
 		private void mainSettings_Click(object sender, EventArgs e)
 		{
 			var dlg = new dlgSettings();
-			dlg.ShowDialog();
+			if(dlg.ShowDialog() == DialogResult.OK)
+			{
+				this.SolutionData_OnChanged(true);
+			}
 		}
 
 		/// <summary>
@@ -618,7 +625,17 @@ namespace VSLauncher
 
 			if (e.TargetModel is VsFolder)
 			{
-				e.Effect = e.StandardDropActionFromKeys;
+				if(e.TargetModel != this.solutionGroups.FindParent(e.SourceModels[0]))
+				{
+					e.Effect = e.StandardDropActionFromKeys;
+				}
+				else
+				{
+					if(IsControlPressed())
+					{
+						e.Effect = e.StandardDropActionFromKeys;
+					}
+				}
 			}
 			else
 			{
@@ -660,6 +677,7 @@ namespace VSLauncher
 					{
 						Debug.WriteLine("parent is null");
 					}
+
 					// update source and target models
 					this.olvFiles.UpdateObject(target);
 					this.olvFiles.UpdateObject(source);
@@ -721,7 +739,7 @@ namespace VSLauncher
 			{
 
 				// save the selected item as last selected item
-				if(!this.bInUpdate)
+				if (!this.bInUpdate)
 				{
 					Properties.Settings.Default.SelectedVSversion = visualStudioInstances[selectVisualStudioVersion.SelectedIndex].Identifier;
 					Properties.Settings.Default.Save();
@@ -801,13 +819,19 @@ namespace VSLauncher
 			var item = olvFiles.SelectedItem.RowObject;
 			var vs = this.selectVisualStudioVersion.SelectedItem as VisualStudioInstance;
 
-			if (item is VsFolder sg)
+			if (item is VsFolder f)
 			{
-				new ItemLauncher(sg, vs).Launch();
+				new ItemLauncher(f, vs).Launch();
 			}
 			else if (item is VsSolution s)
 			{
+				vs = visualStudioInstances.GetByVersion(s.RequiredVersion) ?? vs;
 				new ItemLauncher(s, vs).Launch();
+			}
+			else if (item is VsProject p)
+			{
+				vs = visualStudioInstances.GetByIdentifier(p.VsVersion) ?? vs;
+				new ItemLauncher(p, vs).Launch();
 			}
 		}
 
@@ -877,6 +901,8 @@ namespace VSLauncher
 					sg.Instance = dlg.InstanceName;
 					sg.Commands = dlg.Command;
 				}
+
+				this.SolutionData_OnChanged(true);
 			}
 		}
 
@@ -918,17 +944,24 @@ namespace VSLauncher
 		private void deleteToolStripMenuItem_Click(object sender, EventArgs e)
 		{
 			var item = olvFiles.SelectedItem.RowObject;
-			// ask user if he wants to delete this item really
-			if (MessageBox.Show($"Are you sure you want to delete '{((VsItem)item).Name}'", "Delete item", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
-			{
-				VsFolder? owner = this.solutionGroups.FindParent(item);
-				if (owner != null)
-				{
-					owner.Items.Remove((VsItem)item);
-				}
 
-				this.solutionGroups.Items.Changed = true;
+			// only ask the user if the selected item is not an empty folder
+			if (item is not VsFolder sg || sg.Items.Count != 0)
+			{
+				// ask user if he wants to delete this item really
+				if (MessageBox.Show($"Are you sure you want to delete '{((VsItem)item).Name}'", "Delete item", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
+				{
+					return;
+				}
 			}
+
+			VsFolder? owner = this.solutionGroups.FindParent(item);
+			if (owner != null)
+			{
+				owner.Items.Remove((VsItem)item);
+			}
+
+			this.SolutionData_OnChanged(true);
 		}
 
 		/// <summary>
@@ -946,6 +979,11 @@ namespace VSLauncher
 			UpdateList();
 		}
 
+		/// <summary>
+		/// Mains the dialog_ load.
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
 		private void MainDialog_Load(object sender, EventArgs e)
 		{
 			txtFilter.Focus();

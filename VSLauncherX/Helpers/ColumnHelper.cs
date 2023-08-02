@@ -7,6 +7,11 @@ namespace VSLauncher.Helpers
 	/// </summary>
 	public class ColumnHelper
 	{
+		/// <summary>
+		/// Gets the image name for file.
+		/// </summary>
+		/// <param name="row">The row.</param>
+		/// <returns>An object.</returns>
 		public static object GetImageNameForFile(object row)
 		{
 			if (row is VsFolder)
@@ -25,7 +30,12 @@ namespace VSLauncher.Helpers
 			}
 			return string.Empty;
 		}
-		
+
+		/// <summary>
+		/// Gets the image name for file import.
+		/// </summary>
+		/// <param name="row">The row.</param>
+		/// <returns>An object.</returns>
 		public static object GetImageNameForFileImport(object row)
 		{
 			if (row is VsFolder)
@@ -45,11 +55,16 @@ namespace VSLauncher.Helpers
 			return string.Empty;
 		}
 
+		/// <summary>
+		/// Gets the image name for mru.
+		/// </summary>
+		/// <param name="row">The row.</param>
+		/// <returns>An object.</returns>
 		public static object GetImageNameForMru(object row)
 		{
 			if (row is VsFolder f)
 			{
-				return f.Icon is null ? "VSLogo" : f.Icon;
+				return f.Icon is null ? Program.VisualStudioFileIcons32.GetIcon(name: "Folder") : f.Icon;
 			}
 
 			if (row is VsSolution s)
@@ -65,6 +80,11 @@ namespace VSLauncher.Helpers
 			return string.Empty;
 		}
 
+		/// <summary>
+		/// Gets the aspect for date.
+		/// </summary>
+		/// <param name="row">The row.</param>
+		/// <returns>An object.</returns>
 		public static object GetAspectForDate(object row)
 		{
 			if (row is VsFolder)
@@ -80,16 +100,41 @@ namespace VSLauncher.Helpers
 			return string.Empty;
 		}
 
+		/// <summary>
+		/// Gets the aspect for file.
+		/// </summary>
+		/// <param name="row">The row.</param>
+		/// <returns>An object.</returns>
 		public static object GetAspectForFile(object row)
 		{
+			if(row is VsFolder f)
+			{
+				return f.Name;
+			}
+
+			if (row is VsSolution s)
+			{
+				return $"{s.Name} - {s.TypeAsName()} Solution File"; 
+			}
+
+			if (row is VsProject p)
+			{
+				return $"{p.Name} - {p.TypeAsName()} Project File";
+			}
+
 			if (row is VsItem sg)
 			{
-				return sg.Name;
+				return sg.Name ?? string.Empty;
 			}
 
 			return "";
 		}
 
+		/// <summary>
+		/// Gets the aspect for options.
+		/// </summary>
+		/// <param name="row">The row.</param>
+		/// <returns>An object.</returns>
 		public static object GetAspectForOptions(object row)
 		{
 			eOptions e = eOptions.None;
@@ -103,6 +148,11 @@ namespace VSLauncher.Helpers
 			return e;
 		}
 
+		/// <summary>
+		/// Gets the check state.
+		/// </summary>
+		/// <param name="rowObject">The row object.</param>
+		/// <returns>A CheckState.</returns>
 		internal static CheckState GetCheckState(object rowObject)
 		{
 			if (rowObject is null)
@@ -118,6 +168,12 @@ namespace VSLauncher.Helpers
 			return ((VsItem)rowObject).Checked ? CheckState.Checked : CheckState.Unchecked;
 		}
 
+		/// <summary>
+		/// Sets the check state.
+		/// </summary>
+		/// <param name="rowObject">The row object.</param>
+		/// <param name="newValue">The new value.</param>
+		/// <returns>A CheckState.</returns>
 		internal static CheckState SetCheckState(object rowObject, CheckState newValue)
 		{
 			bool b = newValue == CheckState.Checked;
@@ -134,30 +190,75 @@ namespace VSLauncher.Helpers
 			return newValue;
 		}
 
+		/// <summary>
+		/// Gets the description.
+		/// </summary>
+		/// <param name="rowObject">The row object.</param>
+		/// <returns>An object.</returns>
 		internal static object GetDescription(object rowObject)
 		{
 			string desc;
 			if (rowObject is VsSolution s)
 			{
-				desc = $"Visual Studio Solution: {s.Projects?.Count} Project{((s.Projects?.Count != 1) ? 's' : "")}, {s.TypeAsName()}";
-
-				if(Properties.Settings.Default.ShowPathForSolutions)
+				if(s.Warning)
 				{
-					desc += $"\r\n{s.Path}";
+					desc = "Could not find " + s.Path;
+				}
+				else
+				{
+					desc = $"Visual Studio Solution: {s.Projects?.Count} Project{((s.Projects?.Count != 1) ? 's' : "")}, {s.TypeAsName()}";
+
+					if (Properties.Settings.Default.ShowPathForSolutions)
+					{
+						desc += $"\r\n{s.Path}";
+					}
 				}
 			}
 			else if (rowObject is VsProject p)
 			{
-				desc = $"Visual Studio Project: {p.TypeAsName()}, .NET {p.FrameworkVersion}";
-
-				if (Properties.Settings.Default.ShowPathForSolutions)
+				if (p.Warning)
 				{
-					desc += $"\r\n{p.Path}";
+					desc = "Could not find " + p.Path;
+				}
+				else
+				{
+					desc = $"Visual Studio Project: {p.TypeAsName()}, .NET {p.FrameworkVersion}";
+
+					if (Properties.Settings.Default.ShowPathForSolutions)
+					{
+						desc += $"\r\n{p.Path}";
+					}
 				}
 			}
-			else if (rowObject is VsFolder sg)
+			else if (rowObject is VsFolder f)
 			{
-				desc = $"Contains {sg.ContainedSolutionsCount()} solution{((sg.ContainedSolutionsCount() != 1) ? 's' : "")}";
+				// if the path is empty, its either a group or a visual studio version
+				switch (f.ItemType)
+				{
+					case eItemType.VisualStudio:
+						desc = f.Name;
+						break;
+					case eItemType.Solution:
+						desc = f.Path;
+						break;
+					case eItemType.Project:
+						desc = f.Path;
+						break;
+					case eItemType.Other:
+						desc = string.Empty;
+						break;
+					case eItemType.Folder:
+						desc = $"Contains {f.ContainedSolutionsCount()} solution{((f.ContainedSolutionsCount() != 1) ? 's' : "")}";
+						break;
+					default:
+						desc = string.Empty;
+						break;
+				}
+				
+				if (f.Warning)
+				{
+					desc = "Could not find " + f.Path;
+				}
 			}
 			else
 			{

@@ -61,12 +61,6 @@ namespace VSLauncher.DataModel
 		public eSolutionType SolutionType { get; set; }
 
 		/// <summary>
-		/// Gets or sets a value indicating whether this solution is possibly inaccessible
-		/// </summary>
-		[JsonIgnore]
-		public bool Warning { get; set; }
-
-		/// <summary>
 		/// Gets the projects.
 		/// </summary>
 		/// <returns>A VsItemList.</returns>

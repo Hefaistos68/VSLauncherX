@@ -36,11 +36,18 @@ namespace BackgroundLaunch
 			Process? process;
 			ProcessStartInfo startInfo = new ProcessStartInfo();
 			string? workingPath = Path.GetDirectoryName(item.Path);
-			if(PathIsValid(workingPath))
+			
+			if(!string.IsNullOrWhiteSpace(workingPath))
 			{
-				startInfo.WorkingDirectory = workingPath;
+				if (!PathIsValid(workingPath))
+				{
+					throw new ExecutionException("Invalid working path: " + workingPath);
+				}
 			}
+
+			startInfo.WorkingDirectory = workingPath;
 			startInfo.Verb = item.RunAsAdmin ? "runas" : "run";
+			startInfo.ErrorDialog = true;
 
 			if (item.ItemType == eItemType.Solution)
 			{
@@ -62,11 +69,11 @@ namespace BackgroundLaunch
 			}
 			else
 			{
-				startInfo.FileName = "explorer.exe";
-				startInfo.Arguments = item.Path;
+				// startInfo.FileName = "explorer.exe";
+				startInfo.FileName = item.Path;
 				if (!string.IsNullOrEmpty(item.Commands))
 				{
-					startInfo.Arguments += " " + item.Commands;
+					startInfo.Arguments += item.Commands;
 				}
 			}
 
@@ -75,6 +82,7 @@ namespace BackgroundLaunch
 			if (item.WaitForCompletion)
 			{
 				process?.WaitForExit();
+				process?.Close();
 			}
 
 			return process != null;
@@ -107,13 +115,37 @@ namespace BackgroundLaunch
 		{
 			if (launchInfo != null)
 			{
-				RunItem(launchInfo.Solution.RunBefore);
-				foreach (var i in launchInfo.Solution.Items)
-				{
-					RunItem(i);
-				}
-				RunItem(launchInfo.Solution.RunAfter);
+				RunAll(launchInfo.Solution.Items.First());
 			}
+		}
+
+		internal void RunAll(VsItem item)
+		{
+			// set the working path before executing the RunBefore item
+			string? workingPath = Path.GetDirectoryName(item.Path);
+
+			if (!string.IsNullOrWhiteSpace(workingPath))
+			{
+				if (!PathIsValid(workingPath))
+				{
+					throw new ExecutionException("Invalid working path: " + workingPath);
+				}
+
+				Environment.CurrentDirectory = workingPath;
+			}
+
+			RunItem(item.RunBefore);
+
+			RunItem(item);
+			if(item is VsFolder f)
+			{
+				foreach (var i in f.Items)
+				{
+					RunAll(i);
+				}
+			}
+
+			RunItem(item.RunAfter);
 		}
 	}
 }

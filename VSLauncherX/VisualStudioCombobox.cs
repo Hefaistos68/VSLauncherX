@@ -2,7 +2,7 @@
 
 namespace VSLauncher
 {
-    public class VisualStudioCombobox : ComboBox
+	public class VisualStudioCombobox : ComboBox
 	{
 		private VisualStudioInstanceManager visualStudioVersions = new VisualStudioInstanceManager();
 
@@ -26,6 +26,11 @@ namespace VSLauncher
 		/// <param name="v">The v.</param>
 		internal void SelectFromVersion(string v)
 		{
+			if(string.IsNullOrWhiteSpace(v))
+			{
+				v = this.visualStudioVersions.HighestVersion().Version;
+			}
+
 			// find either by exact version or by short name containing the version
 			var i = this.visualStudioVersions.All.FindIndex(x => x.Version == v);
 			if (i >= 0)
@@ -33,14 +38,6 @@ namespace VSLauncher
 				this.SelectedIndex = i;
 				return;
 			}
-			
-			var n = this.visualStudioVersions.All.FindIndex(x => x.ShortName.Contains(v));
-			if (n >= 0)
-			{
-				this.SelectedIndex = n;
-				return;
-			}
-			this.SelectedIndex = -1;
 
 			var k = this.visualStudioVersions.All.FindIndex(x => x.Version.StartsWith(v));
 			if (k >= 0)
@@ -49,6 +46,15 @@ namespace VSLauncher
 				return;
 			}
 
+			// by year
+			var n = this.visualStudioVersions.All.FindIndex(x => x.ShortName.Contains(v));
+			if (n >= 0)
+			{
+				this.SelectedIndex = n;
+				return;
+			}
+
+			this.SelectedIndex = -1;
 		}
 
 		/// <summary>

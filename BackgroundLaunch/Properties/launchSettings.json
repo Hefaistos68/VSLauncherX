@@ -1,8 +1,8 @@
 {
-  "profiles": {
-    "BackgroundLaunch": {
-      "commandName": "Project",
-      "commandLineArgs": "{«Target«:«C:\\\\Program»Files\\\\Microsoft»Visual»Studio\\\\2022\\\\Community\\\\Common7\\\\IDE\\\\devenv.exe«,«Solution«:{«Items«:[{«SolutionType«:0,«Name«:«Solution»1«,«Path«:«C:\\\\TestSolution1.sln«,«Commands«:null,«WaitForCompletion«:false,«ItemType«:0,«RunBefore«:null,«RunAfter«:null,«RunAsAdmin«:false},{«SolutionType«:0,«Name«:«Solution»2«,«Path«:«C:\\\\Solution2\\\\TestSolution2.sln«,«Commands«:null,«WaitForCompletion«:false,«ItemType«:0,«RunBefore«:null,«RunAfter«:null,«RunAsAdmin«:false},{«SolutionType«:0,«Name«:«Solution»3«,«Path«:«C:\\\\Solution3\\\\TestSolution3.sln«,«Commands«:null,«WaitForCompletion«:false,«ItemType«:0,«RunBefore«:null,«RunAfter«:null,«RunAsAdmin«:false},{«Items«:[{«SolutionType«:0,«Name«:«Solution»1«,«Path«:«C:\\\\TestSolution1.sln«,«Commands«:null,«WaitForCompletion«:false,«ItemType«:0,«RunBefore«:null,«RunAfter«:null,«RunAsAdmin«:false},{«SolutionType«:0,«Name«:«Solution»2«,«Path«:«C:\\\\Solution2\\\\TestSolution2.sln«,«Commands«:null,«WaitForCompletion«:false,«ItemType«:0,«RunBefore«:null,«RunAfter«:null,«RunAsAdmin«:false}],«Checked«:false,«Name«:«small»sub»group«,«Path«:null,«Commands«:null,«WaitForCompletion«:false,«ItemType«:3,«RunBefore«:{«Name«:«Explorer«,«Path«:«explorer.exe«,«Commands«:null,«WaitForCompletion«:false,«ItemType«:2,«RunBefore«:null,«RunAfter«:null,«RunAsAdmin«:false},«RunAfter«:{«Name«:«Explorer«,«Path«:«explorer.exe«,«Commands«:null,«WaitForCompletion«:false,«ItemType«:2,«RunBefore«:null,«RunAfter«:null,«RunAsAdmin«:false},«RunAsAdmin«:true}],«Checked«:null,«Name«:«Some»Group«,«Path«:null,«Commands«:null,«WaitForCompletion«:false,«ItemType«:3,«RunBefore«:null,«RunAfter«:null,«RunAsAdmin«:true}}\r\n"
-    }
-  }
+	"profiles": {
+		"BackgroundLaunch": {
+			"commandName": "Project",
+			"commandLineArgs": "{«Target«:«C:\\\\Program»Files\\\\Microsoft»Visual»Studio\\\\2022\\\\Community\\\\Common7\\\\IDE\\\\devenv.exe«,«Solution«:{«FolderItems«:[{«RequiredVersion«:«17«,«SolutionType«:1,«Name«:«VSLauncher«,«Path«:«C:\\\\dev\\\\Repos\\\\VSLauncher-master\\\\VSLauncher.sln«,«Commands«:««,«Instance«:««,«ItemType«:0,«RunBefore«:{«Name«:«git.exe«,«Path«:«git.exe«,«Commands«:«fetch«,«Instance«:null,«ItemType«:2,«RunBefore«:null,«RunAfter«:null,«RunAsAdmin«:false,«ShowSplash«:false,«WaitForCompletion«:true},«RunAfter«:null,«RunAsAdmin«:false,«ShowSplash«:false,«WaitForCompletion«:false}],«Name«:null,«Path«:null,«Commands«:null,«Instance«:null,«ItemType«:3,«RunBefore«:null,«RunAfter«:null,«RunAsAdmin«:false,«ShowSplash«:false,«WaitForCompletion«:false}}\r\n"
+		}
+	}
 }

@@ -71,6 +71,7 @@ namespace VSLauncher
 			settingsToolStripMenuItem = new ToolStripMenuItem();
 			statusStrip1 = new StatusStrip();
 			mainStatusLabel = new ToolStripStatusLabel();
+			label2 = new Label();
 			toolStripLabel1 = new ToolStripLabel();
 			toolStripMenuItem1 = new ToolStripSeparator();
 			toolStripMenuItem2 = new ToolStripSeparator();
@@ -351,6 +352,7 @@ namespace VSLauncher
 			// 
 			// flowLayoutPanel1
 			// 
+			flowLayoutPanel1.Controls.Add(label2);
 			flowLayoutPanel1.Controls.Add(this.selectVisualStudioVersion);
 			flowLayoutPanel1.Controls.Add(btnMainStartVisualStudio1);
 			flowLayoutPanel1.Controls.Add(btnMainStartVisualStudio2);
@@ -372,9 +374,10 @@ namespace VSLauncher
 			this.selectVisualStudioVersion.DropDownStyle = ComboBoxStyle.DropDownList;
 			this.selectVisualStudioVersion.IntegralHeight = false;
 			this.selectVisualStudioVersion.ItemHeight = 26;
-			this.selectVisualStudioVersion.Location = new Point(3, 3);
+			this.selectVisualStudioVersion.Location = new Point(0, 18);
+			this.selectVisualStudioVersion.Margin = new Padding(0, 0, 0, 18);
 			this.selectVisualStudioVersion.Name = "selectVisualStudioVersion";
-			this.selectVisualStudioVersion.Size = new Size(229, 32);
+			this.selectVisualStudioVersion.Size = new Size(232, 32);
 			this.selectVisualStudioVersion.TabIndex = 0;
 			this.selectVisualStudioVersion.DrawItem += selectVisualStudioVersion_DrawItem;
 			this.selectVisualStudioVersion.SelectedIndexChanged += selectVisualStudioVersion_SelectedIndexChanged;
@@ -384,7 +387,7 @@ namespace VSLauncher
 			btnMainStartVisualStudio1.Font = new Font("Segoe UI", 10F, FontStyle.Bold, GraphicsUnit.Point);
 			btnMainStartVisualStudio1.Image = (Image)resources.GetObject("btnMainStartVisualStudio1.Image");
 			btnMainStartVisualStudio1.ImageAlign = ContentAlignment.MiddleLeft;
-			btnMainStartVisualStudio1.Location = new Point(0, 38);
+			btnMainStartVisualStudio1.Location = new Point(0, 68);
 			btnMainStartVisualStudio1.Margin = new Padding(0);
 			btnMainStartVisualStudio1.Name = "btnMainStartVisualStudio1";
 			btnMainStartVisualStudio1.Padding = new Padding(4);
@@ -403,7 +406,7 @@ namespace VSLauncher
 			btnMainStartVisualStudio2.Font = new Font("Segoe UI", 10F, FontStyle.Bold, GraphicsUnit.Point);
 			btnMainStartVisualStudio2.Image = (Image)resources.GetObject("btnMainStartVisualStudio2.Image");
 			btnMainStartVisualStudio2.ImageAlign = ContentAlignment.MiddleLeft;
-			btnMainStartVisualStudio2.Location = new Point(0, 102);
+			btnMainStartVisualStudio2.Location = new Point(0, 132);
 			btnMainStartVisualStudio2.Margin = new Padding(0);
 			btnMainStartVisualStudio2.Name = "btnMainStartVisualStudio2";
 			btnMainStartVisualStudio2.Padding = new Padding(4);
@@ -422,7 +425,7 @@ namespace VSLauncher
 			btnMainStartVisualStudio3.Font = new Font("Segoe UI", 10F, FontStyle.Bold, GraphicsUnit.Point);
 			btnMainStartVisualStudio3.Image = (Image)resources.GetObject("btnMainStartVisualStudio3.Image");
 			btnMainStartVisualStudio3.ImageAlign = ContentAlignment.MiddleLeft;
-			btnMainStartVisualStudio3.Location = new Point(0, 166);
+			btnMainStartVisualStudio3.Location = new Point(0, 196);
 			btnMainStartVisualStudio3.Margin = new Padding(0);
 			btnMainStartVisualStudio3.Name = "btnMainStartVisualStudio3";
 			btnMainStartVisualStudio3.Padding = new Padding(4);
@@ -441,7 +444,7 @@ namespace VSLauncher
 			btnMainStartVisualStudio4.Font = new Font("Segoe UI", 10F, FontStyle.Bold, GraphicsUnit.Point);
 			btnMainStartVisualStudio4.Image = (Image)resources.GetObject("btnMainStartVisualStudio4.Image");
 			btnMainStartVisualStudio4.ImageAlign = ContentAlignment.MiddleLeft;
-			btnMainStartVisualStudio4.Location = new Point(0, 230);
+			btnMainStartVisualStudio4.Location = new Point(0, 260);
 			btnMainStartVisualStudio4.Margin = new Padding(0);
 			btnMainStartVisualStudio4.Name = "btnMainStartVisualStudio4";
 			btnMainStartVisualStudio4.Padding = new Padding(4);
@@ -460,7 +463,7 @@ namespace VSLauncher
 			btnMainStartVisualStudio5.Font = new Font("Segoe UI", 10F, FontStyle.Bold, GraphicsUnit.Point);
 			btnMainStartVisualStudio5.Image = (Image)resources.GetObject("btnMainStartVisualStudio5.Image");
 			btnMainStartVisualStudio5.ImageAlign = ContentAlignment.MiddleLeft;
-			btnMainStartVisualStudio5.Location = new Point(0, 294);
+			btnMainStartVisualStudio5.Location = new Point(0, 324);
 			btnMainStartVisualStudio5.Margin = new Padding(0);
 			btnMainStartVisualStudio5.Name = "btnMainStartVisualStudio5";
 			btnMainStartVisualStudio5.Padding = new Padding(4);
@@ -554,6 +557,16 @@ namespace VSLauncher
 			mainStatusLabel.Size = new Size(94, 17);
 			mainStatusLabel.Text = "mainStatusLabel";
 			// 
+			// label2
+			// 
+			label2.AutoSize = true;
+			label2.Location = new Point(3, 3);
+			label2.Margin = new Padding(3, 3, 3, 0);
+			label2.Name = "label2";
+			label2.Size = new Size(119, 15);
+			label2.TabIndex = 6;
+			label2.Text = "Visual Studio version:";
+			// 
 			// MainDialog
 			// 
 			this.AutoScaleDimensions = new SizeF(7F, 15F);
@@ -573,6 +586,7 @@ namespace VSLauncher
 			mainToolstrip.PerformLayout();
 			((System.ComponentModel.ISupportInitialize)olvFiles).EndInit();
 			flowLayoutPanel1.ResumeLayout(false);
+			flowLayoutPanel1.PerformLayout();
 			ctxMenu.ResumeLayout(false);
 			statusStrip1.ResumeLayout(false);
 			statusStrip1.PerformLayout();
@@ -620,6 +634,7 @@ namespace VSLauncher
 		private StatusStrip statusStrip1;
 		private ToolStripStatusLabel mainStatusLabel;
 		private ToolStripMenuItem deleteToolStripMenuItem;
+		private Label label2;
 	}
 }
 

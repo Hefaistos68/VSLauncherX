@@ -28,6 +28,23 @@ namespace VSLauncher.DataModel
 			this.Items = new VsItemList(this);
 			this.ItemType = eItemType.Folder;
 		}
+		
+		/// <summary>
+		/// Clones the object
+		/// </summary>
+		/// <returns>A VsItem.</returns>
+		public VsFolder Clone(bool withItems)
+		{
+			var f = (VsFolder)this.MemberwiseClone();
+
+			if(!withItems)
+			{
+				f.Items = new VsItemList(f);
+			}
+
+			return f;
+		}
+
 
 		/// <summary>
 		/// Gets or sets the items.

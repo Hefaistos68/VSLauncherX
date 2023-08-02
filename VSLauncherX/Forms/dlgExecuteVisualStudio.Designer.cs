@@ -238,6 +238,7 @@
 			this.SizeGripStyle = SizeGripStyle.Hide;
 			this.StartPosition = FormStartPosition.CenterParent;
 			this.Text = "Execute Visual Studio";
+			Load += dlgExecuteVisualStudio_Load;
 			ResumeLayout(false);
 			PerformLayout();
 		}

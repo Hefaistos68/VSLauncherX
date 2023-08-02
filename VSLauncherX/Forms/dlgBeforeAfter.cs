@@ -84,8 +84,39 @@ namespace VSLauncher
 
 		private void btnOk_Click(object sender, EventArgs e)
 		{
-			this.Options.RunBefore = string.IsNullOrEmpty(txtRunBefore.Text.Trim()) ? null : new VsItem(txtRunBefore.Text, txtRunBefore.Text, null) { WaitExit = chkWaitExitBefore.Checked };
-			this.Options.RunAfter = string.IsNullOrEmpty(txtRunAfter.Text.Trim()) ? null : new VsItem(txtRunAfter.Text, txtRunAfter.Text, null) { WaitExit = chkWaitExitAfter.Checked };
+			this.Options.RunBefore = string.IsNullOrEmpty(txtRunBefore.Text.Trim()) ?
+				null :
+				new VsItem(txtRunBefore.Text, txtRunBefore.Text, null)
+				{ WaitForCompletion = chkWaitExitBefore.Checked, Commands = txtArgumentsBefore.Text };
+
+			this.Options.RunAfter = string.IsNullOrEmpty(txtRunAfter.Text.Trim()) ?
+				null :
+				new VsItem(txtRunAfter.Text, txtRunAfter.Text, null)
+				{ WaitForCompletion = chkWaitExitAfter.Checked, Commands = txtArgumentsAfter.Text };
+		}
+
+		private void txtRunBefore_TextChanged(object sender, EventArgs e)
+		{
+			this.chkWaitExitBefore.Enabled = !string.IsNullOrWhiteSpace(txtRunBefore.Text);
+			this.txtArgumentsBefore.Enabled = this.chkWaitExitBefore.Enabled;
+		}
+
+		private void txtRunAfter_TextChanged(object sender, EventArgs e)
+		{
+			this.chkWaitExitAfter.Enabled = !string.IsNullOrWhiteSpace(txtRunAfter.Text);
+			this.txtArgumentsAfter.Enabled = this.chkWaitExitAfter.Enabled;
+		}
+
+		private void dlgBeforeAfter_Load(object sender, EventArgs e)
+		{
+			txtRunBefore.Text = this.Options.RunBefore?.Path ?? string.Empty;
+			txtRunAfter.Text = this.Options.RunAfter?.Path ?? string.Empty;
+
+			txtArgumentsBefore.Text = this.Options.RunBefore?.Commands ?? string.Empty;
+			txtArgumentsAfter.Text = this.Options.RunAfter?.Commands ?? string.Empty;
+
+			chkWaitExitBefore.Checked = this.Options.RunBefore?.WaitForCompletion ?? false;
+			chkWaitExitAfter.Checked = this.Options.RunAfter?.WaitForCompletion ?? false;
 		}
 	}
 }

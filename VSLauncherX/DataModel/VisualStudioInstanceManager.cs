@@ -1,9 +1,11 @@
-﻿using System.Management;
-using System.Diagnostics;
-using System.Xml.Linq;
-using Newtonsoft.Json;
-using VSLauncher.Helpers;
+﻿using System.Diagnostics;
+using System.Management;
 using System.Text.RegularExpressions;
+using System.Xml.Linq;
+
+using Newtonsoft.Json;
+
+using VSLauncher.Helpers;
 
 namespace VSLauncher.DataModel
 {
@@ -12,15 +14,23 @@ namespace VSLauncher.DataModel
 	/// </summary>
 	public class VisualStudioInstanceManager
 	{
-		static string vsDirectory_pattern = "(\\d\\d\\.\\d)_(........)(.*)";
-		private List<VisualStudioInstance> allInstances;
-		Dictionary<string, string> vsVersions = new Dictionary<string, string>()
+		private static string vsDirectory_pattern = "(\\d\\d\\.\\d)_(........)(.*)";
+
+		private static Dictionary<string, string> vsVersions = new Dictionary<string, string>()
 		{
+			{ "7", "2003" },
+			{ "8", "2005" },
+			{ "9", "2008" },
+			{ "10", "2010" },
+			{ "11", "2012" },
+			{ "12", "2013" },
+			{ "14", "2015" },
 			{ "15", "2017" },
 			{ "16", "2019" },
 			{ "17", "2022" }
 		};
 
+		private List<VisualStudioInstance> allInstances;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="VisualStudioInstanceManager"/> class.
@@ -30,6 +40,9 @@ namespace VSLauncher.DataModel
 			allInstances = ReadAllInstances();
 		}
 
+		/// <summary>
+		/// Gets the all.
+		/// </summary>
 		public List<VisualStudioInstance> All
 		{
 			get { return allInstances; }
@@ -67,6 +80,7 @@ namespace VSLauncher.DataModel
 				return allInstances.Where(x => x.Version.StartsWith(version)).Single();
 			}
 		}
+
 		/// <summary>
 		/// Reads the all installed Visual Studio instances from WMI
 		/// </summary>
@@ -95,11 +109,8 @@ namespace VSLauncher.DataModel
 						string version = baseObj.Properties["Version"].Value.ToString();
 						string location = baseObj.Properties["ProductLocation"].Value.ToString();
 						string identifier = baseObj.Properties["IdentifyingNumber"].Value.ToString();
-						string year = version.StartsWith("15") ? "2017" :
-									  version.StartsWith("16") ? "2019" :
-									  version.StartsWith("17") ? "2022" : "newer";
 
-						list.Add(new VisualStudioInstance(name, version, location, identifier, year));
+						list.Add(new VisualStudioInstance(name, version, location, identifier, VisualStudioInstanceManager.YearFromVersion(version[..2])));
 					}
 					catch (Exception ex)
 					{
@@ -112,10 +123,46 @@ namespace VSLauncher.DataModel
 			collection?.Dispose();
 			searcher?.Dispose();
 
+			list.Sort((x, y) => x.Version.CompareTo(y.Version));
+
 			return list;
 		}
 
-		public VsItemList GetRecentProjects()
+		/// <summary>
+		/// Get the highest installed version
+		/// </summary>
+		/// <returns>A string.</returns>
+		public VisualStudioInstance HighestVersion()
+		{
+			return this.allInstances.Last();
+		}
+
+		/// <summary>
+		/// Gets the version number from the year
+		/// </summary>
+		/// <param name="year">The year.</param>
+		/// <returns>A string.</returns>
+		public static string VersionFromYear(string year)
+		{
+			return vsVersions.Where(x => x.Value == year).FirstOrDefault().Key;
+		}
+
+		/// <summary>
+		/// Gets the year from the version number
+		/// </summary>
+		/// <param name="version">The version.</param>
+		/// <returns>A string.</returns>
+		public static string YearFromVersion(string version)
+		{
+			return vsVersions.Where(x => x.Key.StartsWith(version)).FirstOrDefault().Value;
+		}
+
+		/// <summary>
+		/// Gets the recent projects.
+		/// </summary>
+		/// <param name="bOnlyDefaultInstances">If true, b only default instances.</param>
+		/// <returns>A VsItemList.</returns>
+		public VsItemList GetRecentProjects(bool bOnlyDefaultInstances)
 		{
 			VsFolder solutionList = new VsFolder();
 
@@ -147,22 +194,32 @@ namespace VSLauncher.DataModel
 
 							if (!string.IsNullOrEmpty(groupName))
 							{
-								var group = new VsFolder(groupName, dir.FullName);
+								if (bOnlyDefaultInstances && groupName.Contains('/'))
+									continue;
+
+								var group = new VsFolder(groupName, string.Empty) { ItemType = eItemType.VisualStudio };		// keep the path empty for VS groups
 								group.Icon = this.GetByName(vsName!)?.AppIcon;
 
 								// add the projects to the solution
 								foreach (var s in recentProjects)
 								{
+									VsItem item;
+
 									if (s.Value.LocalProperties.Type == 1)
 									{
-										var item = new VsFolder(Path.GetFileNameWithoutExtension(s.Key), s.Value.LocalProperties.FullPath);
-										group.Items.Add(item);
+										item = new VsFolder(Path.GetFileNameWithoutExtension(s.Key), s.Value.LocalProperties.FullPath) { ItemType = eItemType.Project };
 									}
 									else
 									{
-										var item = ImportHelper.GetItemFromExtension(Path.GetFileNameWithoutExtension(s.Key), s.Value.LocalProperties.FullPath);
+										item = ImportHelper.GetItemFromExtension(Path.GetFileNameWithoutExtension(s.Key), s.Value.LocalProperties.FullPath);
+									}
+
+									if (item != null)
+									{
+										item.Warning = item is VsFolder ? !Directory.Exists(item.Path) : !File.Exists(item.Path);
 										group.Items.Add(item);
 									}
+
 								}
 
 								solutionList.Items.Add(group);
@@ -176,26 +233,6 @@ namespace VSLauncher.DataModel
 			}
 
 			return solutionList.Items;
-		}
-
-		/// <summary>
-		/// Gets the version number from the year
-		/// </summary>
-		/// <param name="year">The year.</param>
-		/// <returns>A string.</returns>
-		public string VersionFromYear(string year)
-		{
-			return vsVersions.Where(x => x.Value == year).FirstOrDefault().Key;
-		}
-
-		/// <summary>
-		/// Gets the year from the version number
-		/// </summary>
-		/// <param name="version">The version.</param>
-		/// <returns>A string.</returns>
-		public string YearFromVersion(string version)
-		{
-			return vsVersions.Where(x => x.Key.StartsWith(version)).FirstOrDefault().Key;
 		}
 
 		/// <summary>
@@ -217,6 +254,22 @@ namespace VSLauncher.DataModel
 		{
 			return this.allInstances.Where(x => x.Version.StartsWith(version, StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault();
 		}
+
+		/// <summary>
+		/// Gets the by version.
+		/// </summary>
+		/// <param name="identifier">The VS identifer</param>
+		/// <returns>A VisualStudioInstance.</returns>
+		internal VisualStudioInstance? GetByIdentifier(string identifier)
+		{
+			return this.allInstances.Where(x => x.Identifier == identifier).FirstOrDefault();
+		}
+
+		/// <summary>
+		/// Parses the directory name into vs version.
+		/// </summary>
+		/// <param name="name">The name.</param>
+		/// <returns>A (string?, string?) .</returns>
 		private (string?, string?) ParseDirectoryNameIntoVsVersion(string name)
 		{
 			var regex = new Regex(vsDirectory_pattern);
@@ -245,6 +298,5 @@ namespace VSLauncher.DataModel
 
 			return (null, null);
 		}
-
 	}
 }

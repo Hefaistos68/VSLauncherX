@@ -121,8 +121,14 @@
   <data name="CPPProject" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>Resources\Images\CPPProjectNode.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
-  <data name="AddFolder" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>.\Resources\Images\AddFolder.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  <data name="Folder" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\folder.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="webproj" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\webproj.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="VBProject" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\Images\VBProjectNode.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="ImportVS" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>Resources\Images\ImportVS.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
@@ -130,32 +136,41 @@
   <data name="Refresh" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>.\Resources\Images\Refresh.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
+  <data name="vbproj" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\vbproj.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
   <data name="AddFolder1" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>.\Resources\Images\AddFolder.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="VS2022Logo" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>Resources\Images32\VSLogo.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
-  <data name="VBProject" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>Resources\Images\VBProjectNode.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  <data name="RightArrowAsterisk" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>.\Resources\Images\RightArrowAsterisk.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="RunUpdate" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>.\Resources\Images\RunUpdate.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
-  <data name="RightArrowAsterisk" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>.\Resources\Images\RightArrowAsterisk.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  <data name="Cancel_24x24" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\Images24\Cancel_24x24.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
-  <data name="FSProject" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>Resources\Images\FSProjectNode.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  <data name="AddFolder" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>.\Resources\Images\AddFolder.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="Warning32" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\Images32\Warning32.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="Check_24x24" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>Resources\Images24\Check_24x24.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
+  <data name="DefaultIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\DefaultIcon.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="Warning" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\Warning32.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
   <data name="WebProject" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>Resources\Images\WebProjectNode.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="Cancel_24x24" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>Resources\Images24\Cancel_24x24.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="ConnectArrow" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>.\Resources\Images\ConnectArrow.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
@@ -166,6 +181,9 @@
   <data name="FolderClosedBlue" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>.\Resources\Images\FolderClosedBlue.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
+  <data name="blazor" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\blazor.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
   <data name="Add" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>.\Resources\Images\Add.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
@@ -175,23 +193,38 @@
   <data name="RunUpdate1" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>Resources\Images\RunUpdate.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
+  <data name="AppLogo" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\AppLogo.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
   <data name="AddFavorite" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>.\Resources\Images\AddFavorite.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
-  <data name="OpenProjectFolder" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>Resources\Images\OpenProjectFolder.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  <data name="vcxproj" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\vcxproj.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="ArrowUpEnd" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>.\Resources\Images\ArrowUpEnd.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
+  <data name="TSProject" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\Images\TSProjectNode.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
   <data name="ApplicationGroup" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>Resources\Images\ApplicationGroup.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="Search" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\Images\Search.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="ArrowDownEnd" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>.\Resources\Images\ArrowDownEnd.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
-  <data name="TSProject" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>Resources\Images\TSProjectNode.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  <data name="OpenProjectFolder" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\Images\OpenProjectFolder.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="FSProject" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\Images\FSProjectNode.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="csproj" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\csproj.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="VsSolution" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>Resources\Images\VsSolution.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
@@ -205,37 +238,7 @@
   <data name="Settings" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>.\Resources\Images\Settings.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
-  <data name="Search" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>Resources\Images\Search.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="AppLogo" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>Resources\AppLogo.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="DefaultIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>Resources\DefaultIcon.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="blazor" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>Resources\blazor.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="csproj" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>Resources\csproj.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="vbproj" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>Resources\vbproj.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="vcxproj" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>Resources\vcxproj.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="webproj" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>Resources\webproj.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="Warning" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>Resources\Warning32.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="Warning32" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>Resources\Images32\Warning32.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="Folder" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>Resources\folder.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  <data name="Information" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\Images32\Information.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
 </root>

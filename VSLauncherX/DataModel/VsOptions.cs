@@ -36,8 +36,8 @@
 		public bool ShowSplash { get; set; }
 
 		/// <summary>
-		/// Gets or sets a value indicating whether wait exit.
+		/// Gets or sets a value indicating whether wait for completion.
 		/// </summary>
-		public bool WaitExit { get; set; }
-    }
+		public bool WaitForCompletion { get; set; }
+	}
 }

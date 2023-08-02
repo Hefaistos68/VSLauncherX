@@ -70,5 +70,17 @@ namespace VSLauncher.Properties {
                 this["ShowPathForSolutions"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool OnlyDefaultInstances {
+            get {
+                return ((bool)(this["OnlyDefaultInstances"]));
+            }
+            set {
+                this["OnlyDefaultInstances"] = value;
+            }
+        }
     }
 }
