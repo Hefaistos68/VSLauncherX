@@ -63,7 +63,10 @@ namespace BrightIdeasSoftware {
             this.InitializeStandardTypes();
         }
 
-        private void InitializeStandardTypes() {
+		/// <summary>
+		/// Initializes the standard types.
+		/// </summary>
+		private void InitializeStandardTypes() {
             this.Register(typeof(Boolean), typeof(BooleanCellEditor));
             this.Register(typeof(Int16), typeof(IntUpDown));
             this.Register(typeof(Int32), typeof(IntUpDown));

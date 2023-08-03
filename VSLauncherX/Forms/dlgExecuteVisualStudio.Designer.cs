@@ -33,6 +33,7 @@
 			Label label2;
 			Label label3;
 			Label label4;
+			Label label5;
 			btnCancel = new Button();
 			btnOk = new Button();
 			txtCommand = new TextBox();
@@ -45,19 +46,24 @@
 			txtInfo = new LinkLabel();
 			toolTip1 = new ToolTip(this.components);
 			btnBeforeAfter = new Button();
+			cbxMonitors = new ComboBox();
+			txtInfoCommands = new LinkLabel();
+			txtInfoInstances = new LinkLabel();
+			btnPingMonitor = new Button();
 			label1 = new Label();
 			label2 = new Label();
 			label3 = new Label();
 			label4 = new Label();
+			label5 = new Label();
 			SuspendLayout();
 			// 
 			// label1
 			// 
 			label1.AutoSize = true;
-			label1.Location = new Point(12, 138);
+			label1.Location = new Point(12, 130);
 			label1.Name = "label1";
 			label1.Size = new Size(64, 15);
-			label1.TabIndex = 4;
+			label1.TabIndex = 6;
 			label1.Text = "Command";
 			// 
 			// label2
@@ -72,20 +78,29 @@
 			// label3
 			// 
 			label3.AutoSize = true;
-			label3.Location = new Point(12, 78);
+			label3.Location = new Point(12, 74);
 			label3.Name = "label3";
 			label3.Size = new Size(54, 15);
-			label3.TabIndex = 2;
+			label3.TabIndex = 3;
 			label3.Text = "Instance:";
 			// 
 			// label4
 			// 
 			label4.AutoSize = true;
-			label4.Location = new Point(12, 201);
+			label4.Location = new Point(12, 189);
 			label4.Name = "label4";
 			label4.Size = new Size(108, 15);
-			label4.TabIndex = 6;
+			label4.TabIndex = 9;
 			label4.Text = "Project or Solution:";
+			// 
+			// label5
+			// 
+			label5.AutoSize = true;
+			label5.Location = new Point(12, 247);
+			label5.Name = "label5";
+			label5.Size = new Size(101, 15);
+			label5.TabIndex = 12;
+			label5.Text = "Preferred Monitor";
 			// 
 			// btnCancel
 			// 
@@ -94,7 +109,7 @@
 			btnCancel.Location = new Point(193, 348);
 			btnCancel.Name = "btnCancel";
 			btnCancel.Size = new Size(100, 40);
-			btnCancel.TabIndex = 11;
+			btnCancel.TabIndex = 17;
 			btnCancel.Text = " Cancel";
 			btnCancel.TextImageRelation = TextImageRelation.ImageBeforeText;
 			btnCancel.UseVisualStyleBackColor = true;
@@ -106,7 +121,7 @@
 			btnOk.Location = new Point(299, 348);
 			btnOk.Name = "btnOk";
 			btnOk.Size = new Size(100, 40);
-			btnOk.TabIndex = 12;
+			btnOk.TabIndex = 18;
 			btnOk.Tag = "&Save";
 			btnOk.Text = "&Run";
 			btnOk.TextImageRelation = TextImageRelation.ImageBeforeText;
@@ -115,10 +130,10 @@
 			// 
 			// txtCommand
 			// 
-			txtCommand.Location = new Point(12, 156);
+			txtCommand.Location = new Point(12, 148);
 			txtCommand.Name = "txtCommand";
 			txtCommand.Size = new Size(387, 23);
-			txtCommand.TabIndex = 5;
+			txtCommand.TabIndex = 7;
 			txtCommand.TextChanged += txtInstanceName_TextChanged;
 			// 
 			// visualStudioCombobox1
@@ -137,12 +152,10 @@
 			// cbxInstance
 			// 
 			cbxInstance.FormattingEnabled = true;
-			cbxInstance.Location = new Point(12, 96);
+			cbxInstance.Location = new Point(12, 92);
 			cbxInstance.Name = "cbxInstance";
 			cbxInstance.Size = new Size(387, 23);
-			cbxInstance.TabIndex = 3;
-			cbxInstance.SelectedIndexChanged += cbxInstance_SelectedIndexChanged;
-			cbxInstance.TextUpdate += cbxInstance_TextUpdate;
+			cbxInstance.TabIndex = 4;
 			// 
 			// chkAdmin
 			// 
@@ -150,7 +163,7 @@
 			chkAdmin.Location = new Point(12, 274);
 			chkAdmin.Name = "chkAdmin";
 			chkAdmin.Size = new Size(100, 19);
-			chkAdmin.TabIndex = 9;
+			chkAdmin.TabIndex = 14;
 			chkAdmin.Text = "Run as Admin";
 			chkAdmin.UseVisualStyleBackColor = true;
 			// 
@@ -160,26 +173,26 @@
 			chkSplash.Location = new Point(12, 299);
 			chkSplash.Name = "chkSplash";
 			chkSplash.Size = new Size(210, 19);
-			chkSplash.TabIndex = 10;
+			chkSplash.TabIndex = 15;
 			chkSplash.Text = "Show Visual Studio Splash Window";
 			chkSplash.UseVisualStyleBackColor = true;
 			// 
 			// btnSelectFolder
 			// 
-			btnSelectFolder.Location = new Point(374, 220);
+			btnSelectFolder.Location = new Point(374, 208);
 			btnSelectFolder.Name = "btnSelectFolder";
 			btnSelectFolder.Size = new Size(25, 25);
-			btnSelectFolder.TabIndex = 8;
+			btnSelectFolder.TabIndex = 11;
 			btnSelectFolder.Text = "...";
 			btnSelectFolder.UseVisualStyleBackColor = true;
 			btnSelectFolder.Click += btnSelectFolder_Click;
 			// 
 			// txtFoldername
 			// 
-			txtFoldername.Location = new Point(12, 221);
+			txtFoldername.Location = new Point(12, 209);
 			txtFoldername.Name = "txtFoldername";
 			txtFoldername.Size = new Size(356, 23);
-			txtFoldername.TabIndex = 7;
+			txtFoldername.TabIndex = 10;
 			txtFoldername.TextChanged += txtFoldername_TextChanged;
 			// 
 			// txtInfo
@@ -188,7 +201,7 @@
 			txtInfo.Location = new Point(166, 9);
 			txtInfo.Name = "txtInfo";
 			txtInfo.Size = new Size(233, 15);
-			txtInfo.TabIndex = 13;
+			txtInfo.TabIndex = 2;
 			txtInfo.TabStop = true;
 			txtInfo.Text = "?";
 			txtInfo.TextAlign = ContentAlignment.MiddleRight;
@@ -201,10 +214,52 @@
 			btnBeforeAfter.Location = new Point(12, 348);
 			btnBeforeAfter.Name = "btnBeforeAfter";
 			btnBeforeAfter.Size = new Size(100, 40);
-			btnBeforeAfter.TabIndex = 14;
+			btnBeforeAfter.TabIndex = 16;
 			btnBeforeAfter.Text = "Before/After...";
 			btnBeforeAfter.UseVisualStyleBackColor = true;
 			btnBeforeAfter.Click += btnBeforeAfter_Click;
+			// 
+			// cbxMonitors
+			// 
+			cbxMonitors.DropDownStyle = ComboBoxStyle.DropDownList;
+			cbxMonitors.Location = new Point(239, 244);
+			cbxMonitors.Name = "cbxMonitors";
+			cbxMonitors.Size = new Size(129, 23);
+			cbxMonitors.TabIndex = 13;
+			// 
+			// txtInfoCommands
+			// 
+			txtInfoCommands.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+			txtInfoCommands.Location = new Point(166, 130);
+			txtInfoCommands.Name = "txtInfoCommands";
+			txtInfoCommands.Size = new Size(233, 15);
+			txtInfoCommands.TabIndex = 8;
+			txtInfoCommands.TabStop = true;
+			txtInfoCommands.Text = "?";
+			txtInfoCommands.TextAlign = ContentAlignment.MiddleRight;
+			txtInfoCommands.LinkClicked += txtInfoCommands_LinkClicked;
+			// 
+			// txtInfoInstances
+			// 
+			txtInfoInstances.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+			txtInfoInstances.Location = new Point(166, 74);
+			txtInfoInstances.Name = "txtInfoInstances";
+			txtInfoInstances.Size = new Size(233, 15);
+			txtInfoInstances.TabIndex = 5;
+			txtInfoInstances.TabStop = true;
+			txtInfoInstances.Text = "?";
+			txtInfoInstances.TextAlign = ContentAlignment.MiddleRight;
+			txtInfoInstances.LinkClicked += txtInfoInstances_LinkClicked;
+			// 
+			// btnPingMonitor
+			// 
+			btnPingMonitor.Location = new Point(374, 242);
+			btnPingMonitor.Name = "btnPingMonitor";
+			btnPingMonitor.Size = new Size(25, 25);
+			btnPingMonitor.TabIndex = 11;
+			btnPingMonitor.Text = "!";
+			btnPingMonitor.UseVisualStyleBackColor = true;
+			btnPingMonitor.Click += btnPingMonitor_Click;
 			// 
 			// dlgExecuteVisualStudio
 			// 
@@ -214,8 +269,13 @@
 			this.CancelButton = btnCancel;
 			this.ClientSize = new Size(411, 400);
 			this.ControlBox = false;
+			this.Controls.Add(cbxMonitors);
+			this.Controls.Add(label5);
 			this.Controls.Add(btnBeforeAfter);
+			this.Controls.Add(txtInfoInstances);
+			this.Controls.Add(txtInfoCommands);
 			this.Controls.Add(txtInfo);
+			this.Controls.Add(btnPingMonitor);
 			this.Controls.Add(btnSelectFolder);
 			this.Controls.Add(txtFoldername);
 			this.Controls.Add(label4);
@@ -257,5 +317,9 @@
 		private LinkLabel txtInfo;
 		private ToolTip toolTip1;
 		private Button btnBeforeAfter;
+		private ComboBox cbxMonitors;
+		private LinkLabel txtInfoCommands;
+		private LinkLabel txtInfoInstances;
+		private Button btnPingMonitor;
 	}
 }

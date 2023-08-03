@@ -16,6 +16,9 @@ using VSLauncher.Helpers;
 
 namespace VSLauncher
 {
+	/// <summary>
+	/// The dlg import folder.
+	/// </summary>
 	public partial class dlgImportFolder : Form
 	{
 		private readonly List<string> extensionsHandled  = new List<string>() { ".sln", ".csproj", ".tsproj", ".esproj", ".vcxproj", ".fsproj", ".vbproj"};

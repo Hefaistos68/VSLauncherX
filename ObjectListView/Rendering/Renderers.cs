@@ -158,7 +158,10 @@ namespace BrightIdeasSoftware
     /// </summary>
     public interface IFilterAwareRenderer
     {
-        IModelFilter Filter { get; set; }
+		/// <summary>
+		/// Gets or sets the filter.
+		/// </summary>
+		IModelFilter Filter { get; set; }
     }
 
     /// <summary>

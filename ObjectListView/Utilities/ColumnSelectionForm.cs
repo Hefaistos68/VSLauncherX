@@ -148,9 +148,14 @@ namespace BrightIdeasSoftware
             olv.Unfreeze();
         }
 
-        #region Event handlers
+		#region Event handlers
 
-        private void buttonMoveUp_Click(object sender, EventArgs e)
+		/// <summary>
+		/// buttons the move up_ click.
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
+		private void buttonMoveUp_Click(object sender, EventArgs e)
         {
             int selectedIndex = this.objectListView1.SelectedIndices[0];
             OLVColumn col = this.RearrangableColumns[selectedIndex];
@@ -162,7 +167,12 @@ namespace BrightIdeasSoftware
             EnableControls();
         }
 
-        private void buttonMoveDown_Click(object sender, EventArgs e)
+		/// <summary>
+		/// buttons the move down_ click.
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
+		private void buttonMoveDown_Click(object sender, EventArgs e)
         {
             int selectedIndex = this.objectListView1.SelectedIndices[0];
             OLVColumn col = this.RearrangableColumns[selectedIndex];
@@ -174,29 +184,54 @@ namespace BrightIdeasSoftware
             EnableControls();
         }
 
-        private void buttonShow_Click(object sender, EventArgs e)
+		/// <summary>
+		/// buttons the show_ click.
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
+		private void buttonShow_Click(object sender, EventArgs e)
         {
             this.objectListView1.SelectedItem.Checked = true;
         }
 
-        private void buttonHide_Click(object sender, EventArgs e)
+		/// <summary>
+		/// buttons the hide_ click.
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
+		private void buttonHide_Click(object sender, EventArgs e)
         {
             this.objectListView1.SelectedItem.Checked = false;
         }
 
-        private void buttonOK_Click(object sender, EventArgs e)
+		/// <summary>
+		/// buttons the o k_ click.
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
+		private void buttonOK_Click(object sender, EventArgs e)
         {
             this.DialogResult = DialogResult.OK;
             this.Close();
         }
 
-        private void buttonCancel_Click(object sender, EventArgs e)
+		/// <summary>
+		/// buttons the cancel_ click.
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
+		private void buttonCancel_Click(object sender, EventArgs e)
         {
             this.DialogResult = DialogResult.Cancel;
             this.Close();
         }
 
-        private void objectListView1_SelectionChanged(object sender, EventArgs e)
+		/// <summary>
+		/// objects the list view1_ selection changed.
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
+		private void objectListView1_SelectionChanged(object sender, EventArgs e)
         {
             EnableControls();
         }
@@ -241,9 +276,15 @@ namespace BrightIdeasSoftware
             }
             private ColumnSelectionForm Form;
 
-            #region IComparer<OLVColumn> Members
+			#region IComparer<OLVColumn> Members
 
-            int IComparer<OLVColumn>.Compare(OLVColumn x, OLVColumn y)
+			/// <summary>
+			/// Compares the.
+			/// </summary>
+			/// <param name="x">The x.</param>
+			/// <param name="y">The y.</param>
+			/// <returns>An int.</returns>
+			int IComparer<OLVColumn>.Compare(OLVColumn x, OLVColumn y)
             {
                 if (this.Form.MapColumnToVisible[x] && !this.Form.MapColumnToVisible[y])
                     return -1;

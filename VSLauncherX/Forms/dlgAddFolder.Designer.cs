@@ -2,10 +2,18 @@
 {
 	partial class dlgAddFolder
 	{
+		private Button btnCancel;
+
+		private Button btnOk;
+
 		/// <summary>
 		/// Required designer variable.
 		/// </summary>
 		private System.ComponentModel.IContainer components = null;
+
+		private PictureBox pictureBox1;
+
+		private TextBox txtFoldername;
 
 		/// <summary>
 		/// Clean up any resources being used.
@@ -29,6 +37,7 @@
 		private void InitializeComponent()
 		{
 			Label label1;
+			Label label2;
 			System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(dlgAddFolder));
 			txtFoldername = new TextBox();
 			btnOk = new Button();
@@ -127,12 +136,5 @@
 		}
 
 		#endregion
-
-		private Label label1;
-		private TextBox txtFoldername;
-		private Button btnOk;
-		private Button btnCancel;
-		private Label label2;
-		private PictureBox pictureBox1;
 	}
 }

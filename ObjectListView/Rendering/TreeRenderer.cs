@@ -21,6 +21,9 @@ using System.Drawing.Drawing2D;
 namespace BrightIdeasSoftware
 {
 
+	/// <summary>
+	/// The tree list view.
+	/// </summary>
 	public partial class TreeListView
 	{
 		/// <summary>
@@ -96,6 +99,9 @@ namespace BrightIdeasSoftware
 				}
 			}
 
+			/// <summary>
+			/// Gets or sets the sub renderer.
+			/// </summary>
 			public IRenderer SubRenderer { get; set; }
 
 			/// <summary>
@@ -255,6 +261,11 @@ namespace BrightIdeasSoftware
 				renderer.DrawBackground(g, r);
 			}
 
+			/// <summary>
+			/// Decides the visual element.
+			/// </summary>
+			/// <param name="isExpanded">If true, is expanded.</param>
+			/// <returns>A VisualStyleElement.</returns>
 			private VisualStyleElement DecideVisualElement(bool isExpanded)
 			{
 				string klass = this.UseTriangles ? "Explorer::TreeView" : "TREEVIEW";

@@ -3,7 +3,7 @@
 	/// <summary>
 	/// The solution type.
 	/// </summary>
-	public enum eSolutionType
+	public enum SolutionTypeEnum
 	{
 		None,
 		CSProject,

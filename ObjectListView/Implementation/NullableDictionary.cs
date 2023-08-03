@@ -62,11 +62,19 @@ namespace BrightIdeasSoftware {
             }
         }
 
-        new public bool ContainsKey(TKey key) {
+		/// <summary>
+		/// Contains the key.
+		/// </summary>
+		/// <param name="key">The key.</param>
+		/// <returns>A bool.</returns>
+		new public bool ContainsKey(TKey key) {
             return key == null ? this.hasNullKey : base.ContainsKey(key);
         }
 
-        new public IList Keys {
+		/// <summary>
+		/// Gets the keys.
+		/// </summary>
+		new public IList Keys {
             get {
                 ArrayList list = new ArrayList(base.Keys);
                 if (this.hasNullKey)
@@ -75,7 +83,10 @@ namespace BrightIdeasSoftware {
             }
         }
 
-        new public IList<TValue> Values {
+		/// <summary>
+		/// Gets the values.
+		/// </summary>
+		new public IList<TValue> Values {
             get {
                 List<TValue> list = new List<TValue>(base.Values);
                 if (this.hasNullKey)

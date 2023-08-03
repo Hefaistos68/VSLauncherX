@@ -10,6 +10,9 @@ using System.Windows.Forms;
 
 namespace VSLauncher.Forms
 {
+	/// <summary>
+	/// The dlg settings.
+	/// </summary>
 	public partial class dlgSettings : Form
 	{
 		public dlgSettings()

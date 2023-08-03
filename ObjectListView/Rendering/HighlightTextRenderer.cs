@@ -190,7 +190,11 @@ namespace BrightIdeasSoftware
             set { RegisterNewFilter(value); }
         }
 
-        internal void RegisterNewFilter(IModelFilter newFilter) {
+		/// <summary>
+		/// Registers the new filter.
+		/// </summary>
+		/// <param name="newFilter">The new filter.</param>
+		internal void RegisterNewFilter(IModelFilter newFilter) {
             TextMatchFilter textFilter = newFilter as TextMatchFilter;
             if (textFilter != null)
             {

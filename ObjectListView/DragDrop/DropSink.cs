@@ -759,11 +759,16 @@ namespace BrightIdeasSoftware
                 this.ModelDropped(this, args);
         }
 
-        #endregion
+		#endregion
 
-        #region Implementation
+		#region Implementation
 
-        private void timer_Tick(object sender, EventArgs e) {
+		/// <summary>
+		/// timer_S the tick.
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
+		private void timer_Tick(object sender, EventArgs e) {
             this.HandleTimerTick();
         }
 

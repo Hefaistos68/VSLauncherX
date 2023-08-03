@@ -4,7 +4,7 @@
 	/// The vs options.
 	/// </summary>
 	public class VsOptions
-    {
+	{
 		/// <summary>
 		/// Initializes a new instance of the <see cref="VsOptions"/> class.
 		/// </summary>
@@ -39,5 +39,10 @@
 		/// Gets or sets a value indicating whether wait for completion.
 		/// </summary>
 		public bool WaitForCompletion { get; set; }
+
+		/// <summary>
+		/// Gets or sets the preferred monitor.
+		/// </summary>
+		public int? PreferredMonitor { get; set; }
 	}
 }

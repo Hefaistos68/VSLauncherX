@@ -349,7 +349,10 @@ namespace BrightIdeasSoftware
             }
         }
 
-        private void ConvertPossibleValues() {
+		/// <summary>
+		/// Converts the possible values.
+		/// </summary>
+		private void ConvertPossibleValues() {
             this.possibleValuesAsUlongs = new List<UInt64>();
             foreach (object x in this.PossibleValues)
                 this.possibleValuesAsUlongs.Add(Convert.ToUInt64(x));

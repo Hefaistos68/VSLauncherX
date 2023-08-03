@@ -25,31 +25,31 @@ namespace VSLauncher.Helpers
             }
             else if (ext == ".csproj")
             {
-                return new VsProject(name, path, eProjectType.CSProject);
+                return new VsProject(name, path, ProjectTypeEnum.CSProject);
             }
             else if (ext == ".vbproj")
             {
-                return new VsProject(name, path, eProjectType.VBProject);
+                return new VsProject(name, path, ProjectTypeEnum.VBProject);
             }
             else if (ext == ".vcxproj")
             {
-                return new VsProject(name, path, eProjectType.CPPProject);
+                return new VsProject(name, path, ProjectTypeEnum.CPPProject);
             }
             else if (ext == ".vcproj")
             {
-                return new VsProject(name, path, eProjectType.CPPProject);
+                return new VsProject(name, path, ProjectTypeEnum.CPPProject);
             }
             else if (ext == ".fsproj")
             {
-                return new VsProject(name, path, eProjectType.FSProject);
+                return new VsProject(name, path, ProjectTypeEnum.FSProject);
             }
             else if (ext == ".esproj")
             {
-                return new VsProject(name, path, eProjectType.JSProject);
+                return new VsProject(name, path, ProjectTypeEnum.JSProject);
             }
             else if (ext == ".tsproj")
             {
-                return new VsProject(name, path, eProjectType.TSProject);
+                return new VsProject(name, path, ProjectTypeEnum.TSProject);
             }
 
             return new VsItem(name, path, null);

@@ -6,6 +6,9 @@ using VSLauncher.DataModel;
 
 namespace BackgroundLaunch
 {
+	/// <summary>
+	/// The program.
+	/// </summary>
 	internal static class Program
 	{
 		/// <summary>

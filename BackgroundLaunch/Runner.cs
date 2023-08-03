@@ -1,15 +1,36 @@
 ﻿using System.Diagnostics;
+using System.Runtime.InteropServices;
+using System.Security.AccessControl;
+using System.Security.Principal;
+using System.Windows.Forms;
 
 using VSLauncher.DataModel;
+using VSLauncher.Helpers;
 
 namespace BackgroundLaunch
 {
 	/// <summary>
-	/// The runner.
+	/// The runner class, responsible for executing the items
 	/// </summary>
 	public class Runner
 	{
 		private readonly LaunchInfo launchInfo;
+		/// <summary>
+		/// Sets the window pos.
+		/// </summary>
+		/// <param name="hWnd">The h wnd.</param>
+		/// <param name="hWndInsertAfter">The h wnd insert after.</param>
+		/// <param name="X">The x.</param>
+		/// <param name="Y">The y.</param>
+		/// <param name="cx">The cx.</param>
+		/// <param name="cy">The cy.</param>
+		/// <param name="uFlags">The u flags.</param>
+		/// <returns>A bool.</returns>
+		[DllImport("user32.dll", SetLastError = true)]
+		private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, int uFlags);
+
+		private const int SWP_NOSIZE = 0x0001;
+		private const int SWP_NOZORDER = 0x0004;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="Runner"/> class.
@@ -24,13 +45,13 @@ namespace BackgroundLaunch
 		/// Runs a single item
 		/// </summary>
 		/// <param name="item">The item.</param>
-		/// <returns>A bool.</returns>
-		private bool RunItem(VsItem? item)
+		/// <returns>The process</returns>
+		private Process? RunItem(VsItem? item)
 		{
 			// dont do anything if empty
 			if (item is null)
 			{
-				return true;
+				return null;
 			}
 
 			Process? process;
@@ -39,9 +60,14 @@ namespace BackgroundLaunch
 			
 			if(!string.IsNullOrWhiteSpace(workingPath))
 			{
-				if (!PathIsValid(workingPath))
+				if (!PathHelper.PathIsValid(workingPath))
 				{
 					throw new ExecutionException("Invalid working path: " + workingPath);
+				}
+
+				if (!PathHelper.CanRead(workingPath))
+				{
+					throw new ExecutionException("Access denied: " + workingPath);
 				}
 			}
 
@@ -49,7 +75,7 @@ namespace BackgroundLaunch
 			startInfo.Verb = item.RunAsAdmin ? "runas" : "run";
 			startInfo.ErrorDialog = true;
 
-			if (item.ItemType == eItemType.Solution)
+			if (item.ItemType == ItemTypeEnum.Solution)
 			{
 				startInfo.FileName = this.launchInfo.Target;
 				startInfo.Arguments = item.Path;
@@ -58,7 +84,7 @@ namespace BackgroundLaunch
 					startInfo.Arguments += " " + item.Commands;
 				}
 			}
-			else if (item.ItemType == eItemType.Project)
+			else if (item.ItemType == ItemTypeEnum.Project)
 			{
 				startInfo.FileName = this.launchInfo.Target;
 				startInfo.Arguments = item.Path;
@@ -79,33 +105,41 @@ namespace BackgroundLaunch
 
 			process = Process.Start(startInfo);
 
+			if((process != null) && item.PreferredMonitor.HasValue)
+			{
+				// move process to the given monitor
+				MoveProcessToMonitor(process, item.PreferredMonitor.Value);
+			}
+
 			if (item.WaitForCompletion)
 			{
 				process?.WaitForExit();
 				process?.Close();
 			}
 
-			return process != null;
+			return process;
 		}
 
 		/// <summary>
-		/// Paths the is valid.
+		/// Moves the process to monitor.
 		/// </summary>
-		/// <param name="path">The path.</param>
-		/// <returns>A bool.</returns>
-		private bool PathIsValid(string? path)
+		/// <param name="process">The process.</param>
+		/// <param name="preferredMonitor">The preferred monitor.</param>
+		private static void MoveProcessToMonitor(Process process, int preferredMonitor)
 		{
-			if (string.IsNullOrEmpty(path))
-			{
-				return false;
-			}
+			process.WaitForInputIdle(1000);
 
-			if (!Directory.Exists(path))
+			if (process.MainWindowHandle != IntPtr.Zero)
 			{
-				return false;
+				if (Screen.AllScreens.Length >= preferredMonitor)
+				{
+					SetWindowPos(process.MainWindowHandle,
+						IntPtr.Zero,
+						Screen.AllScreens[preferredMonitor].WorkingArea.Left,
+						Screen.AllScreens[preferredMonitor].WorkingArea.Top,
+						0, 0, SWP_NOSIZE | SWP_NOZORDER);
+				}
 			}
-
-			return true;
 		}
 
 		/// <summary>
@@ -113,12 +147,16 @@ namespace BackgroundLaunch
 		/// </summary>
 		internal void Run()
 		{
-			if (launchInfo != null)
+			if (launchInfo != null && launchInfo.Solution != null)
 			{
 				RunAll(launchInfo.Solution.Items.First());
 			}
 		}
 
+		/// <summary>
+		/// Runs the all.
+		/// </summary>
+		/// <param name="item">The item.</param>
 		internal void RunAll(VsItem item)
 		{
 			// set the working path before executing the RunBefore item
@@ -126,23 +164,33 @@ namespace BackgroundLaunch
 
 			if (!string.IsNullOrWhiteSpace(workingPath))
 			{
-				if (!PathIsValid(workingPath))
+				if (!PathHelper.PathIsValid(workingPath))
 				{
 					throw new ExecutionException("Invalid working path: " + workingPath);
+				}
+
+				if (!PathHelper.CanRead(workingPath))
+				{
+					throw new ExecutionException("Access denied: " + workingPath);
 				}
 
 				Environment.CurrentDirectory = workingPath;
 			}
 
-			RunItem(item.RunBefore);
+			var before = RunItem(item.RunBefore);
 
-			RunItem(item);
+			var main = RunItem(item);
 			if(item is VsFolder f)
 			{
 				foreach (var i in f.Items)
 				{
 					RunAll(i);
 				}
+			}
+
+			if(item.RunAfter?.WaitForCompletion == true)
+			{
+				main?.WaitForExit();
 			}
 
 			RunItem(item.RunAfter);

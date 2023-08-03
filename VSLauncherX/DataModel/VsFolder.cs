@@ -7,7 +7,7 @@ namespace VSLauncher.DataModel
 	/// </summary>
 	public class VsFolder : VsItem
 	{
-		private VsItemList items;
+		private VsItemList? items;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="VsFolder"/> class.
@@ -15,7 +15,7 @@ namespace VSLauncher.DataModel
 		public VsFolder()
 		{
 			this.Items = new VsItemList(this);
-			this.ItemType = eItemType.Folder;
+			this.ItemType = ItemTypeEnum.Folder;
 		}
 
 		/// <summary>
@@ -26,38 +26,7 @@ namespace VSLauncher.DataModel
 		public VsFolder(string name, string path) : base(name, path, null)
 		{
 			this.Items = new VsItemList(this);
-			this.ItemType = eItemType.Folder;
-		}
-		
-		/// <summary>
-		/// Clones the object
-		/// </summary>
-		/// <returns>A VsItem.</returns>
-		public VsFolder Clone(bool withItems)
-		{
-			var f = (VsFolder)this.MemberwiseClone();
-
-			if(!withItems)
-			{
-				f.Items = new VsItemList(f);
-			}
-
-			return f;
-		}
-
-
-		/// <summary>
-		/// Gets or sets the items.
-		/// </summary>
-		[JsonProperty("FolderItems")]
-		public VsItemList Items
-		{
-			get { return items; }
-			set
-			{
-				items = value;
-				items.Reparent(this);
-			}
+			this.ItemType = ItemTypeEnum.Folder;
 		}
 
 		/// <summary>
@@ -66,7 +35,7 @@ namespace VSLauncher.DataModel
 		[JsonIgnore]
 		public new bool? Checked
 		{
-			get 
+			get
 			{
 				int n1 = 0;
 				int n2 = 0;
@@ -92,14 +61,14 @@ namespace VSLauncher.DataModel
 						n2++;
 				}
 
-				return n1 == Items.Count ? true : n2 == Items.Count ? false : null; 
+				return n1 == Items.Count ? true : n2 == Items.Count ? false : null;
 			}
 			set
 			{
 				base.Checked = value ?? false;
 				foreach (var i in Items)
 				{
-					if(i is VsFolder f)
+					if (i is VsFolder f)
 					{
 						f.Checked = value;
 					}
@@ -119,28 +88,39 @@ namespace VSLauncher.DataModel
 		{ get; set; }
 
 		/// <summary>
-		/// Reutrns the number of solutions this item holds.
+		/// Gets or sets the items.
 		/// </summary>
-		/// <returns>An int.</returns>
-		public int ContainedSolutionsCount()
+		[JsonProperty("FolderItems")]
+		public VsItemList Items
 		{
-			int n = 0;
-
-			foreach (var i in this.Items)
+			get
 			{
-				if (i is VsFolder f)
-				{
-					n += f.ContainedSolutionsCount();
-				}
-				else if (i is VsSolution)
-				{
-					n++;
-				}
+				items ??= new VsItemList(this);
+
+				return items;
+			}
+			set
+			{
+				items = value;
+				items.Reparent(this);
+			}
+		}
+
+		/// <summary>
+		/// Clones the object
+		/// </summary>
+		/// <returns>A VsItem.</returns>
+		public VsFolder Clone(bool withItems)
+		{
+			var f = (VsFolder)this.MemberwiseClone();
+
+			if (!withItems)
+			{
+				f.Items = new VsItemList(f);
 			}
 
-			return n;
+			return f;
 		}
-		
 		/// <summary>
 		/// Reutrns the number of projects this item holds.
 		/// </summary>
@@ -165,6 +145,37 @@ namespace VSLauncher.DataModel
 		}
 
 		/// <summary>
+		/// Reutrns the number of solutions this item holds.
+		/// </summary>
+		/// <returns>An int.</returns>
+		public int ContainedSolutionsCount()
+		{
+			int n = 0;
+
+			foreach (var i in this.Items)
+			{
+				if (i is VsFolder f)
+				{
+					n += f.ContainedSolutionsCount();
+				}
+				else if (i is VsSolution)
+				{
+					n++;
+				}
+			}
+
+			return n;
+		}
+		/// <inheritdoc/>
+		public override void Refresh()
+		{
+			foreach (var i in this.Items)
+			{
+				i.Refresh();
+			}
+		}
+
+		/// <summary>
 		/// Tos the string.
 		/// </summary>
 		/// <returns>A string? .</returns>
@@ -183,7 +194,7 @@ namespace VSLauncher.DataModel
 			if (this.Items.Contains(item))
 				return this;
 
-			foreach(var i in this.Items)
+			foreach (var i in this.Items)
 			{
 				if (i is VsFolder f)
 				{
@@ -196,15 +207,6 @@ namespace VSLauncher.DataModel
 			}
 
 			return null;
-		}
-
-		/// <inheritdoc/>
-		public override void Refresh()
-		{
-			foreach (var i in this.Items)
-			{
-				i.Refresh();
-			}
 		}
 	}
 }

@@ -343,11 +343,21 @@ namespace BrightIdeasSoftware
             set { this.SetDelayTime(TTDT_RESHOW, value); }
         }
 
-        private int GetDelayTime(int which) {
+		/// <summary>
+		/// Gets the delay time.
+		/// </summary>
+		/// <param name="which">The which.</param>
+		/// <returns>An int.</returns>
+		private int GetDelayTime(int which) {
             return (int)NativeMethods.SendMessage(this.Handle, TTM_GETDELAYTIME, which, 0);
         }
 
-        private void SetDelayTime(int which, int value) {
+		/// <summary>
+		/// Sets the delay time.
+		/// </summary>
+		/// <param name="which">The which.</param>
+		/// <param name="value">The value.</param>
+		private void SetDelayTime(int which, int value) {
             NativeMethods.SendMessage(this.Handle, TTM_SETDELAYTIME, which, value);
         }
 
@@ -544,7 +554,11 @@ namespace BrightIdeasSoftware
             return true;
         }
 
-        private void ApplyEventFormatting(ToolTipShowingEventArgs args) {
+		/// <summary>
+		/// Applies the event formatting.
+		/// </summary>
+		/// <param name="args">The args.</param>
+		private void ApplyEventFormatting(ToolTipShowingEventArgs args) {
             if (!args.IsBalloon.HasValue &&
                 !args.BackColor.HasValue &&
                 !args.ForeColor.HasValue &&

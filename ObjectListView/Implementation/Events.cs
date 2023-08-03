@@ -69,7 +69,10 @@ namespace BrightIdeasSoftware
     /// </remarks>
     public delegate void CellEditEventHandler(object sender, CellEditEventArgs e);
 
-    public partial class ObjectListView
+	/// <summary>
+	/// The object list view.
+	/// </summary>
+	public partial class ObjectListView
     {
         //-----------------------------------------------------------------------------------
         #region Events
@@ -795,8 +798,11 @@ namespace BrightIdeasSoftware
 
         #endregion
     }
-    
-    public partial class TreeListView
+
+	/// <summary>
+	/// The tree list view.
+	/// </summary>
+	public partial class TreeListView
     {
 
         #region Events

@@ -248,9 +248,7 @@
 
 		#endregion
 		private TextBox txtRunAfter;
-		private Label label2;
 		private TextBox txtRunBefore;
-		private Label label3;
 		private Button btnOk;
 		private Button btnCancel;
 		private Button btnSelectAfter;

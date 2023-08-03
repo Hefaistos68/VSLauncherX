@@ -239,7 +239,13 @@ namespace BrightIdeasSoftware {
             this.HitTestLocation = isOverCheckBox ? HitTestLocation.HeaderCheckBox : (iDivider < 0 ? HitTestLocation.Header : HitTestLocation.HeaderDivider);
         }
 
-        private static ListViewHitTestLocations ConvertNativeFlagsToDotNetLocation(OLVListItem hitItem, int flags)
+		/// <summary>
+		/// Converts the native flags to dot net location.
+		/// </summary>
+		/// <param name="hitItem">The hit item.</param>
+		/// <param name="flags">The flags.</param>
+		/// <returns>A ListViewHitTestLocations.</returns>
+		private static ListViewHitTestLocations ConvertNativeFlagsToDotNetLocation(OLVListItem hitItem, int flags)
         {
             // Untangle base .NET behaviour.
 
@@ -378,7 +384,10 @@ namespace BrightIdeasSoftware {
                 this.HitTestLocation, this.HitTestLocationEx, this.item, this.subItem, this.location, this.Group, this.ColumnIndex);
         }
 
-        internal class HeaderHitTestInfo
+		/// <summary>
+		/// The header hit test info.
+		/// </summary>
+		internal class HeaderHitTestInfo
         {
             public int ColumnIndex;
             public bool IsOverCheckBox;

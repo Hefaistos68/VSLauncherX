@@ -78,7 +78,11 @@ namespace BrightIdeasSoftware
             NativeMethods.ShowWithoutActivate(this);
         }
 
-        protected override void Dispose(bool disposing) {
+		/// <summary>
+		/// Disposes the.
+		/// </summary>
+		/// <param name="disposing">If true, disposing.</param>
+		protected override void Dispose(bool disposing) {
             if (disposing)
                 this.Unbind();
 
@@ -182,7 +186,12 @@ namespace BrightIdeasSoftware
             this.UpdateTransparency();
         }
 
-        void myMdiClient_ClientSizeChanged(object sender, EventArgs e) {
+		/// <summary>
+		/// mies the mdi client_ client size changed.
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
+		void myMdiClient_ClientSizeChanged(object sender, EventArgs e) {
             this.RecalculateBounds();
             this.Invalidate();
         }
@@ -262,11 +271,16 @@ namespace BrightIdeasSoftware
             }
         }
 
-        #endregion
+		#endregion
 
-        #region Event Handlers
+		#region Event Handlers
 
-        void objectListView_Disposed(object sender, EventArgs e) {
+		/// <summary>
+		/// objects the list view_ disposed.
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
+		void objectListView_Disposed(object sender, EventArgs e) {
             this.Unbind();
         }
 
@@ -379,11 +393,15 @@ namespace BrightIdeasSoftware
                 this.HideGlass();
         }
 
-        #endregion
+		#endregion
 
-        #region Implementation
+		#region Implementation
 
-        protected override void OnPaint(PaintEventArgs e) {
+		/// <summary>
+		/// Ons the paint.
+		/// </summary>
+		/// <param name="e">The e.</param>
+		protected override void OnPaint(PaintEventArgs e) {
             if (this.objectListView == null || this.Overlay == null)
                 return;
 
@@ -402,7 +420,10 @@ namespace BrightIdeasSoftware
             this.Overlay.Draw(this.objectListView, g, this.objectListView.ClientRectangle);
         }
 
-        protected void RecalculateBounds() {
+		/// <summary>
+		/// Recalculates the bounds.
+		/// </summary>
+		protected void RecalculateBounds() {
             if (!this.isGlassShown)
                 return;
 
@@ -412,7 +433,10 @@ namespace BrightIdeasSoftware
             this.Bounds = this.objectListView.RectangleToScreen(rect);
         }
 
-        internal void UpdateTransparency() {
+		/// <summary>
+		/// Updates the transparency.
+		/// </summary>
+		internal void UpdateTransparency() {
             ITransparentOverlay transparentOverlay = this.Overlay as ITransparentOverlay;
             if (transparentOverlay == null)
                 this.Opacity = this.objectListView.OverlayTransparency / 255.0f;
@@ -420,7 +444,11 @@ namespace BrightIdeasSoftware
                 this.Opacity = transparentOverlay.Transparency / 255.0f;
         }
 
-        protected override void WndProc(ref Message m) {
+		/// <summary>
+		/// Wnds the proc.
+		/// </summary>
+		/// <param name="m">The m.</param>
+		protected override void WndProc(ref Message m) {
             const int WM_NCHITTEST = 132;
             const int HTTRANSPARENT = -1;
             switch (m.Msg) {

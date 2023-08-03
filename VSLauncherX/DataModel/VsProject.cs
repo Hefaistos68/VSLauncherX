@@ -1,12 +1,12 @@
 ﻿using System.Diagnostics;
 using System.Xml.Linq;
 
-using Newtonsoft.Json;
+using VSLauncher.Helpers;
 
 namespace VSLauncher.DataModel
 {
 	/// <summary>
-	/// The vs project.
+	/// A Visual Studio project item
 	/// </summary>
 	public class VsProject : VsItem
 	{
@@ -15,8 +15,8 @@ namespace VSLauncher.DataModel
 		/// </summary>
 		public VsProject()
 		{
-			this.ProjectType = eProjectType.None;
-			this.ItemType = eItemType.Project;
+			this.ProjectType = ProjectTypeEnum.None;
+			this.ItemType = ItemTypeEnum.Project;
 		}
 
 		/// <summary>
@@ -25,53 +25,28 @@ namespace VSLauncher.DataModel
 		/// <param name="name">The name.</param>
 		/// <param name="path">The path.</param>
 		/// <param name="prType">The pr type.</param>
-		public VsProject(string name, string path, eProjectType prType) : base(name, path, null)
+		public VsProject(string name, string path, ProjectTypeEnum prType) : base(name, path, null)
 		{
 			this.ProjectType = prType;
-			this.ItemType = eItemType.Project;
+			this.ItemType = ItemTypeEnum.Project;
 
 			this.Refresh();
 		}
 
 		/// <summary>
-		/// Gets or sets the project type.
-		/// </summary>
-		public eProjectType ProjectType { get; set; }
-
-		/// <summary>
 		/// Gets the required version.
 		/// </summary>
-		public string FrameworkVersion { get; private set; }
+		public string FrameworkVersion { get; private set; } = "";
+
+		/// <summary>
+		/// Gets or sets the project type.
+		/// </summary>
+		public ProjectTypeEnum ProjectType { get; set; }
 
 		/// <summary>
 		/// Gets the required visual studio version, this is the instance identifier
 		/// </summary>
-		public string VsVersion { get; set; }
-
-		/// <summary>
-		/// Checks the is accessible.
-		/// </summary>
-		/// <returns>A bool.</returns>
-		private bool CheckIsAccessible()
-		{
-			// check if this file is accessible
-			try
-			{
-				using (var f = File.OpenRead(this.Path))
-				{
-					if (f.CanRead && (f.Read(new byte[2], 0, 2) == 2))
-					{
-						return true;
-					}
-				}
-			}
-			catch (System.Exception ex)
-			{
-				Debug.WriteLine(ex);
-			}
-
-			return false;
-		}
+		public string VsVersion { get; set; } = "";
 
 		/// <summary>
 		/// Gets the .Net version.
@@ -80,48 +55,49 @@ namespace VSLauncher.DataModel
 		public string GetDotNetVersion()
 		{
 			bool isSdk = false;
-			try
+			if (PathHelper.PathIsValidAndCanRead(System.IO.Path.GetDirectoryName(this.Path)))
 			{
-				// load solution file as XML, find the TargetFrameworkVersion node and read the value
-				var xdoc = XDocument.Load(this.Path);
-				var ns = xdoc.Root.GetDefaultNamespace();
-				var project = xdoc.Root.Descendants(ns + "Project").FirstOrDefault();
-
-				if(project != null)
+				try
 				{
-					var sdk = project.Attribute("Sdk");
-					if(sdk != null)
+					// load solution file as XML, find the TargetFrameworkVersion node and read the value
+					var xdoc = XDocument.Load(this.Path!);
+					var ns = xdoc.Root?.GetDefaultNamespace();
+					var project = xdoc.Root?.Descendants((ns ?? "") + "Project").FirstOrDefault();
+
+					if (project != null)
 					{
-						isSdk = true;
+						var sdk = project.Attribute("Sdk");
+						if (sdk != null)
+						{
+							isSdk = true;
+						}
+					}
+
+					if (isSdk)
+					{
+						var node = xdoc.Root?.Descendants((ns ?? "") + "TargetFrameworkVersion").FirstOrDefault();
+
+						if (node != null)
+						{
+							return node.Value;
+						}
+
+						// not found, read the other value
+						node = xdoc.Root?.Descendants((ns ?? "") + "TargetFramework").FirstOrDefault();
+						if (node != null)
+						{
+							return node.Value;
+						}
+					}
+					else
+					{
+						return "Framework?";
 					}
 				}
-
-				if (isSdk)
+				catch
 				{
-
-					var node = xdoc.Root.Descendants(ns + "TargetFrameworkVersion").FirstOrDefault();
-
-					if (node != null)
-					{
-						return node.Value;
-					}
-
-					// not found, read the other value
-					node = xdoc.Root.Descendants(ns + "TargetFramework").FirstOrDefault();
-					if (node != null)
-					{
-						return node.Value;
-					}
-				}
-				else
-				{
-					return "Framework?";
 				}
 			}
-			catch (System.Exception)
-			{
-			}
-
 			return "<unknown>";
 		}
 
@@ -129,54 +105,9 @@ namespace VSLauncher.DataModel
 		/// Gets the required version for the solution file
 		/// </summary>
 		/// <returns>A string.</returns>
-		public string GetRequiredVersion()
+		public string? GetRequiredVersion()
 		{
-			string version = string.Empty;
-			// open the solution file, read the first 3 lines, parse the 3rd line
-
-			try
-			{
-// 				var sln = File.ReadLines(this.Path);
-// 				foreach (var s in sln)
-// 				{
-// 					if (s.StartsWith('#'))
-// 					{
-// 						version = s.Split(' ').Last();
-// 						return version;
-// 					}
-// 				}
-			}
-			catch (System.Exception ex)
-			{
-				Debug.WriteLine(ex);
-			}
-
-			return version;
-		}
-
-		/// <inheritdoc/>
-		public override string? ToString()
-		{
-			return $"{this.Name} ({this.ProjectType})";
-		}
-		/// <summary>
-		/// Types the as name.
-		/// </summary>
-		/// <param name="solutionType">The solution type.</param>
-		/// <returns>An object.</returns>
-		internal string TypeAsName()
-		{
-			return this.ProjectType switch
-			{
-				eProjectType.CSProject => "C#",
-				eProjectType.VBProject => "VB",
-				eProjectType.CPPProject => "VC",
-				eProjectType.FSProject => "F#",
-				eProjectType.WebSite => "Web",
-				eProjectType.JSProject => "JavaScript",
-				eProjectType.TSProject => "TypeScript",
-				_ => "Unknown",
-			};
+			return VsVersion;
 		}
 
 		/// <inheritdoc/>
@@ -188,7 +119,7 @@ namespace VSLauncher.DataModel
 			{
 				try
 				{
-					var fi = new FileInfo(this.Path);
+					var fi = new FileInfo(this.Path!);
 					this.LastModified = fi.LastWriteTime;
 				}
 				catch (System.Exception)
@@ -198,6 +129,60 @@ namespace VSLauncher.DataModel
 
 				this.FrameworkVersion = this.GetDotNetVersion();
 			}
+		}
+
+		/// <inheritdoc/>
+		public override string? ToString()
+		{
+			return $"{this.Name} ({this.ProjectType})";
+		}
+
+		/// <summary>
+		/// Types the as name.
+		/// </summary>
+		/// <param name="solutionType">The solution type.</param>
+		/// <returns>An object.</returns>
+		internal string TypeAsName()
+		{
+			return this.ProjectType switch
+			{
+				ProjectTypeEnum.CSProject => "C#",
+				ProjectTypeEnum.VBProject => "VB",
+				ProjectTypeEnum.CPPProject => "VC",
+				ProjectTypeEnum.FSProject => "F#",
+				ProjectTypeEnum.WebSite => "Web",
+				ProjectTypeEnum.JSProject => "JavaScript",
+				ProjectTypeEnum.TSProject => "TypeScript",
+				_ => "Unknown",
+			};
+		}
+
+		/// <summary>
+		/// Checks the is accessible.
+		/// </summary>
+		/// <returns>A bool.</returns>
+		private bool CheckIsAccessible()
+		{
+			// check if this file is accessible
+			if (PathHelper.PathIsValidAndCanRead(System.IO.Path.GetDirectoryName(this.Path)))
+			{
+				try
+				{
+					using (var f = File.OpenRead(this.Path!))
+					{
+						if (f.CanRead && (f.Read(new byte[2], 0, 2) == 2))
+						{
+							return true;
+						}
+					}
+				}
+				catch (System.Exception ex)
+				{
+					Debug.WriteLine(ex);
+				}
+			}
+
+			return false;
 		}
 	}
 }

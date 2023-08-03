@@ -1,7 +1,10 @@
 ﻿namespace VSLauncher.DataModel
 {
+	/// <summary>
+	/// The options for launching an item
+	/// </summary>
 	[Flags]
-	public enum eOptions
+	public enum OptionsEnum
 	{
 		None			= 0b00000000,
 		RunBeforeOn		= 0b00000001,

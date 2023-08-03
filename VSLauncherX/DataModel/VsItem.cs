@@ -5,7 +5,7 @@ namespace VSLauncher.DataModel
 	/// <summary>
 	/// The item type, required for serialization mostly
 	/// </summary>
-	public enum eItemType
+	public enum ItemTypeEnum
 	{
 		Solution,
 		Project,
@@ -24,7 +24,7 @@ namespace VSLauncher.DataModel
 		/// </summary>
 		public VsItem() : base()
 		{
-			this.ItemType = eItemType.Other;
+			this.ItemType = ItemTypeEnum.Other;
 		}
 
 		/// <summary>
@@ -83,7 +83,7 @@ namespace VSLauncher.DataModel
 		/// <summary>
 		/// Gets or sets the item type.
 		/// </summary>
-		public eItemType ItemType { get; set; }
+		public ItemTypeEnum ItemType { get; set; }
 
 		/// <summary>
 		/// Gets or sets a value indicating whether checked.

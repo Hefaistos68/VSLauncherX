@@ -377,50 +377,78 @@ namespace BrightIdeasSoftware.Design
                 this.wrappedList = wrappedList;
             }
 
-            public override DesignerActionItemCollection GetSortedActionItems() {
+			/// <summary>
+			/// Gets the sorted action items.
+			/// </summary>
+			/// <returns>A DesignerActionItemCollection.</returns>
+			public override DesignerActionItemCollection GetSortedActionItems() {
                 DesignerActionItemCollection items = wrappedList.GetSortedActionItems();
                 items.RemoveAt(2); // remove Edit Groups
                 items.RemoveAt(0); // remove Edit Items
                 return items;
             }
 
-            private void EditValue(ComponentDesigner componentDesigner, IComponent iComponent, string propertyName) {
+			/// <summary>
+			/// Edits the value.
+			/// </summary>
+			/// <param name="componentDesigner">The component designer.</param>
+			/// <param name="iComponent">The i component.</param>
+			/// <param name="propertyName">The property name.</param>
+			private void EditValue(ComponentDesigner componentDesigner, IComponent iComponent, string propertyName) {
                 // One more complication. The ListViewActionList classes uses an internal class, EditorServiceContext, to 
                 // edit the items/columns/groups collections. So, we use reflection to bypass the data hiding.
                 Type tEditorServiceContext = Type.GetType("System.Windows.Forms.Design.EditorServiceContext, System.Design");
                 tEditorServiceContext.InvokeMember("EditValue", BindingFlags.InvokeMethod | BindingFlags.Static, null, null, new object[] { componentDesigner, iComponent, propertyName });
             }
 
-            private void SetValue(object target, string propertyName, object value) {
+			/// <summary>
+			/// Sets the value.
+			/// </summary>
+			/// <param name="target">The target.</param>
+			/// <param name="propertyName">The property name.</param>
+			/// <param name="value">The value.</param>
+			private void SetValue(object target, string propertyName, object value) {
                 TypeDescriptor.GetProperties(target)[propertyName].SetValue(target, value);
             }
 
-            public void InvokeColumnsDialog() {
+			/// <summary>
+			/// Invokes the columns dialog.
+			/// </summary>
+			public void InvokeColumnsDialog() {
                 EditValue(this.designer, base.Component, "Columns");
             }
 
-            // Don't need these since we removed their corresponding actions from the list.
-            // Keep the methods just in case.
+			// Don't need these since we removed their corresponding actions from the list.
+			// Keep the methods just in case.
 
-            //public void InvokeGroupsDialog() {
-            //    EditValue(this.designer, base.Component, "Groups");
-            //}
+			//public void InvokeGroupsDialog() {
+			//    EditValue(this.designer, base.Component, "Groups");
+			//}
 
-            //public void InvokeItemsDialog() {
-            //    EditValue(this.designer, base.Component, "Items");
-            //}
+			//public void InvokeItemsDialog() {
+			//    EditValue(this.designer, base.Component, "Items");
+			//}
 
-            public ImageList LargeImageList {
+			/// <summary>
+			/// Gets or sets the large image list.
+			/// </summary>
+			public ImageList LargeImageList {
                 get { return ((ListView)base.Component).LargeImageList; }
                 set { SetValue(base.Component, "LargeImageList", value); }
             }
 
-            public ImageList SmallImageList {
+			/// <summary>
+			/// Gets or sets the small image list.
+			/// </summary>
+			public ImageList SmallImageList {
                 get { return ((ListView)base.Component).SmallImageList; }
                 set { SetValue(base.Component, "SmallImageList", value); }
             }
 
-            public View View {
+			/// <summary>
+			/// Gets or sets the view.
+			/// </summary>
+			public View View {
                 get { return ((ListView)base.Component).View; }
                 set { SetValue(base.Component, "View", value); }
             }
@@ -429,18 +457,26 @@ namespace BrightIdeasSoftware.Design
             DesignerActionList wrappedList;
         }
 
-        #endregion
+		#endregion
 
-        #region DesignerCommandSet
+		#region DesignerCommandSet
 
-        private class CDDesignerCommandSet : DesignerCommandSet
+		/// <summary>
+		/// The c d designer command set.
+		/// </summary>
+		private class CDDesignerCommandSet : DesignerCommandSet
         {
 
             public CDDesignerCommandSet(ComponentDesigner componentDesigner) {
                 this.componentDesigner = componentDesigner;
             }
 
-            public override ICollection GetCommands(string name) {
+			/// <summary>
+			/// Gets the commands.
+			/// </summary>
+			/// <param name="name">The name.</param>
+			/// <returns>An ICollection.</returns>
+			public override ICollection GetCommands(string name) {
                 // Debug.WriteLine("CDDesignerCommandSet.GetCommands:" + name);
                 if (componentDesigner != null) {
                     if (name.Equals("Verbs")) {
@@ -528,11 +564,25 @@ namespace BrightIdeasSoftware.Design
     /// </summary>
     internal class OverlayConverter : ExpandableObjectConverter
     {
-        public override bool CanConvertTo(ITypeDescriptorContext context, Type destinationType) {
+		/// <summary>
+		/// Cans the convert to.
+		/// </summary>
+		/// <param name="context">The context.</param>
+		/// <param name="destinationType">The destination type.</param>
+		/// <returns>A bool.</returns>
+		public override bool CanConvertTo(ITypeDescriptorContext context, Type destinationType) {
             return destinationType == typeof(string) || base.CanConvertTo(context, destinationType);
         }
 
-        public override object ConvertTo(ITypeDescriptorContext context, System.Globalization.CultureInfo culture, object value, Type destinationType) {
+		/// <summary>
+		/// Converts the to.
+		/// </summary>
+		/// <param name="context">The context.</param>
+		/// <param name="culture">The culture.</param>
+		/// <param name="value">The value.</param>
+		/// <param name="destinationType">The destination type.</param>
+		/// <returns>An object.</returns>
+		public override object ConvertTo(ITypeDescriptorContext context, System.Globalization.CultureInfo culture, object value, Type destinationType) {
             if (destinationType == typeof(string)) {
                 ImageOverlay imageOverlay = value as ImageOverlay;
                 if (imageOverlay != null) {

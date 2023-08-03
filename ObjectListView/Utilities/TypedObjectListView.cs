@@ -497,7 +497,15 @@ namespace BrightIdeasSoftware
             il.Emit(OpCodes.Ret);
         }
 
-        private Type GeneratePart(ILGenerator il, Type type, string pathPart, bool isLastPart) {
+		/// <summary>
+		/// Generates the part.
+		/// </summary>
+		/// <param name="il">The il.</param>
+		/// <param name="type">The type.</param>
+		/// <param name="pathPart">The path part.</param>
+		/// <param name="isLastPart">If true, is last part.</param>
+		/// <returns>A Type.</returns>
+		private Type GeneratePart(ILGenerator il, Type type, string pathPart, bool isLastPart) {
             // TODO: Generate check for null
 
             // Find the first member with the given nam that is a field, property, or parameter-less method

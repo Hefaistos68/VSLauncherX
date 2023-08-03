@@ -857,7 +857,12 @@ namespace BrightIdeasSoftware
         }
 
 
-        private IEnumerable GetChildrenWithoutExpanding(Object model) {
+		/// <summary>
+		/// Gets the children without expanding.
+		/// </summary>
+		/// <param name="model">The model.</param>
+		/// <returns>An IEnumerable.</returns>
+		private IEnumerable GetChildrenWithoutExpanding(Object model) {
             Branch br = this.TreeModel.GetBranch(model);
             if (br == null || !br.CanExpand)
                 return new ArrayList();
@@ -1061,11 +1066,21 @@ namespace BrightIdeasSoftware
             base.SetObjectCheckedness(modelObject, aggregate ?? CheckState.Indeterminate);
         }
 
-        private bool CanExpandUncached(object model) {
+		/// <summary>
+		/// Cans the expand uncached.
+		/// </summary>
+		/// <param name="model">The model.</param>
+		/// <returns>A bool.</returns>
+		private bool CanExpandUncached(object model) {
             return this.CanExpandGetter != null && model != null && this.CanExpandGetter(model);
         }
 
-        private IEnumerable GetChildrenUncached(object model) {
+		/// <summary>
+		/// Gets the children uncached.
+		/// </summary>
+		/// <param name="model">The model.</param>
+		/// <returns>An IEnumerable.</returns>
+		private IEnumerable GetChildrenUncached(object model) {
             return this.ChildrenGetter != null && model != null ? this.ChildrenGetter(model) : new ArrayList();
         }
 
@@ -1806,7 +1821,11 @@ namespace BrightIdeasSoftware
                 }
             }
 
-            private void PushAncestors(IList<Branch> list) {
+			/// <summary>
+			/// Pushes the ancestors.
+			/// </summary>
+			/// <param name="list">The list.</param>
+			private void PushAncestors(IList<Branch> list) {
                 // This is designed to ignore the trunk (which has no parent)
                 if (this.ParentBranch != null) {
                     this.ParentBranch.PushAncestors(list);
@@ -1863,7 +1882,11 @@ namespace BrightIdeasSoftware
                 }
             }
 
-            private void AddChild(object childModel) {
+			/// <summary>
+			/// Adds the child.
+			/// </summary>
+			/// <param name="childModel">The child model.</param>
+			private void AddChild(object childModel) {
                 Branch br = this.Tree.GetBranch(childModel);
                 if (br == null)
                     br = this.Tree.MakeBranch(this, childModel);

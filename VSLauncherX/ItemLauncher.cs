@@ -49,6 +49,10 @@ namespace VSLauncher
 		/// </summary>
 		public VisualStudioInstance Target { get; }
 
+		/// <summary>
+		/// Launches the.
+		/// </summary>
+		/// <param name="bForceAdmin">If true, b force admin.</param>
 		public void Launch(bool bForceAdmin = false)
 		{
 			// Execute the item, run the before and after items if set, elevate to admin if required
@@ -67,18 +71,21 @@ namespace VSLauncher
 
 				Debug.WriteLine(s);
 
-				return;
-
 				// execute BackgroundLauncher.exe and pass s as parameter
-				var psi = new System.Diagnostics.ProcessStartInfo();
-				psi.FileName = "..\\..\\..\\BackgroundLaunch\\bin\\Debug\\net6.0-windows\\BackgroundLaunch.exe";
-				psi.Arguments = s;
-				psi.UseShellExecute = true;
-				psi.Verb = bForceAdmin ? "runas" : "run";
-// 				psi.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
-// 				psi.CreateNoWindow = true;
-// 				psi.RedirectStandardOutput = true;
-// 				psi.RedirectStandardError = true;
+				string env = Environment.CurrentDirectory;
+				var psi = new System.Diagnostics.ProcessStartInfo
+				{
+					FileName = "BackgroundLaunch.exe",
+					Arguments = s,
+					ErrorDialog = true,
+					UseShellExecute = true,
+					Verb = (bForceAdmin | this.Solution.Items.First().RunAsAdmin) ? "runas" : "run",
+					WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden,
+					WorkingDirectory = env
+				};
+				// 				psi.CreateNoWindow = true;
+				// 				psi.RedirectStandardOutput = true;
+				// 				psi.RedirectStandardError = true;
 
 				var p = System.Diagnostics.Process.Start(psi);
 			});

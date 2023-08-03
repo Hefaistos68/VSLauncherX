@@ -704,7 +704,12 @@ namespace BrightIdeasSoftware
             return group;
         }
 
-        private bool GetOneState(GroupState mask) {
+		/// <summary>
+		/// Gets the one state.
+		/// </summary>
+		/// <param name="mask">The mask.</param>
+		/// <returns>A bool.</returns>
+		private bool GetOneState(GroupState mask) {
             if (this.Created)
                 this.State = this.GetState();
             return (this.State & mask) == mask;
@@ -729,7 +734,12 @@ namespace BrightIdeasSoftware
             return NativeMethods.SetGroupInfo(this.ListView, this.GroupId, group);
         }
 
-        private void SetOneState(bool value, GroupState mask)
+		/// <summary>
+		/// Sets the one state.
+		/// </summary>
+		/// <param name="value">If true, value.</param>
+		/// <param name="mask">The mask.</param>
+		private void SetOneState(bool value, GroupState mask)
         {
             this.StateMask ^= mask;
             if (value)

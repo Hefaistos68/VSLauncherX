@@ -119,9 +119,17 @@ namespace BrightIdeasSoftware
         /// </summary>
         public RenderDelegate RenderDelegate;
 
-        #region IRenderer Members
+		#region IRenderer Members
 
-        public override bool RenderSubItem(DrawListViewSubItemEventArgs e, Graphics g, Rectangle cellBounds, object rowObject) {
+		/// <summary>
+		/// Renders the sub item.
+		/// </summary>
+		/// <param name="e">The e.</param>
+		/// <param name="g">The g.</param>
+		/// <param name="cellBounds">The cell bounds.</param>
+		/// <param name="rowObject">The row object.</param>
+		/// <returns>A bool.</returns>
+		public override bool RenderSubItem(DrawListViewSubItemEventArgs e, Graphics g, Rectangle cellBounds, object rowObject) {
             if (this.RenderDelegate == null)
                 return base.RenderSubItem(e, g, cellBounds, rowObject);
             else

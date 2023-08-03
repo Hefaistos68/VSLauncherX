@@ -1,13 +1,12 @@
-﻿using BrightIdeasSoftware;
+﻿using System.Diagnostics;
 
-using Microsoft.Win32;
+using BrightIdeasSoftware;
+
+using Newtonsoft.Json;
 
 using VSLauncher.DataModel;
 using VSLauncher.Forms;
-using Newtonsoft.Json;
-using System.Diagnostics;
 using VSLauncher.Helpers;
-using System.Linq;
 
 namespace VSLauncher
 {
@@ -16,14 +15,14 @@ namespace VSLauncher
 	/// </summary>
 	public partial class MainDialog : Form
 	{
-		private VsFolder solutionGroups = new VsFolder();
-		private VisualStudioInstanceManager visualStudioInstances = new VisualStudioInstanceManager();
-		private DescribedTaskRenderer itemRenderer;
-
 		/// <summary>
 		/// used to indicate that some internal update is going on
 		/// </summary>
 		private bool bInUpdate;
+
+		private DescribedTaskRenderer? itemRenderer;
+		private VsFolder solutionGroups = new VsFolder();
+		private VisualStudioInstanceManager visualStudioInstances = new VisualStudioInstanceManager();
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="MainDialog"/> class.
@@ -39,7 +38,6 @@ namespace VSLauncher
 			SetupDragAndDrop();
 
 			// BuildTestData();
-
 
 			this.bInUpdate = true;
 
@@ -59,87 +57,6 @@ namespace VSLauncher
 		}
 
 		/// <summary>
-		/// Loads the solution data.
-		/// </summary>
-		private void LoadSolutionData()
-		{
-			// load this.solutionGroups data from a JSON file in the users data folder
-			string fileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "VSLauncher", "VSLauncher.json");
-
-			if (File.Exists(fileName))
-			{
-				string json = File.ReadAllText(fileName);
-				JsonSerializerSettings settings = new JsonSerializerSettings()
-				{
-					TypeNameHandling = TypeNameHandling.All
-				};
-				var data = JsonConvert.DeserializeObject<VsFolder>(json, settings);
-
-				if (data is null)
-				{
-					// alert the user that the datafile was unreadable
-					MessageBox.Show($"The datafile was unreadable. Please check the file in '{fileName}' and try again.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-				}
-				else
-				{
-					data.Refresh();
-					this.solutionGroups = data;
-				}
-			}
-		}
-
-		/// <summary>
-		/// Solutions the data_ on changed.
-		/// </summary>
-		private bool SolutionData_OnChanged(bool changed)
-		{
-			if (changed)
-			{
-				this.solutionGroups.LastModified = DateTime.Now;
-				SaveSolutionData();
-				UpdateList();
-			}
-
-			return false;
-		}
-
-		/// <summary>
-		/// Saves the solution data.
-		/// </summary>
-		private void SaveSolutionData()
-		{
-			// save this.solutionGroups data to a JSON file in the users data folder
-			string fileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "VSLauncher", "VSLauncher.json");
-
-			try
-			{
-				// make sure the path exists
-				Directory.CreateDirectory(Path.GetDirectoryName(fileName));
-
-				JsonSerializerSettings settings = new JsonSerializerSettings()
-				{
-					Formatting = Formatting.Indented,
-					TypeNameHandling = TypeNameHandling.All
-				};
-
-				string json = JsonConvert.SerializeObject(this.solutionGroups, settings);
-				try
-				{
-					File.WriteAllText(fileName, json);
-				}
-				catch (System.Exception ex)
-				{
-					// alert user of an error saving the data
-					MessageBox.Show($"There was an error saving the data. \r\n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-				}
-			}
-			catch (System.Exception ex)
-			{
-				MessageBox.Show($"There was an error saving the data. \r\n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-			}
-		}
-
-		/// <summary>
 		/// Is the control key pressed.
 		/// </summary>
 		/// <returns>A bool.</returns>
@@ -147,84 +64,6 @@ namespace VSLauncher
 		{
 			return (Control.ModifierKeys & Keys.Control) == Keys.Control;
 		}
-
-		#region Main Buttons
-		/// <summary>
-		/// Handles click on the btnMainStartVisualStudio1 button (Start VS)
-		/// </summary>
-		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
-		private void btnMainStartVisualStudio1_Click(object sender, EventArgs e)
-		{
-			this.Cursor = Cursors.WaitCursor;
-			var vs = visualStudioInstances[selectVisualStudioVersion.SelectedIndex];
-			vs.Execute();
-			this.Cursor = Cursors.Default;
-		}
-
-		/// <summary>
-		/// Handles click on the btnMainStartVisualStudio2 button (Start VS as admin)
-		/// </summary>
-		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
-		private void btnMainStartVisualStudio2_Click(object sender, EventArgs e)
-		{
-			this.Cursor = Cursors.WaitCursor;
-			var vs = visualStudioInstances[selectVisualStudioVersion.SelectedIndex];
-			vs.ExecuteAsAdmin();
-			this.Cursor = Cursors.Default;
-		}
-
-		/// <summary>
-		/// Handles click on the btnMainStartVisualStudio3 button (Start VS with an instance)
-		/// </summary>
-		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
-		private void btnMainStartVisualStudio3_Click(object sender, EventArgs e)
-		{
-			var dlg = new dlgNewInstance();
-			if (dlg.ShowDialog() == DialogResult.OK)
-			{
-				this.Cursor = Cursors.WaitCursor;
-				var vs = visualStudioInstances[selectVisualStudioVersion.SelectedIndex];
-
-				vs.ExecuteWithInstance(IsControlPressed(), dlg.InstanceName);
-				this.Cursor = Cursors.Default;
-			}
-		}
-
-		/// <summary>
-		/// Handles click on the btnMainStartVisualStudio4 button (Start VS with new project)
-		/// </summary>
-		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
-		private void btnMainStartVisualStudio4_Click(object sender, EventArgs e)
-		{
-			this.Cursor = Cursors.WaitCursor;
-			var vs = visualStudioInstances[selectVisualStudioVersion.SelectedIndex];
-			vs.ExecuteNewProject(IsControlPressed());
-			this.Cursor = Cursors.Default;
-		}
-
-		/// <summary>
-		/// Handles click on the btnMainStartVisualStudio5 button (Start VS with dialog)
-		/// </summary>
-		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
-		private void btnMainStartVisualStudio5_Click(object sender, EventArgs e)
-		{
-			var dlg = new dlgExecuteVisualStudio(selectVisualStudioVersion.SelectedIndex);
-
-			if (dlg.ShowDialog() == DialogResult.OK)
-			{
-				this.Cursor = Cursors.WaitCursor;
-				var vs = dlg.VsVersion;
-				vs.ExecuteWith(dlg.AsAdmin, dlg.ShowSplash, dlg.ProjectOrSolution, dlg.InstanceName, dlg.Command);
-				this.Cursor = Cursors.Default;
-			}
-		}
-
-		#endregion
 
 		/// <summary>
 		/// Builds the test data.
@@ -285,6 +124,34 @@ namespace VSLauncher
 			renderer.Aspect = "Name";
 
 			return renderer;
+		}
+
+		/// <summary>
+		/// deletes the tool strip menu item_ click.
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
+		private void deleteToolStripMenuItem_Click(object sender, EventArgs e)
+		{
+			var item = olvFiles.SelectedItem.RowObject;
+
+			// only ask the user if the selected item is not an empty folder
+			if (item is not VsFolder sg || sg.Items.Count != 0)
+			{
+				// ask user if he wants to delete this item really
+				if (MessageBox.Show($"Are you sure you want to delete '{((VsItem)item).Name}'", "Delete item", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
+				{
+					return;
+				}
+			}
+
+			VsFolder? owner = this.solutionGroups.FindParent(item);
+			if (owner != null)
+			{
+				owner.Items.Remove((VsItem)item);
+			}
+
+			this.SolutionData_OnChanged(true);
 		}
 
 		/// <summary>
@@ -362,19 +229,59 @@ namespace VSLauncher
 			{
 				ImageList = imageList3
 			};
-			attributesRenderer.Add(eOptions.RunBeforeOn, "RunBefore");
-			attributesRenderer.Add(eOptions.RunBeforeOff, "None");
-			attributesRenderer.Add(eOptions.RunAsAdminOn, "RunAsAdmin");
-			attributesRenderer.Add(eOptions.RunAsAdminOff, "None");
-			attributesRenderer.Add(eOptions.RunAfterOn, "RunAfter");
-			attributesRenderer.Add(eOptions.RunAfterOff, "None");
+			attributesRenderer.Add(OptionsEnum.RunBeforeOn, "RunBefore");
+			attributesRenderer.Add(OptionsEnum.RunBeforeOff, "None");
+			attributesRenderer.Add(OptionsEnum.RunAsAdminOn, "RunAsAdmin");
+			attributesRenderer.Add(OptionsEnum.RunAsAdminOff, "None");
+			attributesRenderer.Add(OptionsEnum.RunAfterOn, "RunAfter");
+			attributesRenderer.Add(OptionsEnum.RunAfterOff, "None");
 
 			this.olvColumnOptions.Renderer = attributesRenderer;
 
 			// Tell the filtering subsystem that the attributes column is a collection of flags
-			this.olvColumnOptions.ClusteringStrategy = new FlagClusteringStrategy(typeof(eOptions));
+			this.olvColumnOptions.ClusteringStrategy = new FlagClusteringStrategy(typeof(OptionsEnum));
 
 			// 			this.olvFiles.SetObjects(list);
+		}
+
+		/// <summary>
+		/// Loads the solution data.
+		/// </summary>
+		private void LoadSolutionData()
+		{
+			// load this.solutionGroups data from a JSON file in the users data folder
+			string fileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "VSLauncher", "VSLauncher.json");
+
+			if (File.Exists(fileName))
+			{
+				string json = File.ReadAllText(fileName);
+				JsonSerializerSettings settings = new JsonSerializerSettings()
+				{
+					TypeNameHandling = TypeNameHandling.All
+				};
+				var data = JsonConvert.DeserializeObject<VsFolder>(json, settings);
+
+				if (data is null)
+				{
+					// alert the user that the datafile was unreadable
+					MessageBox.Show($"The datafile was unreadable. Please check the file in '{fileName}' and try again.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+				}
+				else
+				{
+					data.Refresh();
+					this.solutionGroups = data;
+				}
+			}
+		}
+
+		/// <summary>
+		/// Mains the dialog_ load.
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
+		private void MainDialog_Load(object sender, EventArgs e)
+		{
+			txtFilter.Focus();
 		}
 
 		/// <summary>
@@ -401,10 +308,8 @@ namespace VSLauncher
 					else
 					{
 						var p = this.solutionGroups.FindParent(r.RowObject);
-						if(p != null)
-						{
-							p.Items.Insert(p.Items.IndexOf(r.RowObject as VsItem), dlg.Solution);
-						}
+
+						p?.Items.Insert(p.Items.IndexOf((VsItem)r.RowObject), dlg.Solution);
 					}
 				}
 
@@ -469,12 +374,26 @@ namespace VSLauncher
 					}
 					else
 					{
-
 					}
 				}
 
 				this.SolutionData_OnChanged(true);
 			}
+		}
+
+		/// <summary>
+		/// mains the refresh_ click.
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
+		private void mainRefresh_Click(object sender, EventArgs e)
+		{
+			this.solutionGroups.Items.OnChanged -= SolutionData_OnChanged;
+			this.solutionGroups.Items.Clear();
+			LoadSolutionData();
+			this.solutionGroups.Items.OnChanged += SolutionData_OnChanged;
+
+			UpdateList();
 		}
 
 		/// <summary>
@@ -485,7 +404,7 @@ namespace VSLauncher
 		private void mainSettings_Click(object sender, EventArgs e)
 		{
 			var dlg = new dlgSettings();
-			if(dlg.ShowDialog() == DialogResult.OK)
+			if (dlg.ShowDialog() == DialogResult.OK)
 			{
 				this.SolutionData_OnChanged(true);
 			}
@@ -498,7 +417,6 @@ namespace VSLauncher
 		/// <param name="e">The e.</param>
 		private void olvFiles_AfterLabelEdit(object sender, LabelEditEventArgs e)
 		{
-
 		}
 
 		/// <summary>
@@ -518,7 +436,6 @@ namespace VSLauncher
 		/// <param name="e">The e.</param>
 		private void olvFiles_CellEditFinished(object sender, CellEditEventArgs e)
 		{
-
 		}
 
 		/// <summary>
@@ -568,7 +485,6 @@ namespace VSLauncher
 		/// <param name="e">The e.</param>
 		private void olvFiles_Dropped(object sender, OlvDropEventArgs e)
 		{
-
 		}
 
 		/// <summary>
@@ -625,15 +541,20 @@ namespace VSLauncher
 
 			if (e.TargetModel is VsFolder)
 			{
-				if(e.TargetModel != this.solutionGroups.FindParent(e.SourceModels[0]))
+				var obj = e.SourceModels[0];
+
+				if (obj != null)
 				{
-					e.Effect = e.StandardDropActionFromKeys;
-				}
-				else
-				{
-					if(IsControlPressed())
+					if (e.TargetModel != this.solutionGroups.FindParent(obj))
 					{
 						e.Effect = e.StandardDropActionFromKeys;
+					}
+					else
+					{
+						if (IsControlPressed())
+						{
+							e.Effect = e.StandardDropActionFromKeys;
+						}
 					}
 				}
 			}
@@ -652,11 +573,18 @@ namespace VSLauncher
 		{
 			if (e.SourceModels.Count == 1)
 			{
-				VsFolder target = e.TargetModel as VsFolder;
-				object source = e.SourceModels[0];
-
 				if (e.TargetModel == e.SourceModels[0])
+				{
 					return;
+				}
+
+				VsFolder? target = e.TargetModel as VsFolder;
+				object? source = e.SourceModels[0];
+
+				if (target is null || source is null)
+				{
+					return;
+				}
 
 				if (e.Effect == System.Windows.Forms.DragDropEffects.Move)
 				{
@@ -671,7 +599,6 @@ namespace VSLauncher
 					{
 						target.Items.Add((VsItem)source);
 					}
-
 
 					if (parent == null)
 					{
@@ -693,216 +620,6 @@ namespace VSLauncher
 				}
 
 				this.solutionGroups.Items.Changed = true;
-			}
-		}
-
-		/// <summary>
-		/// Rebuilds the filters.
-		/// </summary>
-		private void RebuildFilters()
-		{
-			this.olvFiles.ModelFilter = String.IsNullOrEmpty(this.txtFilter.Text) ? null : new TextMatchFilter(this.olvFiles, this.txtFilter.Text);
-			// this.olvFiles.AdditionalFilter = filters.Count == 0 ? null : new CompositeAllFilter(filters);
-		}
-
-		/// <summary>
-		/// selects the visual studio version_ draw item.
-		/// </summary>
-		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
-		private void selectVisualStudioVersion_DrawItem(object sender, DrawItemEventArgs e)
-		{
-			// draw the selected item with the Visual Studio Icon and the version as text
-			if (e.Index >= 0 && e.Index <= this.visualStudioInstances.Count)
-			{
-				e.DrawBackground();
-
-				var height = 16; // selectVisualStudioVersion.Height - (selectVisualStudioVersion.Margin.Top+selectVisualStudioVersion.Margin.Bottom);
-
-				Rectangle iconRect = new Rectangle(e.Bounds.Left + selectVisualStudioVersion.Margin.Left,
-													e.Bounds.Top + ((selectVisualStudioVersion.ItemHeight - height) / 2),
-													height, height);
-				e.Graphics.DrawIcon(visualStudioInstances[e.Index].AppIcon, iconRect);
-				e.Graphics.DrawString(visualStudioInstances[e.Index].Name, e.Font, Brushes.Black, e.Bounds.Left + 20, e.Bounds.Top + 4);
-			}
-		}
-
-		/// <summary>
-		/// selects the visual studio version_ selected index changed.
-		/// </summary>
-		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
-		private void selectVisualStudioVersion_SelectedIndexChanged(object sender, EventArgs e)
-		{
-			// update all buttons with icon from selected visual studio version
-			if (selectVisualStudioVersion.SelectedIndex >= 0 && selectVisualStudioVersion.SelectedIndex < visualStudioInstances.Count)
-			{
-
-				// save the selected item as last selected item
-				if (!this.bInUpdate)
-				{
-					Properties.Settings.Default.SelectedVSversion = visualStudioInstances[selectVisualStudioVersion.SelectedIndex].Identifier;
-					Properties.Settings.Default.Save();
-				}
-
-				// set icon and text according to selection onto all buttons
-				var icon = visualStudioInstances[selectVisualStudioVersion.SelectedIndex].AppIcon.ToBitmap();
-				string shortName = visualStudioInstances[selectVisualStudioVersion.SelectedIndex].ShortName;
-
-				btnMainStartVisualStudio1.Text = string.Format(btnMainStartVisualStudio1.Tag!.ToString(), shortName);
-				tooltipForButtons.SetToolTip(btnMainStartVisualStudio1, visualStudioInstances[selectVisualStudioVersion.SelectedIndex].ToString());
-				btnMainStartVisualStudio1.Image = icon;
-
-				btnMainStartVisualStudio2.Text = string.Format(btnMainStartVisualStudio2.Tag!.ToString(), shortName);
-				tooltipForButtons.SetToolTip(btnMainStartVisualStudio2, visualStudioInstances[selectVisualStudioVersion.SelectedIndex].ToString());
-				btnMainStartVisualStudio2.Image = icon;
-
-				btnMainStartVisualStudio3.Text = string.Format(btnMainStartVisualStudio3.Tag!.ToString(), shortName);
-				tooltipForButtons.SetToolTip(btnMainStartVisualStudio3, visualStudioInstances[selectVisualStudioVersion.SelectedIndex].ToString());
-				btnMainStartVisualStudio3.Image = icon;
-
-				btnMainStartVisualStudio4.Text = string.Format(btnMainStartVisualStudio4.Tag!.ToString(), shortName);
-				tooltipForButtons.SetToolTip(btnMainStartVisualStudio4, visualStudioInstances[selectVisualStudioVersion.SelectedIndex].ToString());
-				btnMainStartVisualStudio4.Image = icon;
-
-				btnMainStartVisualStudio5.Text = string.Format(btnMainStartVisualStudio5.Tag!.ToString(), shortName);
-				tooltipForButtons.SetToolTip(btnMainStartVisualStudio5, visualStudioInstances[selectVisualStudioVersion.SelectedIndex].ToString());
-				btnMainStartVisualStudio5.Image = icon;
-			}
-		}
-
-		/// <summary>
-		/// Setups the drag and drop.
-		/// </summary>
-		private void SetupDragAndDrop()
-		{
-			// Setup the tree so that it can drop and drop.
-			// Drag and drop support
-			// You can set up drag and drop explicitly (like this) or, in the IDE, you can set
-			// IsSimpleDropSource and IsSimpleDragSource and respond to CanDrop and Dropped events
-
-			this.olvFiles.DragSource = new SimpleDragSource();
-			this.olvFiles.IsSimpleDragSource = true;
-			this.olvFiles.IsSimpleDropSink = true;
-
-			this.olvFiles.ModelCanDrop += olvFiles_ModelCanDropHandler;
-			this.olvFiles.ModelDropped += olvFiles_ModelDroppedHandler;
-		}
-
-		/// <summary>
-		/// Handles text changes in the filter field and updates the list
-		/// </summary>
-		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
-		private void txtFilter_TextChanged(object sender, EventArgs e)
-		{
-			RebuildFilters();
-		}
-
-		/// <summary>
-		/// Updates the list.
-		/// </summary>
-		private void UpdateList()
-		{
-			// TODO: must verify items before loading, indicate missing items through warning icon
-			this.olvFiles.SetObjects(this.solutionGroups.Items);
-			this.olvFiles.ExpandAll();
-		}
-
-		/// <summary>
-		/// runs the tool strip menu item_ click.
-		/// </summary>
-		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
-		private void runToolStripMenuItem_Click(object sender, EventArgs e)
-		{
-			var item = olvFiles.SelectedItem.RowObject;
-			var vs = this.selectVisualStudioVersion.SelectedItem as VisualStudioInstance;
-
-			if (item is VsFolder f)
-			{
-				new ItemLauncher(f, vs).Launch();
-			}
-			else if (item is VsSolution s)
-			{
-				vs = visualStudioInstances.GetByVersion(s.RequiredVersion) ?? vs;
-				new ItemLauncher(s, vs).Launch();
-			}
-			else if (item is VsProject p)
-			{
-				vs = visualStudioInstances.GetByIdentifier(p.VsVersion) ?? vs;
-				new ItemLauncher(p, vs).Launch();
-			}
-		}
-
-		/// <summary>
-		/// runs the as admin tool strip menu item_ click.
-		/// </summary>
-		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
-		private void runAsAdminToolStripMenuItem_Click(object sender, EventArgs e)
-		{
-			var item = olvFiles.SelectedItem.RowObject;
-			var vs = this.selectVisualStudioVersion.SelectedItem as VisualStudioInstance;
-
-			if (item is VsFolder sg)
-			{
-				new ItemLauncher(sg, vs).Launch(true);
-			}
-			else if (item is VsSolution s)
-			{
-				new ItemLauncher(s, vs).Launch(true);
-			}
-
-		}
-
-		/// <summary>
-		/// renames the tool strip menu item_ click.
-		/// </summary>
-		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
-		private void renameToolStripMenuItem_Click(object sender, EventArgs e)
-		{
-
-		}
-
-		/// <summary>
-		/// settings the tool strip menu item_ click.
-		/// </summary>
-		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
-		private void settingsToolStripMenuItem_Click(object sender, EventArgs e)
-		{
-			object item = olvFiles.SelectedItem.RowObject;
-			var dlg = new dlgExecuteVisualStudio(item);
-
-			if (dlg.ShowDialog() == DialogResult.OK)
-			{
-				if (item is VsSolution s)
-				{
-					s.RunAsAdmin = dlg.AsAdmin;
-					s.ShowSplash = dlg.ShowSplash;
-					s.Path = dlg.ProjectOrSolution;
-					s.Instance = dlg.InstanceName;
-					s.Commands = dlg.Command;
-				}
-				else if (item is VsProject p)
-				{
-					p.RunAsAdmin = dlg.AsAdmin;
-					p.ShowSplash = dlg.ShowSplash;
-					p.Path = dlg.ProjectOrSolution;
-					p.Instance = dlg.InstanceName;
-					p.Commands = dlg.Command;
-				}
-				else if (item is VsFolder sg)
-				{
-					sg.RunAsAdmin = dlg.AsAdmin;
-					sg.Path = dlg.ProjectOrSolution;
-					sg.Instance = dlg.InstanceName;
-					sg.Commands = dlg.Command;
-				}
-
-				this.SolutionData_OnChanged(true);
 			}
 		}
 
@@ -937,56 +654,325 @@ namespace VSLauncher
 		}
 
 		/// <summary>
-		/// deletes the tool strip menu item_ click.
+		/// Rebuilds the filters.
+		/// </summary>
+		private void RebuildFilters()
+		{
+			this.olvFiles.ModelFilter = String.IsNullOrEmpty(this.txtFilter.Text) ? null : new TextMatchFilter(this.olvFiles, this.txtFilter.Text);
+			// this.olvFiles.AdditionalFilter = filters.Count == 0 ? null : new CompositeAllFilter(filters);
+		}
+
+		/// <summary>
+		/// renames the tool strip menu item_ click.
 		/// </summary>
 		/// <param name="sender">The sender.</param>
 		/// <param name="e">The e.</param>
-		private void deleteToolStripMenuItem_Click(object sender, EventArgs e)
+		private void renameToolStripMenuItem_Click(object sender, EventArgs e)
+		{
+		}
+
+		/// <summary>
+		/// runs the as admin tool strip menu item_ click.
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
+		private void runAsAdminToolStripMenuItem_Click(object sender, EventArgs e)
 		{
 			var item = olvFiles.SelectedItem.RowObject;
+			var vs = this.selectVisualStudioVersion.SelectedItem as VisualStudioInstance ?? throw new InvalidCastException();
 
-			// only ask the user if the selected item is not an empty folder
-			if (item is not VsFolder sg || sg.Items.Count != 0)
+			if (item is VsFolder sg)
 			{
-				// ask user if he wants to delete this item really
-				if (MessageBox.Show($"Are you sure you want to delete '{((VsItem)item).Name}'", "Delete item", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
+				new ItemLauncher(sg, vs).Launch(true);
+			}
+			else if (item is VsSolution s)
+			{
+				new ItemLauncher(s, vs).Launch(true);
+			}
+		}
+
+		/// <summary>
+		/// runs the tool strip menu item_ click.
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
+		private void runToolStripMenuItem_Click(object sender, EventArgs e)
+		{
+			var item = olvFiles.SelectedItem.RowObject;
+			var vs = this.selectVisualStudioVersion.SelectedItem as VisualStudioInstance ?? throw new InvalidCastException();
+
+			if (item is VsFolder f)
+			{
+				new ItemLauncher(f, vs).Launch();
+			}
+			else if (item is VsSolution s)
+			{
+				vs = visualStudioInstances.GetByVersion(s.RequiredVersion) ?? vs;
+				new ItemLauncher(s, vs).Launch();
+			}
+			else if (item is VsProject p)
+			{
+				vs = visualStudioInstances.GetByIdentifier(p.VsVersion) ?? vs;
+				new ItemLauncher(p, vs).Launch();
+			}
+		}
+
+		/// <summary>
+		/// Saves the solution data.
+		/// </summary>
+		private void SaveSolutionData()
+		{
+			// save this.solutionGroups data to a JSON file in the users data folder
+			string fileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "VSLauncher", "VSLauncher.json");
+
+			try
+			{
+				var dir = Path.GetDirectoryName(fileName);
+				if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
 				{
-					return;
+					// make sure the path exists
+					Directory.CreateDirectory(dir);
+				}
+
+				JsonSerializerSettings settings = new JsonSerializerSettings()
+				{
+					Formatting = Formatting.Indented,
+					TypeNameHandling = TypeNameHandling.All
+				};
+
+				string json = JsonConvert.SerializeObject(this.solutionGroups, settings);
+				try
+				{
+					File.WriteAllText(fileName, json);
+				}
+				catch (System.Exception ex)
+				{
+					// alert user of an error saving the data
+					MessageBox.Show($"There was an error saving the data. \r\n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
 				}
 			}
-
-			VsFolder? owner = this.solutionGroups.FindParent(item);
-			if (owner != null)
+			catch (System.Exception ex)
 			{
-				owner.Items.Remove((VsItem)item);
+				MessageBox.Show($"There was an error saving the data. \r\n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+			}
+		}
+
+		/// <summary>
+		/// selects the visual studio version_ draw item.
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
+		private void selectVisualStudioVersion_DrawItem(object sender, DrawItemEventArgs e)
+		{
+			// draw the selected item with the Visual Studio Icon and the version as text
+			if (e.Index >= 0 && e.Index <= this.visualStudioInstances.Count)
+			{
+				e.DrawBackground();
+
+				var height = 16; // selectVisualStudioVersion.Height - (selectVisualStudioVersion.Margin.Top+selectVisualStudioVersion.Margin.Bottom);
+
+				Rectangle iconRect = new Rectangle(e.Bounds.Left + selectVisualStudioVersion.Margin.Left,
+													e.Bounds.Top + ((selectVisualStudioVersion.ItemHeight - height) / 2),
+													height, height);
+				e.Graphics.DrawIcon(visualStudioInstances[e.Index].AppIcon, iconRect);
+				e.Graphics.DrawString(visualStudioInstances[e.Index].Name, e.Font!, Brushes.Black, e.Bounds.Left + 20, e.Bounds.Top + 4);
+			}
+		}
+
+		/// <summary>
+		/// selects the visual studio version_ selected index changed.
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
+		private void selectVisualStudioVersion_SelectedIndexChanged(object sender, EventArgs e)
+		{
+			// update all buttons with icon from selected visual studio version
+			if (selectVisualStudioVersion.SelectedIndex >= 0 && selectVisualStudioVersion.SelectedIndex < visualStudioInstances.Count)
+			{
+				// save the selected item as last selected item
+				if (!this.bInUpdate)
+				{
+					Properties.Settings.Default.SelectedVSversion = visualStudioInstances[selectVisualStudioVersion.SelectedIndex].Identifier;
+					Properties.Settings.Default.Save();
+				}
+
+				// set icon and text according to selection onto all buttons
+				var icon = visualStudioInstances[selectVisualStudioVersion.SelectedIndex].AppIcon.ToBitmap();
+				string shortName = visualStudioInstances[selectVisualStudioVersion.SelectedIndex].ShortName;
+
+				btnMainStartVisualStudio1.Text = string.Format((string)btnMainStartVisualStudio1.Tag, shortName);
+				tooltipForButtons.SetToolTip(btnMainStartVisualStudio1, visualStudioInstances[selectVisualStudioVersion.SelectedIndex].ToString());
+				btnMainStartVisualStudio1.Image = icon;
+
+				btnMainStartVisualStudio2.Text = string.Format((string)btnMainStartVisualStudio2.Tag, shortName);
+				tooltipForButtons.SetToolTip(btnMainStartVisualStudio2, visualStudioInstances[selectVisualStudioVersion.SelectedIndex].ToString());
+				btnMainStartVisualStudio2.Image = icon;
+
+				btnMainStartVisualStudio3.Text = string.Format((string)btnMainStartVisualStudio3.Tag, shortName);
+				tooltipForButtons.SetToolTip(btnMainStartVisualStudio3, visualStudioInstances[selectVisualStudioVersion.SelectedIndex].ToString());
+				btnMainStartVisualStudio3.Image = icon;
+
+				btnMainStartVisualStudio4.Text = string.Format((string)btnMainStartVisualStudio4.Tag, shortName);
+				tooltipForButtons.SetToolTip(btnMainStartVisualStudio4, visualStudioInstances[selectVisualStudioVersion.SelectedIndex].ToString());
+				btnMainStartVisualStudio4.Image = icon;
+
+				btnMainStartVisualStudio5.Text = string.Format((string)btnMainStartVisualStudio5.Tag, shortName);
+				tooltipForButtons.SetToolTip(btnMainStartVisualStudio5, visualStudioInstances[selectVisualStudioVersion.SelectedIndex].ToString());
+				btnMainStartVisualStudio5.Image = icon;
+			}
+		}
+
+		/// <summary>
+		/// settings the tool strip menu item_ click.
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
+		private void settingsToolStripMenuItem_Click(object sender, EventArgs e)
+		{
+			object item = olvFiles.SelectedItem.RowObject;
+			var dlg = new dlgExecuteVisualStudio(item);
+
+			if (dlg.ShowDialog() == DialogResult.OK)
+			{
+				this.SolutionData_OnChanged(true);
+			}
+		}
+
+		/// <summary>
+		/// Setups the drag and drop.
+		/// </summary>
+		private void SetupDragAndDrop()
+		{
+			// Setup the tree so that it can drop and drop.
+			// Drag and drop support
+			// You can set up drag and drop explicitly (like this) or, in the IDE, you can set
+			// IsSimpleDropSource and IsSimpleDragSource and respond to CanDrop and Dropped events
+
+			this.olvFiles.DragSource = new SimpleDragSource();
+			this.olvFiles.IsSimpleDragSource = true;
+			this.olvFiles.IsSimpleDropSink = true;
+
+			this.olvFiles.ModelCanDrop += olvFiles_ModelCanDropHandler;
+			this.olvFiles.ModelDropped += olvFiles_ModelDroppedHandler;
+		}
+
+		/// <summary>
+		/// Solutions the data_ on changed.
+		/// </summary>
+		private bool SolutionData_OnChanged(bool changed)
+		{
+			if (changed)
+			{
+				this.solutionGroups.LastModified = DateTime.Now;
+				SaveSolutionData();
+				UpdateList();
 			}
 
-			this.SolutionData_OnChanged(true);
+			return false;
 		}
 
+		#region Main Buttons
+
 		/// <summary>
-		/// mains the refresh_ click.
+		/// Handles click on the btnMainStartVisualStudio1 button (Start VS)
 		/// </summary>
 		/// <param name="sender">The sender.</param>
 		/// <param name="e">The e.</param>
-		private void mainRefresh_Click(object sender, EventArgs e)
+		private void btnMainStartVisualStudio1_Click(object sender, EventArgs e)
 		{
-			this.solutionGroups.Items.OnChanged -= SolutionData_OnChanged;
-			this.solutionGroups.Items.Clear();
-			LoadSolutionData();
-			this.solutionGroups.Items.OnChanged += SolutionData_OnChanged;
-
-			UpdateList();
+			this.Cursor = Cursors.WaitCursor;
+			var vs = visualStudioInstances[selectVisualStudioVersion.SelectedIndex];
+			vs.Execute();
+			this.Cursor = Cursors.Default;
 		}
 
 		/// <summary>
-		/// Mains the dialog_ load.
+		/// Handles click on the btnMainStartVisualStudio2 button (Start VS as admin)
 		/// </summary>
 		/// <param name="sender">The sender.</param>
 		/// <param name="e">The e.</param>
-		private void MainDialog_Load(object sender, EventArgs e)
+		private void btnMainStartVisualStudio2_Click(object sender, EventArgs e)
 		{
-			txtFilter.Focus();
+			this.Cursor = Cursors.WaitCursor;
+			var vs = visualStudioInstances[selectVisualStudioVersion.SelectedIndex];
+			vs.ExecuteAsAdmin();
+			this.Cursor = Cursors.Default;
+		}
+
+		/// <summary>
+		/// Handles click on the btnMainStartVisualStudio3 button (Start VS with an instance)
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
+		private void btnMainStartVisualStudio3_Click(object sender, EventArgs e)
+		{
+			var dlg = new dlgNewInstance();
+			if (dlg.ShowDialog() == DialogResult.OK)
+			{
+				this.Cursor = Cursors.WaitCursor;
+				var vs = visualStudioInstances[selectVisualStudioVersion.SelectedIndex];
+
+				vs.ExecuteWithInstance(IsControlPressed(), dlg.InstanceName);
+				this.Cursor = Cursors.Default;
+			}
+		}
+
+		/// <summary>
+		/// Handles click on the btnMainStartVisualStudio4 button (Start VS with new project)
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
+		private void btnMainStartVisualStudio4_Click(object sender, EventArgs e)
+		{
+			this.Cursor = Cursors.WaitCursor;
+			var vs = visualStudioInstances[selectVisualStudioVersion.SelectedIndex];
+			vs.ExecuteNewProject(IsControlPressed());
+			this.Cursor = Cursors.Default;
+		}
+
+		/// <summary>
+		/// Handles click on the btnMainStartVisualStudio5 button (Start VS with dialog)
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
+		private void btnMainStartVisualStudio5_Click(object sender, EventArgs e)
+		{
+			var dlg = new dlgExecuteVisualStudio(selectVisualStudioVersion.SelectedIndex);
+
+			if (dlg.ShowDialog() == DialogResult.OK)
+			{
+				this.Cursor = Cursors.WaitCursor;
+				var vs = dlg.VsVersion;
+
+				if(dlg.Item is not null)
+				{
+					vs.ExecuteWith(dlg.Item.RunAsAdmin, dlg.Item.ShowSplash, dlg.Item.Path!, dlg.Item.Instance, dlg.Item.Commands);
+				}
+
+				this.Cursor = Cursors.Default;
+			}
+		}
+
+		#endregion Main Buttons
+
+		/// <summary>
+		/// Handles text changes in the filter field and updates the list
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
+		private void txtFilter_TextChanged(object sender, EventArgs e)
+		{
+			RebuildFilters();
+		}
+
+		/// <summary>
+		/// Updates the list.
+		/// </summary>
+		private void UpdateList()
+		{
+			// TODO: must verify items before loading, indicate missing items through warning icon
+			this.olvFiles.SetObjects(this.solutionGroups.Items);
+			this.olvFiles.ExpandAll();
 		}
 	}
 }

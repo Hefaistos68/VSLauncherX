@@ -201,7 +201,11 @@ namespace BrightIdeasSoftware
             base.ChangePosition(index);
         }
 
-        private IEnumerable CalculateRoots() {
+		/// <summary>
+		/// Calculates the roots.
+		/// </summary>
+		/// <returns>An IEnumerable.</returns>
+		private IEnumerable CalculateRoots() {
             foreach (object x in this.CurrencyManager.List) {
                 object parentKey = this.GetParentValue(x);
                 if (Object.Equals(this.RootKeyValue, parentKey))
@@ -209,7 +213,12 @@ namespace BrightIdeasSoftware
             }
         }
 
-        private bool CalculateHasChildren(object model) {
+		/// <summary>
+		/// Calculates the has children.
+		/// </summary>
+		/// <param name="model">The model.</param>
+		/// <returns>A bool.</returns>
+		private bool CalculateHasChildren(object model) {
             object keyValue = this.GetKeyValue(model);
             if (keyValue == null)
                 return false;
@@ -222,7 +231,12 @@ namespace BrightIdeasSoftware
             return false;
         }
 
-        private IEnumerable CalculateChildren(object model) {
+		/// <summary>
+		/// Calculates the children.
+		/// </summary>
+		/// <param name="model">The model.</param>
+		/// <returns>An IEnumerable.</returns>
+		private IEnumerable CalculateChildren(object model) {
             object keyValue = this.GetKeyValue(model);
             if (keyValue != null) {
                 foreach (object x in this.CurrencyManager.List) {
@@ -233,7 +247,12 @@ namespace BrightIdeasSoftware
             }
         }
 
-        private object CalculateParent(object model) {
+		/// <summary>
+		/// Calculates the parent.
+		/// </summary>
+		/// <param name="model">The model.</param>
+		/// <returns>An object.</returns>
+		private object CalculateParent(object model) {
             object parentValue = this.GetParentValue(model);
             if (parentValue == null) 
                 return null;
@@ -246,11 +265,21 @@ namespace BrightIdeasSoftware
             return null;
         }
 
-        private object GetKeyValue(object model) {
+		/// <summary>
+		/// Gets the key value.
+		/// </summary>
+		/// <param name="model">The model.</param>
+		/// <returns>An object.</returns>
+		private object GetKeyValue(object model) {
             return this.keyMunger == null ? null : this.keyMunger.GetValue(model);
         }
 
-        private object GetParentValue(object model) {
+		/// <summary>
+		/// Gets the parent value.
+		/// </summary>
+		/// <param name="model">The model.</param>
+		/// <returns>An object.</returns>
+		private object GetParentValue(object model) {
             return this.parentKeyMunger == null ? null : this.parentKeyMunger.GetValue(model);
         }
 

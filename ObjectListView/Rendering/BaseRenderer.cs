@@ -539,6 +539,9 @@ namespace BrightIdeasSoftware
 
 		private bool useCustomCheckboxImages;
 
+		/// <summary>
+		/// Clears the state.
+		/// </summary>
 		private void ClearState()
 		{
 			this.Event = null;
@@ -1794,6 +1797,9 @@ namespace BrightIdeasSoftware
 			TextRenderer.DrawText(g, txt, this.Font, r, this.GetForegroundColor(), backColor, flags);
 		}
 
+		/// <summary>
+		/// Gets a value indicating whether column is primary.
+		/// </summary>
 		private bool ColumnIsPrimary
 		{
 			get { return this.Column != null && this.Column.Index == 0; }

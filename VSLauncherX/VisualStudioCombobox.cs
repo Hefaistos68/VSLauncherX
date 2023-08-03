@@ -2,6 +2,9 @@
 
 namespace VSLauncher
 {
+	/// <summary>
+	/// The visual studio combobox.
+	/// </summary>
 	public class VisualStudioCombobox : ComboBox
 	{
 		private VisualStudioInstanceManager visualStudioVersions = new VisualStudioInstanceManager();
@@ -18,13 +21,30 @@ namespace VSLauncher
 			// this.SelectedIndex = 0;
 		}
 
+		/// <summary>
+		/// Gets the versions.
+		/// </summary>
 		public List<VisualStudioInstance> Versions { get { return visualStudioVersions.All; } }
 
+		/// <summary>
+		/// Gets the selected item.
+		/// </summary>
+		public new VisualStudioInstance SelectedItem 
+		{ 
+			get 
+			{ 
+				return (VisualStudioInstance)base.SelectedItem; 
+			} 
+			set
+			{
+				base.SelectedItem = value;
+			}
+		}
 		/// <summary>
 		/// Selects the active item from a version string
 		/// </summary>
 		/// <param name="v">The v.</param>
-		internal void SelectFromVersion(string v)
+		internal void SelectFromVersion(string? v)
 		{
 			if(string.IsNullOrWhiteSpace(v))
 			{
@@ -51,6 +71,14 @@ namespace VSLauncher
 			if (n >= 0)
 			{
 				this.SelectedIndex = n;
+				return;
+			}
+
+			// by identifier
+			var o = this.visualStudioVersions.All.FindIndex(x => x.Identifier == v);
+			if (o >= 0)
+			{
+				this.SelectedIndex = o;
 				return;
 			}
 

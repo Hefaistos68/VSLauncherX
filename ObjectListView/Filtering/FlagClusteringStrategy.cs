@@ -93,7 +93,12 @@ namespace BrightIdeasSoftware {
         }
         private string[] labels;
 
-        private void SetValues(long[] flags, string[] flagLabels) {
+		/// <summary>
+		/// Sets the values.
+		/// </summary>
+		/// <param name="flags">The flags.</param>
+		/// <param name="flagLabels">The flag labels.</param>
+		private void SetValues(long[] flags, string[] flagLabels) {
             if (flags == null || flags.Length == 0) throw new ArgumentNullException("flags");
             if (flagLabels == null || flagLabels.Length == 0) throw new ArgumentNullException("flagLabels");
             if (flags.Length != flagLabels.Length) throw new ArgumentException("values and labels must have the same number of entries", "flags");

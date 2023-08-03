@@ -316,36 +316,68 @@ namespace BrightIdeasSoftware
         }
         VirtualObjectListView olv;
 
-        #region IOwnerDataCallback Members
+		#region IOwnerDataCallback Members
 
-        public void GetItemPosition(int i, out NativeMethods.POINT pt) {
+		/// <summary>
+		/// Gets the item position.
+		/// </summary>
+		/// <param name="i">The i.</param>
+		/// <param name="pt">The pt.</param>
+		public void GetItemPosition(int i, out NativeMethods.POINT pt) {
             //System.Diagnostics.Debug.WriteLine("GetItemPosition");
             throw new NotSupportedException();
         }
 
-        public void SetItemPosition(int t, NativeMethods.POINT pt) {
+		/// <summary>
+		/// Sets the item position.
+		/// </summary>
+		/// <param name="t">The t.</param>
+		/// <param name="pt">The pt.</param>
+		public void SetItemPosition(int t, NativeMethods.POINT pt) {
             //System.Diagnostics.Debug.WriteLine("SetItemPosition");
             throw new NotSupportedException();
         }
 
-        public void GetItemInGroup(int groupIndex, int n, out int itemIndex) {
+		/// <summary>
+		/// Gets the item in group.
+		/// </summary>
+		/// <param name="groupIndex">The group index.</param>
+		/// <param name="n">The n.</param>
+		/// <param name="itemIndex">The item index.</param>
+		public void GetItemInGroup(int groupIndex, int n, out int itemIndex) {
             //System.Diagnostics.Debug.WriteLine(String.Format("-> GetItemInGroup({0}, {1})", groupIndex, n));
             itemIndex = this.olv.GroupingStrategy.GetGroupMember(this.olv.OLVGroups[groupIndex], n);
             //System.Diagnostics.Debug.WriteLine(String.Format("<- {0}", itemIndex));
         }
 
-        public void GetItemGroup(int itemIndex, int occurrenceCount, out int groupIndex) {
+		/// <summary>
+		/// Gets the item group.
+		/// </summary>
+		/// <param name="itemIndex">The item index.</param>
+		/// <param name="occurrenceCount">The occurrence count.</param>
+		/// <param name="groupIndex">The group index.</param>
+		public void GetItemGroup(int itemIndex, int occurrenceCount, out int groupIndex) {
             //System.Diagnostics.Debug.WriteLine(String.Format("GetItemGroup({0}, {1})", itemIndex, occurrenceCount));
             groupIndex = this.olv.GroupingStrategy.GetGroup(itemIndex);
             //System.Diagnostics.Debug.WriteLine(String.Format("<- {0}", groupIndex));
         }
 
-        public void GetItemGroupCount(int itemIndex, out int occurrenceCount) {
+		/// <summary>
+		/// Gets the item group count.
+		/// </summary>
+		/// <param name="itemIndex">The item index.</param>
+		/// <param name="occurrenceCount">The occurrence count.</param>
+		public void GetItemGroupCount(int itemIndex, out int occurrenceCount) {
             //System.Diagnostics.Debug.WriteLine(String.Format("GetItemGroupCount({0})", itemIndex));
             occurrenceCount = 1;
         }
 
-        public void OnCacheHint(NativeMethods.LVITEMINDEX from, NativeMethods.LVITEMINDEX to) {
+		/// <summary>
+		/// Ons the cache hint.
+		/// </summary>
+		/// <param name="from">The from.</param>
+		/// <param name="to">The to.</param>
+		public void OnCacheHint(NativeMethods.LVITEMINDEX from, NativeMethods.LVITEMINDEX to) {
             //System.Diagnostics.Debug.WriteLine(String.Format("OnCacheHint({0}, {1}, {2}, {3})", from.iGroup, from.iItem, to.iGroup, to.iItem));
             this.olv.GroupingStrategy.CacheHint(from.iGroup, from.iItem, to.iGroup, to.iItem);
         }

@@ -178,7 +178,10 @@ namespace BrightIdeasSoftware
             this.Maximum = 9999999;
         }
 
-        new public uint Value {
+		/// <summary>
+		/// Gets or sets the value.
+		/// </summary>
+		new public uint Value {
             get { return Decimal.ToUInt32(base.Value); }
             set { base.Value = new Decimal(value); }
         }

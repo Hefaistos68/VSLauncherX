@@ -294,7 +294,11 @@ namespace BrightIdeasSoftware
             return target;
         }
 
-        private void ReportPutValueException(MungerException ex) {
+		/// <summary>
+		/// Reports the put value exception.
+		/// </summary>
+		/// <param name="ex">The ex.</param>
+		private void ReportPutValueException(MungerException ex) {
             //TODO: How should we report this error?
             System.Diagnostics.Debug.WriteLine("PutValue failed");
             System.Diagnostics.Debug.WriteLine(String.Format("- Culprit aspect: {0}", ex.Munger.AspectName));
@@ -426,11 +430,17 @@ namespace BrightIdeasSoftware
             return false;
         }
 
-        #endregion
+		#endregion
 
-        #region Implementation
+		#region Implementation
 
-        private void ResolveName(object target, string name, int numberMethodParameters) {
+		/// <summary>
+		/// Resolves the name.
+		/// </summary>
+		/// <param name="target">The target.</param>
+		/// <param name="name">The name.</param>
+		/// <param name="numberMethodParameters">The number method parameters.</param>
+		private void ResolveName(object target, string name, int numberMethodParameters) {
 
             if (cachedTargetType == target.GetType() && cachedName == name && cachedNumberParameters == numberMethodParameters)
                 return;

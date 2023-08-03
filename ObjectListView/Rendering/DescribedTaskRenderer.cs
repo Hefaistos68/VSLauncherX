@@ -247,11 +247,17 @@ namespace BrightIdeasSoftware
 		}
 		private AspectGetterDelegate descriptionGetter;
 
-        #endregion
+		#endregion
 
-        #region Rendering
+		#region Rendering
 
-        public override void ConfigureSubItem(DrawListViewSubItemEventArgs e, Rectangle cellBounds, object model) {
+		/// <summary>
+		/// Configures the sub item.
+		/// </summary>
+		/// <param name="e">The e.</param>
+		/// <param name="cellBounds">The cell bounds.</param>
+		/// <param name="model">The model.</param>
+		public override void ConfigureSubItem(DrawListViewSubItemEventArgs e, Rectangle cellBounds, object model) {
             base.ConfigureSubItem(e, cellBounds, model);
             this.highlightTextRenderer.ConfigureSubItem(e, cellBounds, model);
         }

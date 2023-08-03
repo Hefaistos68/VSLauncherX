@@ -14,7 +14,7 @@ namespace VSLauncher.DataModel
 		/// Initializes a new instance of the <see cref="VsItemList"/> class.
 		/// </summary>
 		/// <param name="parentItem">The parent item.</param>
-		public VsItemList(VsItem parentItem)
+		public VsItemList(VsItem? parentItem)
 		{
 			this.parent = parentItem;
 		}

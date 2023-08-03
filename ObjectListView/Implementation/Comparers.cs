@@ -157,7 +157,13 @@ namespace BrightIdeasSoftware
             return comparable != null ? comparable.CompareTo(y) : 0;
         }
 
-        private static int CompareStrings(string x, string y)
+		/// <summary>
+		/// Compares the strings.
+		/// </summary>
+		/// <param name="x">The x.</param>
+		/// <param name="y">The y.</param>
+		/// <returns>An int.</returns>
+		private static int CompareStrings(string x, string y)
         {
             if (StringComparer == null)
                 return String.Compare(x, y, StringComparison.CurrentCultureIgnoreCase);
@@ -310,7 +316,13 @@ namespace BrightIdeasSoftware
             return comparable != null ? comparable.CompareTo(y) : 0;
         }
 
-        private static int CompareStrings(string x, string y)
+		/// <summary>
+		/// Compares the strings.
+		/// </summary>
+		/// <param name="x">The x.</param>
+		/// <param name="y">The y.</param>
+		/// <returns>An int.</returns>
+		private static int CompareStrings(string x, string y)
         {
             if (StringComparer == null)
                 return String.Compare(x, y, StringComparison.CurrentCultureIgnoreCase);

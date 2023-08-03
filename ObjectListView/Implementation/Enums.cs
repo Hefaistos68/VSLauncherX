@@ -31,7 +31,10 @@ using System.Text;
 
 namespace BrightIdeasSoftware {
 
-    public partial class ObjectListView {
+	/// <summary>
+	/// The object list view.
+	/// </summary>
+	public partial class ObjectListView {
         /// <summary>
         /// How does a user indicate that they want to edit cells?
         /// </summary>

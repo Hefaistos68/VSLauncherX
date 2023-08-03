@@ -74,7 +74,11 @@ namespace BrightIdeasSoftware
             this.Adapter = new DataSourceAdapter(this);
         }
 
-        protected override void Dispose(bool disposing) {
+		/// <summary>
+		/// Disposes the.
+		/// </summary>
+		/// <param name="disposing">If true, disposing.</param>
+		protected override void Dispose(bool disposing) {
             this.Adapter.Dispose();
             base.Dispose(disposing);
         }

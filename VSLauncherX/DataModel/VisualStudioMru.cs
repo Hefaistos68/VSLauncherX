@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 
 namespace VSLauncher.DataModel
 {
+#pragma warning disable CS8618
+#pragma warning disable PropertyDocumentationHeader // The property must have a documentation header.
 	/// <summary>
 	/// The visual studio MRU structure as used in %LOCALAPPDATA%\Local\Microsoft\VisualStudio\*\ApplicationPrivateSettings.xml
 	/// </summary>
@@ -59,5 +61,6 @@ namespace VSLauncher.DataModel
 		public DateTime LastAccessed { get; set; }
 		public object[]? ExtraProperties { get; set; }
 	}
-
+#pragma warning restore PropertyDocumentationHeader // The property must have a documentation header.
+#pragma warning restore CS8618
 }

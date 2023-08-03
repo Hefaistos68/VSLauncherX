@@ -3,7 +3,7 @@
 	/// <summary>
 	/// The project type.
 	/// </summary>
-	public enum eProjectType
+	public enum ProjectTypeEnum
 	{
 		None,
 		CSProject,

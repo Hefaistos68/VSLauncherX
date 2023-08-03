@@ -193,7 +193,16 @@ namespace BrightIdeasSoftware {
 
         private delegate string StringToString(string str);
 
-        private void WriteOneRow(StringBuilder sb, IEnumerable<string> strings, string startRow, string betweenCells, string endRow, StringToString encoder) {
+		/// <summary>
+		/// Writes the one row.
+		/// </summary>
+		/// <param name="sb">The sb.</param>
+		/// <param name="strings">The strings.</param>
+		/// <param name="startRow">The start row.</param>
+		/// <param name="betweenCells">The between cells.</param>
+		/// <param name="endRow">The end row.</param>
+		/// <param name="encoder">The encoder.</param>
+		private void WriteOneRow(StringBuilder sb, IEnumerable<string> strings, string startRow, string betweenCells, string endRow, StringToString encoder) {
             sb.Append(startRow);
             bool first = true;
             foreach (string s in strings) {

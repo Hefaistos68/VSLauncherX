@@ -153,7 +153,10 @@ namespace BrightIdeasSoftware
         }
         private Size? buttonPadding = new Size(10, 10);
 
-        private Size ButtonPaddingOrDefault {
+		/// <summary>
+		/// Gets the button padding or default.
+		/// </summary>
+		private Size ButtonPaddingOrDefault {
             get { return this.ButtonPadding ?? new Size(10, 10); }
         }
 

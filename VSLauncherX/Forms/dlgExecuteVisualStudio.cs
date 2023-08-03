@@ -4,11 +4,13 @@ using System.ComponentModel;
 using System.Data;
 using System.Drawing;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
 using VSLauncher.DataModel;
+using VSLauncher.Forms;
 
 namespace VSLauncher
 {
@@ -24,7 +26,7 @@ namespace VSLauncher
 															"Cxx Projects (*.vcxproj)|*.vcxproj" +
 															"All files (*.*)|*.*";
 
-		public VsItem Item;
+		public VsItem? Item;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="dlgExecuteVisualStudio"/> class.
@@ -45,8 +47,30 @@ namespace VSLauncher
 
 			this.Item = (VsItem)item;
 
-			// make this a change dialog and add Save
-			this.btnOk.Text = this.btnOk.Tag as string;
+			SetupMultiMonitor();
+		}
+
+		/// <summary>
+		/// Setups the multi monitor.
+		/// </summary>
+		private void SetupMultiMonitor()
+		{
+			// get list of monitors in system and show in cbxMonitors, if only one, disable the combobox
+			var monitors = Screen.AllScreens;
+
+			this.cbxMonitors.Items.Clear();
+			this.cbxMonitors.Items.AddRange(monitors.Select(m => m.DeviceName).ToArray());
+			this.cbxMonitors.SelectedIndex = 0;
+
+			if (monitors.Length > 1)
+			{
+			}
+			else
+			{
+				this.cbxMonitors.Enabled = false;
+			}
+			
+			this.cbxMonitors.Enabled = true;
 		}
 
 		/// <summary>
@@ -54,37 +78,16 @@ namespace VSLauncher
 		/// </summary>
 		private void UpdateControlsFromData()
 		{
-			this.txtFoldername.Text = this.Item.Path;
-			this.txtCommand.Text = this.Item.Commands;
-			this.cbxInstance.Text = string.IsNullOrWhiteSpace(this.Item.Instance) ? "<default>" : this.Item.Instance;
-			this.chkAdmin.Checked = this.Item.RunAsAdmin;
-			this.chkSplash.Checked = this.Item.ShowSplash;
+			if(this.Item is not null)
+			{
+				this.txtFoldername.Text = this.Item.Path;
+				this.txtCommand.Text = this.Item.Commands;
+				this.cbxInstance.Text = string.IsNullOrWhiteSpace(this.Item.Instance) ? "<default>" : this.Item.Instance;
+				this.chkAdmin.Checked = this.Item.RunAsAdmin;
+				this.chkSplash.Checked = this.Item.ShowSplash;
+				this.cbxMonitors.SelectedItem = this.Item.PreferredMonitor ?? 0;
+			}
 		}
-
-		/// <summary>
-		/// Gets a value indicating whether as admin.
-		/// </summary>
-		public bool AsAdmin { get; internal set; }
-
-		/// <summary>
-		/// Gets a value indicating whether show splash.
-		/// </summary>
-		public bool ShowSplash { get; internal set; }
-
-		/// <summary>
-		/// Gets the instance name.
-		/// </summary>
-		public string InstanceName { get; private set; } = string.Empty;
-
-		/// <summary>
-		/// Gets the command.
-		/// </summary>
-		public string Command { get; internal set; }
-
-		/// <summary>
-		/// Gets the project or solution.
-		/// </summary>
-		public string ProjectOrSolution { get; private set; }
 
 		/// <summary>
 		/// Gets the vs version.
@@ -98,7 +101,6 @@ namespace VSLauncher
 		/// <param name="e">The e.</param>
 		private void txtInstanceName_TextChanged(object sender, EventArgs e)
 		{
-			this.InstanceName = this.cbxInstance.Text;
 		}
 
 		/// <summary>
@@ -113,27 +115,7 @@ namespace VSLauncher
 			this.cbxInstance.Items.AddRange(s.ToArray());
 			this.cbxInstance.SelectedIndex = 0;
 
-			this.VsVersion = this.visualStudioCombobox1.Versions[visualStudioCombobox1.SelectedIndex];
-		}
-
-		/// <summary>
-		/// cbxes the instance_ selected index changed.
-		/// </summary>
-		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
-		private void cbxInstance_SelectedIndexChanged(object sender, EventArgs e)
-		{
-			this.InstanceName = cbxInstance.Text == "<default>" ? "" : cbxInstance.Text;
-		}
-
-		/// <summary>
-		/// cbxes the instance_ text update.
-		/// </summary>
-		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
-		private void cbxInstance_TextUpdate(object sender, EventArgs e)
-		{
-			this.InstanceName = cbxInstance.Text == "<default>" ? "" : cbxInstance.Text;
+			this.VsVersion = visualStudioCombobox1.SelectedItem;
 		}
 
 		/// <summary>
@@ -143,15 +125,24 @@ namespace VSLauncher
 		/// <param name="e">The e.</param>
 		private void btnOk_Click(object sender, EventArgs e)
 		{
-			this.AsAdmin = chkAdmin.Checked;
-			this.ShowSplash = chkSplash.Checked;
-			this.Command = txtCommand.Text;
-			this.ProjectOrSolution = txtFoldername.Text;
-
-			this.Item.Path = txtFoldername.Text;
-			this.Item.RunAsAdmin = chkAdmin.Checked;
-			this.Item.ShowSplash = chkSplash.Checked;
-			this.Item.Commands = txtCommand.Text;
+			if (this.Item is not null)
+			{
+				this.Item.Path = txtFoldername.Text;
+				this.Item.RunAsAdmin = chkAdmin.Checked;
+				this.Item.ShowSplash = chkSplash.Checked;
+				this.Item.Instance = (cbxInstance.Text == "<default>") || string.IsNullOrWhiteSpace(cbxInstance.Text) ? null : cbxInstance.Text;
+				this.Item.Commands = txtCommand.Text;
+				this.Item.PreferredMonitor = cbxMonitors.SelectedIndex;
+				
+				if (this.Item is VsProject p)
+				{
+					p.VsVersion = this.visualStudioCombobox1.SelectedItem.Identifier;
+				}
+				else if(this.Item is VsSolution s)
+				{
+					s.RequiredVersion = this.visualStudioCombobox1.SelectedItem.Identifier;
+				}
+			}
 		}
 
 		/// <summary>
@@ -191,7 +182,29 @@ namespace VSLauncher
 		private void txtInfo_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
 		{
 			// open a link in the default browser
-			System.Diagnostics.Process.Start("explorer.exe", "https://visualstudio.microsoft.com/vs/older-downloads/");
+			System.Diagnostics.Process.Start("explorer.exe", @"https://visualstudio.microsoft.com/vs/older-downloads/");
+		}
+
+		/// <summary>
+		/// txts the info_ link clicked.
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
+		private void txtInfoCommands_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+		{
+			// open a link in the default browser
+			System.Diagnostics.Process.Start("explorer.exe", @"https://learn.microsoft.com/en-us/visualstudio/ide/reference/command-devenv-exe");
+		}
+
+		/// <summary>
+		/// txts the info_ link clicked.
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
+		private void txtInfoInstances_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+		{
+			// open a link in the default browser
+			System.Diagnostics.Process.Start("explorer.exe", @"https://learn.microsoft.com/en-us/visualstudio/extensibility/devenv-command-line-switches-for-vspackage-development");
 		}
 
 		/// <summary>
@@ -226,29 +239,29 @@ namespace VSLauncher
 		/// <param name="e">The e.</param>
 		private void dlgExecuteVisualStudio_Load(object sender, EventArgs e)
 		{
-			string version ="";
+			string? version ="";
+
+			// make this a change dialog and add Save
+			if(this.Item != null)
+			{
+				this.btnOk.Text = this.btnOk.Tag as string;
+			}
 
 			if (this.Item is VsProject p)
 			{
-				this.ProjectOrSolution = p.Path;
-				this.AsAdmin = p.RunAsAdmin;
-				this.ShowSplash = p.ShowSplash;
 				version = p.GetRequiredVersion();
 				this.visualStudioCombobox1.SelectFromVersion(version);
 			}
 			else if (this.Item is VsSolution s)
 			{
-				this.ProjectOrSolution = s.Path;
-				this.AsAdmin = s.RunAsAdmin;
-				this.ShowSplash = s.ShowSplash;
 				version = s.GetRequiredVersion();
 				this.visualStudioCombobox1.SelectFromVersion(version);
 			}
 			else if (this.Item is VsFolder f)
 			{
-				this.ProjectOrSolution = f.Path;
-				this.AsAdmin = f.RunAsAdmin;
-				this.ShowSplash = f.ShowSplash;
+				this.visualStudioCombobox1.Enabled = false;
+				this.cbxInstance.Enabled = false;
+				this.txtFoldername.Focus();
 			}
 			else
 			{
@@ -272,6 +285,62 @@ namespace VSLauncher
 			}
 
 			UpdateControlsFromData();
+		}
+
+		/// <summary>
+		/// Gets the d c.
+		/// </summary>
+		/// <param name="hwnd">The hwnd.</param>
+		/// <returns>An IntPtr.</returns>
+		[DllImport("User32.dll")]
+		static extern IntPtr GetDC(IntPtr hwnd);
+
+		/// <summary>
+		/// Releases the d c.
+		/// </summary>
+		/// <param name="hwnd">The hwnd.</param>
+		/// <param name="dc">The dc.</param>
+		/// <returns>An int.</returns>
+		[DllImport("User32.dll")]
+		static extern int ReleaseDC(IntPtr hwnd, IntPtr dc);
+
+		/// <summary>
+		/// btns the ping monitor_ click.
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
+		private void btnPingMonitor_Click(object sender, EventArgs e)
+		{
+			// show an transparent window on the selected monitor in cbxMonitors
+			if (cbxMonitors.SelectedIndex != -1)
+			{
+				var monitor = (int)cbxMonitors.SelectedIndex;
+
+				if(false)
+				{
+					string s = (monitor+1).ToString();
+					var screen = Screen.AllScreens[monitor];
+
+					var pt = screen.WorkingArea;
+
+					IntPtr desktop = GetDC(IntPtr.Zero);
+					using (Graphics g = Graphics.FromHdc(desktop))
+					{
+						var fontB = new Font("Segoe UI", (pt.Height / 2) + 4, FontStyle.Bold);
+						var font = new Font("Segoe UI", pt.Height / 2, FontStyle.Bold);
+						var numberBox = g.MeasureString(s, font);
+
+						g.DrawString(s, fontB, Brushes.Black, pt.X + ((pt.Width - numberBox.Width) / 2) - 2, pt.Y + ((pt.Height - numberBox.Height) / 2) - 2);
+						g.DrawString(s, font, Brushes.White, pt.X + ((pt.Width - numberBox.Width) / 2), pt.Y + ((pt.Height - numberBox.Height) / 2));
+					}
+					ReleaseDC(IntPtr.Zero, desktop);
+				}
+				else
+				{
+					var f = new frmPing(monitor + 1);
+					f.Show();
+				}
+			}
 		}
 	}
 }

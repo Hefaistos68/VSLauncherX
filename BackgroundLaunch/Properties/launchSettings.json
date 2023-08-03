@@ -2,7 +2,7 @@
 	"profiles": {
 		"BackgroundLaunch": {
 			"commandName": "Project",
-			"commandLineArgs": "{«Target«:«C:\\\\Program»Files\\\\Microsoft»Visual»Studio\\\\2022\\\\Community\\\\Common7\\\\IDE\\\\devenv.exe«,«Solution«:{«FolderItems«:[{«RequiredVersion«:«17«,«SolutionType«:1,«Name«:«VSLauncher«,«Path«:«C:\\\\dev\\\\Repos\\\\VSLauncher-master\\\\VSLauncher.sln«,«Commands«:««,«Instance«:««,«ItemType«:0,«RunBefore«:{«Name«:«git.exe«,«Path«:«git.exe«,«Commands«:«fetch«,«Instance«:null,«ItemType«:2,«RunBefore«:null,«RunAfter«:null,«RunAsAdmin«:false,«ShowSplash«:false,«WaitForCompletion«:true},«RunAfter«:null,«RunAsAdmin«:false,«ShowSplash«:false,«WaitForCompletion«:false}],«Name«:null,«Path«:null,«Commands«:null,«Instance«:null,«ItemType«:3,«RunBefore«:null,«RunAfter«:null,«RunAsAdmin«:false,«ShowSplash«:false,«WaitForCompletion«:false}}\r\n"
+			"commandLineArgs": "{«Target«:«C:\\Program»Files\\Microsoft»Visual»Studio\\2022\\Community\\Common7\\IDE\\devenv.exe«,«Solution«:{«FolderItems«:[{«FrameworkVersion«:«Framework?«,«ProjectType«:1,«VsVersion«:null,«Name«:«FileAssociation«,«Path«:«C:\\dev\\Repos\\FileAssociation\\FileAssociation.csproj«,«Commands«:««,«Instance«:null,«ItemType«:1,«RunBefore«:null,«RunAfter«:null,«RunAsAdmin«:false,«ShowSplash«:false,«WaitForCompletion«:false,«PreferredMonitor«:-1}],«Name«:null,«Path«:null,«Commands«:null,«Instance«:null,«ItemType«:3,«RunBefore«:null,«RunAfter«:null,«RunAsAdmin«:false,«ShowSplash«:false,«WaitForCompletion«:false,«PreferredMonitor«:null}}"
 		}
 	}
 }

@@ -8,6 +8,74 @@ namespace VSLauncher.Helpers
 	public class ColumnHelper
 	{
 		/// <summary>
+		/// Gets the aspect for date.
+		/// </summary>
+		/// <param name="row">The row.</param>
+		/// <returns>An object.</returns>
+		public static object GetAspectForDate(object row)
+		{
+			if (row is VsFolder)
+			{
+				return string.Empty;
+			}
+
+			if (row is VsItem s)
+			{
+				return s.LastModified;
+			}
+
+			return string.Empty;
+		}
+
+		/// <summary>
+		/// Gets the aspect for file.
+		/// </summary>
+		/// <param name="row">The row.</param>
+		/// <returns>An object.</returns>
+		public static object GetAspectForFile(object row)
+		{
+			if (row is VsFolder f)
+			{
+				return f.Name ?? "";
+			}
+
+			if (row is VsSolution s)
+			{
+				return $"{s.Name} - {s.TypeAsName()} Solution File";
+			}
+
+			if (row is VsProject p)
+			{
+				return $"{p.Name} - {p.TypeAsName()} Project File";
+			}
+
+			if (row is VsItem sg)
+			{
+				return sg.Name ?? string.Empty;
+			}
+
+			return "";
+		}
+
+		/// <summary>
+		/// Gets the aspect for options.
+		/// </summary>
+		/// <param name="row">The row.</param>
+		/// <returns>An object.</returns>
+		public static object GetAspectForOptions(object row)
+		{
+			OptionsEnum e = OptionsEnum.None;
+			if (row is VsItem s)
+			{
+				e |= s.RunBefore is null ? OptionsEnum.RunBeforeOff : OptionsEnum.RunBeforeOn;
+				e |= s.RunAsAdmin ? OptionsEnum.RunAsAdminOn : OptionsEnum.RunAsAdminOff;
+				e |= s.RunAfter is null ? OptionsEnum.RunAfterOff : OptionsEnum.RunAfterOn;
+			}
+
+			return e;
+		}
+
+		/// <summary>
 		/// Gets the image name for file.
 		/// </summary>
 		/// <param name="row">The row.</param>
@@ -79,75 +147,6 @@ namespace VSLauncher.Helpers
 
 			return string.Empty;
 		}
-
-		/// <summary>
-		/// Gets the aspect for date.
-		/// </summary>
-		/// <param name="row">The row.</param>
-		/// <returns>An object.</returns>
-		public static object GetAspectForDate(object row)
-		{
-			if (row is VsFolder)
-			{
-				return string.Empty;
-			}
-
-			if (row is VsItem s)
-			{
-				return s.LastModified;
-			}
-
-			return string.Empty;
-		}
-
-		/// <summary>
-		/// Gets the aspect for file.
-		/// </summary>
-		/// <param name="row">The row.</param>
-		/// <returns>An object.</returns>
-		public static object GetAspectForFile(object row)
-		{
-			if(row is VsFolder f)
-			{
-				return f.Name;
-			}
-
-			if (row is VsSolution s)
-			{
-				return $"{s.Name} - {s.TypeAsName()} Solution File"; 
-			}
-
-			if (row is VsProject p)
-			{
-				return $"{p.Name} - {p.TypeAsName()} Project File";
-			}
-
-			if (row is VsItem sg)
-			{
-				return sg.Name ?? string.Empty;
-			}
-
-			return "";
-		}
-
-		/// <summary>
-		/// Gets the aspect for options.
-		/// </summary>
-		/// <param name="row">The row.</param>
-		/// <returns>An object.</returns>
-		public static object GetAspectForOptions(object row)
-		{
-			eOptions e = eOptions.None;
-			if (row is VsItem s)
-			{
-				e |= s.RunBefore is null ? eOptions.RunBeforeOff : eOptions.RunBeforeOn;
-				e |= s.RunAsAdmin ? eOptions.RunAsAdminOn : eOptions.RunAsAdminOff;
-				e |= s.RunAfter is null ? eOptions.RunAfterOff : eOptions.RunAfterOn;
-			}
-
-			return e;
-		}
-
 		/// <summary>
 		/// Gets the check state.
 		/// </summary>
@@ -169,38 +168,16 @@ namespace VSLauncher.Helpers
 		}
 
 		/// <summary>
-		/// Sets the check state.
-		/// </summary>
-		/// <param name="rowObject">The row object.</param>
-		/// <param name="newValue">The new value.</param>
-		/// <returns>A CheckState.</returns>
-		internal static CheckState SetCheckState(object rowObject, CheckState newValue)
-		{
-			bool b = newValue == CheckState.Checked;
-
-			if (rowObject is VsFolder f)
-			{
-				f.Checked = b;
-			}
-			else
-			{
-				((VsItem)rowObject).Checked = b;
-			}
-
-			return newValue;
-		}
-
-		/// <summary>
 		/// Gets the description.
 		/// </summary>
 		/// <param name="rowObject">The row object.</param>
 		/// <returns>An object.</returns>
-		internal static object GetDescription(object rowObject)
+		internal static object? GetDescription(object rowObject)
 		{
-			string desc;
+			string? desc;
 			if (rowObject is VsSolution s)
 			{
-				if(s.Warning)
+				if (s.Warning)
 				{
 					desc = "Could not find " + s.Path;
 				}
@@ -235,26 +212,31 @@ namespace VSLauncher.Helpers
 				// if the path is empty, its either a group or a visual studio version
 				switch (f.ItemType)
 				{
-					case eItemType.VisualStudio:
+					case ItemTypeEnum.VisualStudio:
 						desc = f.Name;
 						break;
-					case eItemType.Solution:
+
+					case ItemTypeEnum.Solution:
 						desc = f.Path;
 						break;
-					case eItemType.Project:
+
+					case ItemTypeEnum.Project:
 						desc = f.Path;
 						break;
-					case eItemType.Other:
+
+					case ItemTypeEnum.Other:
 						desc = string.Empty;
 						break;
-					case eItemType.Folder:
+
+					case ItemTypeEnum.Folder:
 						desc = $"Contains {f.ContainedSolutionsCount()} solution{((f.ContainedSolutionsCount() != 1) ? 's' : "")}";
 						break;
+
 					default:
 						desc = string.Empty;
 						break;
 				}
-				
+
 				if (f.Warning)
 				{
 					desc = "Could not find " + f.Path;
@@ -266,6 +248,28 @@ namespace VSLauncher.Helpers
 			}
 
 			return desc;
+		}
+
+		/// <summary>
+		/// Sets the check state.
+		/// </summary>
+		/// <param name="rowObject">The row object.</param>
+		/// <param name="newValue">The new value.</param>
+		/// <returns>A CheckState.</returns>
+		internal static CheckState SetCheckState(object rowObject, CheckState newValue)
+		{
+			bool b = newValue == CheckState.Checked;
+
+			if (rowObject is VsFolder f)
+			{
+				f.Checked = b;
+			}
+			else
+			{
+				((VsItem)rowObject).Checked = b;
+			}
+
+			return newValue;
 		}
 	}
 }

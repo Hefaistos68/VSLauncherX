@@ -7,6 +7,7 @@ using System;
 using System.Runtime.InteropServices;
 using System.ComponentModel;
 using System.Security.Principal;
+using System.Security.AccessControl;
 
 namespace VSLauncher.Helpers
 {
@@ -66,7 +67,10 @@ namespace VSLauncher.Helpers
         private const int SVGIO_BACKGROUND = 0;
         private readonly static Guid SID_STopLevelBrowser = new Guid("4C96BE40-915C-11CF-99D3-00AA004AE837");
 
-        [ComImport]
+		/// <summary>
+		/// The c shell windows.
+		/// </summary>
+		[ComImport]
         [Guid("9BA05972-F6A8-11CF-A442-00A0C90A8F39")]
         [ClassInterface(ClassInterfaceType.None)]
         private class CShellWindows
@@ -78,7 +82,16 @@ namespace VSLauncher.Helpers
         [InterfaceType(ComInterfaceType.InterfaceIsIDispatch)]
         private interface IShellWindows
         {
-            [return: MarshalAs(UnmanagedType.IDispatch)]
+			/// <summary>
+			/// Finds the window s w.
+			/// </summary>
+			/// <param name="pvarloc">The pvarloc.</param>
+			/// <param name="pvarlocRoot">The pvarloc root.</param>
+			/// <param name="swClass">The sw class.</param>
+			/// <param name="pHWND">The p h w n d.</param>
+			/// <param name="swfwOptions">The swfw options.</param>
+			/// <returns>An object.</returns>
+			[return: MarshalAs(UnmanagedType.IDispatch)]
             object FindWindowSW([MarshalAs(UnmanagedType.Struct)] ref object pvarloc, [MarshalAs(UnmanagedType.Struct)] ref object pvarlocRoot, int swClass, out int pHWND, int swfwOptions);
         }
 
@@ -87,7 +100,13 @@ namespace VSLauncher.Helpers
         [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
         private interface IServiceProvider
         {
-            [return: MarshalAs(UnmanagedType.Interface)]
+			/// <summary>
+			/// Queries the service.
+			/// </summary>
+			/// <param name="guidService">The guid service.</param>
+			/// <param name="riid">The riid.</param>
+			/// <returns>An object.</returns>
+			[return: MarshalAs(UnmanagedType.Interface)]
             object QueryService(ref Guid guidService, ref Guid riid);
         }
 
@@ -96,19 +115,59 @@ namespace VSLauncher.Helpers
         [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
         private interface IShellBrowser
         {
-            void VTableGap01(); // GetWindow
-            void VTableGap02(); // ContextSensitiveHelp
-            void VTableGap03(); // InsertMenusSB
-            void VTableGap04(); // SetMenuSB
-            void VTableGap05(); // RemoveMenusSB
-            void VTableGap06(); // SetStatusTextSB
-            void VTableGap07(); // EnableModelessSB
-            void VTableGap08(); // TranslateAcceleratorSB
-            void VTableGap09(); // BrowseObject
-            void VTableGap10(); // GetViewStateStream
-            void VTableGap11(); // GetControlWindow
-            void VTableGap12(); // SendControlMsg
-            IShellView QueryActiveShellView();
+			/// <summary>
+			/// VS the table gap01.
+			/// </summary>
+			void VTableGap01(); // GetWindow
+			/// <summary>
+			/// VS the table gap02.
+			/// </summary>
+			void VTableGap02(); // ContextSensitiveHelp
+			/// <summary>
+			/// VS the table gap03.
+			/// </summary>
+			void VTableGap03(); // InsertMenusSB
+			/// <summary>
+			/// VS the table gap04.
+			/// </summary>
+			void VTableGap04(); // SetMenuSB
+			/// <summary>
+			/// VS the table gap05.
+			/// </summary>
+			void VTableGap05(); // RemoveMenusSB
+			/// <summary>
+			/// VS the table gap06.
+			/// </summary>
+			void VTableGap06(); // SetStatusTextSB
+			/// <summary>
+			/// VS the table gap07.
+			/// </summary>
+			void VTableGap07(); // EnableModelessSB
+			/// <summary>
+			/// VS the table gap08.
+			/// </summary>
+			void VTableGap08(); // TranslateAcceleratorSB
+			/// <summary>
+			/// VS the table gap09.
+			/// </summary>
+			void VTableGap09(); // BrowseObject
+			/// <summary>
+			/// VS the table gap10.
+			/// </summary>
+			void VTableGap10(); // GetViewStateStream
+			/// <summary>
+			/// VS the table gap11.
+			/// </summary>
+			void VTableGap11(); // GetControlWindow
+			/// <summary>
+			/// VS the table gap12.
+			/// </summary>
+			void VTableGap12(); // SendControlMsg
+			/// <summary>
+			/// Queries the active shell view.
+			/// </summary>
+			/// <returns>An IShellView.</returns>
+			IShellView QueryActiveShellView();
         }
 
         [ComImport]
@@ -116,20 +175,62 @@ namespace VSLauncher.Helpers
         [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
         private interface IShellView
         {
-            void VTableGap01(); // GetWindow
-            void VTableGap02(); // ContextSensitiveHelp
-            void VTableGap03(); // TranslateAcceleratorA
-            void VTableGap04(); // EnableModeless
-            void VTableGap05(); // UIActivate
-            void VTableGap06(); // Refresh
-            void VTableGap07(); // CreateViewWindow
-            void VTableGap08(); // DestroyViewWindow
-            void VTableGap09(); // GetCurrentInfo
-            void VTableGap10(); // AddPropertySheetPages
-            void VTableGap11(); // SaveViewState
-            void VTableGap12(); // SelectItem
+			/// <summary>
+			/// VS the table gap01.
+			/// </summary>
+			void VTableGap01(); // GetWindow
+			/// <summary>
+			/// VS the table gap02.
+			/// </summary>
+			void VTableGap02(); // ContextSensitiveHelp
+			/// <summary>
+			/// VS the table gap03.
+			/// </summary>
+			void VTableGap03(); // TranslateAcceleratorA
+			/// <summary>
+			/// VS the table gap04.
+			/// </summary>
+			void VTableGap04(); // EnableModeless
+			/// <summary>
+			/// VS the table gap05.
+			/// </summary>
+			void VTableGap05(); // UIActivate
+			/// <summary>
+			/// VS the table gap06.
+			/// </summary>
+			void VTableGap06(); // Refresh
+			/// <summary>
+			/// VS the table gap07.
+			/// </summary>
+			void VTableGap07(); // CreateViewWindow
+			/// <summary>
+			/// VS the table gap08.
+			/// </summary>
+			void VTableGap08(); // DestroyViewWindow
+			/// <summary>
+			/// VS the table gap09.
+			/// </summary>
+			void VTableGap09(); // GetCurrentInfo
+			/// <summary>
+			/// VS the table gap10.
+			/// </summary>
+			void VTableGap10(); // AddPropertySheetPages
+			/// <summary>
+			/// VS the table gap11.
+			/// </summary>
+			void VTableGap11(); // SaveViewState
+			/// <summary>
+			/// VS the table gap12.
+			/// </summary>
+			void VTableGap12(); // SelectItem
 
-            [return: MarshalAs(UnmanagedType.Interface)]
+			/// <summary>
+			/// Gets the item object.
+			/// </summary>
+			/// <param name="aspectOfView">The aspect of view.</param>
+			/// <param name="riid">The riid.</param>
+			/// <returns>An object.</returns>
+			[return: MarshalAs(UnmanagedType.Interface)]
             object GetItemObject(uint aspectOfView, ref Guid riid);
         }
 
@@ -145,7 +246,10 @@ namespace VSLauncher.Helpers
         [InterfaceType(ComInterfaceType.InterfaceIsIDispatch)]
         private interface IShellFolderViewDual
         {
-            object Application { [return: MarshalAs(UnmanagedType.IDispatch)] get; }
+			/// <summary>
+			/// Gets the application.
+			/// </summary>
+			object Application { [return: MarshalAs(UnmanagedType.IDispatch)] get; }
         }
 
         [ComImport]
@@ -153,13 +257,29 @@ namespace VSLauncher.Helpers
         [InterfaceType(ComInterfaceType.InterfaceIsIDispatch)]
         public interface IShellDispatch2
         {
-            void ShellExecute([MarshalAs(UnmanagedType.BStr)] string File, [MarshalAs(UnmanagedType.Struct)] object vArgs, [MarshalAs(UnmanagedType.Struct)] object vDir, [MarshalAs(UnmanagedType.Struct)] object vOperation, [MarshalAs(UnmanagedType.Struct)] object vShow);
+			/// <summary>
+			/// Shells the execute.
+			/// </summary>
+			/// <param name="File">The file.</param>
+			/// <param name="vArgs">The v args.</param>
+			/// <param name="vDir">The v dir.</param>
+			/// <param name="vOperation">The v operation.</param>
+			/// <param name="vShow">The v show.</param>
+			void ShellExecute([MarshalAs(UnmanagedType.BStr)] string File, [MarshalAs(UnmanagedType.Struct)] object vArgs, [MarshalAs(UnmanagedType.Struct)] object vDir, [MarshalAs(UnmanagedType.Struct)] object vOperation, [MarshalAs(UnmanagedType.Struct)] object vShow);
         }
     }
 
-    public static class UnelevatedProcessStarter
+	/// <summary>
+	/// The unelevated process starter.
+	/// </summary>
+	public static class UnelevatedProcessStarter
     {
-        public static int Start(string cmdArgs)
+		/// <summary>
+		/// Starts the.
+		/// </summary>
+		/// <param name="cmdArgs">The cmd args.</param>
+		/// <returns>An int.</returns>
+		public static int Start(string cmdArgs)
         {
             // 1. Get the shell
             var shell = NativeMethods.GetShellWindow();
@@ -182,7 +302,8 @@ namespace VSLauncher.Helpers
             uint tokenAccess = 8 /*TOKEN_QUERY*/ | 1 /*TOKEN_ASSIGN_PRIMARY*/ | 2 /*TOKEN_DUPLICATE*/ | 0x80 /*TOKEN_ADJUST_DEFAULT*/ | 0x100 /*TOKEN_ADJUST_SESSIONID*/;
             var securityAttributes = new SecurityAttributes();
             IntPtr hToken;
-            if (!NativeMethods.DuplicateTokenEx(
+            
+			if (!NativeMethods.DuplicateTokenEx(
                 hShellToken,
                 tokenAccess,
                 ref securityAttributes,
@@ -197,7 +318,8 @@ namespace VSLauncher.Helpers
             var si = new Startupinfo();
             si.cb = Marshal.SizeOf(si);
             ProcessInformation processInfo;
-            if (!NativeMethods.CreateProcessWithTokenW(
+            
+			if (!NativeMethods.CreateProcessWithTokenW(
                 hToken,
                 0x00000002 /* LogonNetcredentialsOnly */,
                 null,
@@ -239,24 +361,74 @@ namespace VSLauncher.Helpers
             return processInfo.dwProcessId;
         }
 
-        public class NativeMethods
+		/// <summary>
+		/// The native methods.
+		/// </summary>
+		public class NativeMethods
         {
-            [DllImport("user32.dll")]
+			/// <summary>
+			/// Gets the shell window.
+			/// </summary>
+			/// <returns>An IntPtr.</returns>
+			[DllImport("user32.dll")]
             public static extern IntPtr GetShellWindow();
-            [DllImport("user32.dll", SetLastError = true)]
+			/// <summary>
+			/// Gets the window thread process id.
+			/// </summary>
+			/// <param name="hWnd">The h wnd.</param>
+			/// <param name="lpdwProcessId">The lpdw process id.</param>
+			/// <returns>An uint.</returns>
+			[DllImport("user32.dll", SetLastError = true)]
             public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
-            [DllImport("kernel32.dll", SetLastError = true)]
+			/// <summary>
+			/// Opens the process.
+			/// </summary>
+			/// <param name="processAccess">The process access.</param>
+			/// <param name="bInheritHandle">If true, b inherit handle.</param>
+			/// <param name="processId">The process id.</param>
+			/// <returns>An IntPtr.</returns>
+			[DllImport("kernel32.dll", SetLastError = true)]
             public static extern IntPtr OpenProcess(int processAccess, bool bInheritHandle, int processId);
-            [DllImport("advapi32.dll", SetLastError = true)]
+			/// <summary>
+			/// Opens the process token.
+			/// </summary>
+			/// <param name="processHandle">The process handle.</param>
+			/// <param name="desiredAccess">The desired access.</param>
+			/// <param name="tokenHandle">The token handle.</param>
+			/// <returns>A bool.</returns>
+			[DllImport("advapi32.dll", SetLastError = true)]
             [return: MarshalAs(UnmanagedType.Bool)]
             public static extern bool OpenProcessToken(IntPtr processHandle, uint desiredAccess, out IntPtr tokenHandle);
-            [DllImport("advapi32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+			/// <summary>
+			/// Duplicates the token ex.
+			/// </summary>
+			/// <param name="hExistingToken">The h existing token.</param>
+			/// <param name="dwDesiredAccess">The dw desired access.</param>
+			/// <param name="lpTokenAttributes">The lp token attributes.</param>
+			/// <param name="impersonationLevel">The impersonation level.</param>
+			/// <param name="tokenType">The token type.</param>
+			/// <param name="phNewToken">The ph new token.</param>
+			/// <returns>A bool.</returns>
+			[DllImport("advapi32.dll", CharSet = CharSet.Auto, SetLastError = true)]
             public static extern bool DuplicateTokenEx(IntPtr hExistingToken, uint dwDesiredAccess,
                 ref SecurityAttributes lpTokenAttributes,
                 int impersonationLevel,
                 int tokenType,
                 out IntPtr phNewToken);
-            [DllImport("advapi32", SetLastError = true, CharSet = CharSet.Unicode)]
+			/// <summary>
+			/// Creates the process with token w.
+			/// </summary>
+			/// <param name="hToken">The h token.</param>
+			/// <param name="dwLogonFlags">The dw logon flags.</param>
+			/// <param name="lpApplicationName">The lp application name.</param>
+			/// <param name="lpCommandLine">The lp command line.</param>
+			/// <param name="dwCreationFlags">The dw creation flags.</param>
+			/// <param name="lpEnvironment">The lp environment.</param>
+			/// <param name="lpCurrentDirectory">The lp current directory.</param>
+			/// <param name="lpStartupInfo">The lp startup info.</param>
+			/// <param name="lpProcessInformation">The lp process information.</param>
+			/// <returns>A bool.</returns>
+			[DllImport("advapi32", SetLastError = true, CharSet = CharSet.Unicode)]
             public static extern bool CreateProcessWithTokenW(
                 IntPtr hToken, int dwLogonFlags,
                 string lpApplicationName, string lpCommandLine,
@@ -265,7 +437,22 @@ namespace VSLauncher.Helpers
                 [In] ref Startupinfo lpStartupInfo,
                 out ProcessInformation lpProcessInformation);
 
-            [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+			/// <summary>
+			/// Creates the process as user.
+			/// </summary>
+			/// <param name="hToken">The h token.</param>
+			/// <param name="lpApplicationName">The lp application name.</param>
+			/// <param name="lpCommandLine">The lp command line.</param>
+			/// <param name="lpProcessAttributes">The lp process attributes.</param>
+			/// <param name="lpThreadAttributes">The lp thread attributes.</param>
+			/// <param name="bInheritHandles">If true, b inherit handles.</param>
+			/// <param name="dwCreationFlags">The dw creation flags.</param>
+			/// <param name="lpEnvironment">The lp environment.</param>
+			/// <param name="lpCurrentDirectory">The lp current directory.</param>
+			/// <param name="lpStartupInfo">The lp startup info.</param>
+			/// <param name="lpProcessInformation">The lp process information.</param>
+			/// <returns>A bool.</returns>
+			[DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
             public static extern bool CreateProcessAsUser(
                 IntPtr hToken,
                 string lpApplicationName,
@@ -320,4 +507,97 @@ namespace VSLauncher.Helpers
             public IntPtr hStdError;
         }
     }
+
+	/// <summary>
+	/// The path helper.
+	/// </summary>
+	public static class PathHelper
+	{
+		/// <summary>
+		/// Checks if the path is valid.
+		/// </summary>
+		/// <param name="path">The path.</param>
+		/// <returns>A bool.</returns>
+		public static bool PathIsValid(string? path)
+		{
+			if (string.IsNullOrEmpty(path))
+			{
+				return false;
+			}
+
+			if (!Directory.Exists(path))
+			{
+				return false;
+			}
+
+			return true;
+		}
+
+		/// <summary>
+		/// Checks if the Paths is valid and can be read.
+		/// </summary>
+		/// <param name="path">The path.</param>
+		/// <returns>A bool.</returns>
+		public static bool PathIsValidAndCanRead(string? path)
+		{
+			return PathIsValid(path) ? CanRead(path) : false;
+		}
+		/// <summary>
+		/// Checks if the executing user has read access to the given path.
+		/// </summary>
+		/// <param name="path">The path.</param>
+		/// <returns>A bool.</returns>
+		public static bool CanRead(string? path)
+		{
+			if (string.IsNullOrEmpty(path))
+			{
+				return false;
+			}
+
+			try
+			{
+				var readAllow = false;
+				var readDeny = false;
+				DirectoryInfo di = new DirectoryInfo(path);
+				var accessControlList = di.GetAccessControl();
+				if (accessControlList == null)
+					return false;
+
+				//get the access rules that pertain to a valid SID/NTAccount.
+				var accessRules = accessControlList.GetAccessRules(true, true, typeof(System.Security.Principal.SecurityIdentifier));
+				if (accessRules == null)
+					return false;
+
+				//we want to go over these rules to ensure a valid SID has access
+				var user = WindowsIdentity.GetCurrent().User?.Value;
+				foreach (FileSystemAccessRule rule in accessRules)
+				{
+					if ((FileSystemRights.Read & rule.FileSystemRights) != FileSystemRights.Read)
+					{
+						continue;
+					}
+
+					if (rule.AccessControlType == AccessControlType.Allow)
+					{
+						readAllow = true;
+					}
+					else if (rule.AccessControlType == AccessControlType.Deny)
+					{
+						readDeny = true;
+					}
+					if (user.Equals(rule.IdentityReference.Value, StringComparison.Ordinal) == true)
+					{
+						readAllow = true;
+					}
+				}
+
+				return readAllow && !readDeny;
+			}
+			catch (UnauthorizedAccessException ex)
+			{
+				return false;
+			}
+		}
+
+	}
 }

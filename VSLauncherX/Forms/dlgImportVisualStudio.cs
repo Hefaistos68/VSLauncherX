@@ -12,6 +12,9 @@ using VSLauncher.Helpers;
 
 namespace VSLauncher
 {
+	/// <summary>
+	/// The dlg import visual studio.
+	/// </summary>
 	public partial class dlgImportVisualStudio : Form
 	{
 		private DescribedTaskRenderer itemRenderer;
@@ -185,6 +188,11 @@ namespace VSLauncher
 			this.Cursor = Cursors.Default;
 		}
 
+		/// <summary>
+		/// dlgs the import visual studio_ load.
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
 		private void dlgImportVisualStudio_Load(object sender, EventArgs e)
 		{
 			UpdateList();

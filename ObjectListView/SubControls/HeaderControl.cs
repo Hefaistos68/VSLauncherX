@@ -173,7 +173,10 @@ namespace BrightIdeasSoftware {
             }
         }
 
-        private Point ScrolledCursorPosition {
+		/// <summary>
+		/// Gets the scrolled cursor position.
+		/// </summary>
+		private Point ScrolledCursorPosition {
             get {
                 Point pt = this.ListView.PointToClient(Cursor.Position);
                 pt.X += this.ListView.LowLevelScrollPosition.X;
@@ -252,7 +255,16 @@ namespace BrightIdeasSoftware {
             return this.MaximumHeight == -1 ? (int) height : Math.Min(this.MaximumHeight, (int) height);
         }
 
-        private float CalculateColumnHeight(Graphics g, OLVColumn column, TextFormatFlags flags, bool isHot, int i) {
+		/// <summary>
+		/// Calculates the column height.
+		/// </summary>
+		/// <param name="g">The g.</param>
+		/// <param name="column">The column.</param>
+		/// <param name="flags">The flags.</param>
+		/// <param name="isHot">If true, is hot.</param>
+		/// <param name="i">The i.</param>
+		/// <returns>A float.</returns>
+		private float CalculateColumnHeight(Graphics g, OLVColumn column, TextFormatFlags flags, bool isHot, int i) {
             Font f = this.CalculateFont(column, isHot, false);
             if (column.IsHeaderVertical)
                 return TextRenderer.MeasureText(g, column.Text, f, new Size(10000, 10000), flags).Width;
@@ -453,7 +465,12 @@ namespace BrightIdeasSoftware {
             base.WndProc(ref m);
         }
 
-        private bool HandleReflectNotify(ref Message m)
+		/// <summary>
+		/// Handles the reflect notify.
+		/// </summary>
+		/// <param name="m">The m.</param>
+		/// <returns>A bool.</returns>
+		private bool HandleReflectNotify(ref Message m)
         {
             NativeMethods.NMHDR nmhdr = (NativeMethods.NMHDR)m.GetLParam(typeof(NativeMethods.NMHDR));
             System.Diagnostics.Debug.WriteLine(String.Format("rn: {0}", nmhdr.code));
@@ -757,7 +774,12 @@ namespace BrightIdeasSoftware {
             return false;
         }
 
-        private bool NeedsCustomDraw(HeaderFormatStyle style) {
+		/// <summary>
+		/// Needs the custom draw.
+		/// </summary>
+		/// <param name="style">The style.</param>
+		/// <returns>A bool.</returns>
+		private bool NeedsCustomDraw(HeaderFormatStyle style) {
             if (style == null)
                 return false;
 
@@ -766,7 +788,12 @@ namespace BrightIdeasSoftware {
                 this.NeedsCustomDraw(style.Pressed));
         }
 
-        private bool NeedsCustomDraw(HeaderStateStyle style) {
+		/// <summary>
+		/// Needs the custom draw.
+		/// </summary>
+		/// <param name="style">The style.</param>
+		/// <returns>A bool.</returns>
+		private bool NeedsCustomDraw(HeaderStateStyle style) {
             if (style == null)
                 return false;
 
@@ -844,7 +871,17 @@ namespace BrightIdeasSoftware {
             this.DrawHeaderImageAndText(g, r, column, stateStyle);
         }
 
-        private Rectangle DrawCheckBox(Graphics g, Rectangle r, CheckState checkState, bool isDisabled, bool isHot,
+		/// <summary>
+		/// Draws the check box.
+		/// </summary>
+		/// <param name="g">The g.</param>
+		/// <param name="r">The r.</param>
+		/// <param name="checkState">The check state.</param>
+		/// <param name="isDisabled">If true, is disabled.</param>
+		/// <param name="isHot">If true, is hot.</param>
+		/// <param name="isPressed">If true, is pressed.</param>
+		/// <returns>A Rectangle.</returns>
+		private Rectangle DrawCheckBox(Graphics g, Rectangle r, CheckState checkState, bool isDisabled, bool isHot,
             bool isPressed) {
             CheckBoxState checkBoxState = this.GetCheckBoxState(checkState, isDisabled, isHot, isPressed);
             Rectangle checkBoxBounds = this.CalculateCheckBoxBounds(g, r);
@@ -858,7 +895,13 @@ namespace BrightIdeasSoftware {
             return r;
         }
 
-        private Rectangle CalculateCheckBoxBounds(Graphics g, Rectangle cellBounds) {
+		/// <summary>
+		/// Calculates the check box bounds.
+		/// </summary>
+		/// <param name="g">The g.</param>
+		/// <param name="cellBounds">The cell bounds.</param>
+		/// <returns>A Rectangle.</returns>
+		private Rectangle CalculateCheckBoxBounds(Graphics g, Rectangle cellBounds) {
             Size checkBoxSize = CheckBoxRenderer.GetGlyphSize(g, CheckBoxState.CheckedNormal);
 
             // Vertically center the checkbox
@@ -866,7 +909,15 @@ namespace BrightIdeasSoftware {
             return new Rectangle(cellBounds.X + 3, cellBounds.Y + topOffset, checkBoxSize.Width, checkBoxSize.Height);
         }
 
-        private CheckBoxState GetCheckBoxState(CheckState checkState, bool isDisabled, bool isHot, bool isPressed) {
+		/// <summary>
+		/// Gets the check box state.
+		/// </summary>
+		/// <param name="checkState">The check state.</param>
+		/// <param name="isDisabled">If true, is disabled.</param>
+		/// <param name="isHot">If true, is hot.</param>
+		/// <param name="isPressed">If true, is pressed.</param>
+		/// <returns>A CheckBoxState.</returns>
+		private CheckBoxState GetCheckBoxState(CheckState checkState, bool isDisabled, bool isHot, bool isPressed) {
             // Should the checkbox be drawn as disabled?
             if (isDisabled) {
                 switch (checkState) {
@@ -1048,7 +1099,12 @@ namespace BrightIdeasSoftware {
             return r;
         }
 
-        private int CalculateFilterIndicatorWidth(Rectangle r) {
+		/// <summary>
+		/// Calculates the filter indicator width.
+		/// </summary>
+		/// <param name="r">The r.</param>
+		/// <returns>An int.</returns>
+		private int CalculateFilterIndicatorWidth(Rectangle r) {
             if (Resources.ColumnFilterIndicator == null || r.Width < 48)
                 return 0;
             return Resources.ColumnFilterIndicator.Width + 1;
@@ -1088,12 +1144,31 @@ namespace BrightIdeasSoftware {
             }
         }
 
-        private void DrawText(Graphics g, Rectangle r, OLVColumn column, TextFormatFlags flags, Font f, Color color) {
+		/// <summary>
+		/// Draws the text.
+		/// </summary>
+		/// <param name="g">The g.</param>
+		/// <param name="r">The r.</param>
+		/// <param name="column">The column.</param>
+		/// <param name="flags">The flags.</param>
+		/// <param name="f">The f.</param>
+		/// <param name="color">The color.</param>
+		private void DrawText(Graphics g, Rectangle r, OLVColumn column, TextFormatFlags flags, Font f, Color color) {
             if (column.ShowTextInHeader)
                 TextRenderer.DrawText(g, column.Text, f, r, color, Color.Transparent, flags);
         }
 
-        private void DrawImageAndText(Graphics g, Rectangle r, OLVColumn column, TextFormatFlags flags, Font f,
+		/// <summary>
+		/// Draws the image and text.
+		/// </summary>
+		/// <param name="g">The g.</param>
+		/// <param name="r">The r.</param>
+		/// <param name="column">The column.</param>
+		/// <param name="flags">The flags.</param>
+		/// <param name="f">The f.</param>
+		/// <param name="color">The color.</param>
+		/// <param name="imageTextGap">The image text gap.</param>
+		private void DrawImageAndText(Graphics g, Rectangle r, OLVColumn column, TextFormatFlags flags, Font f,
             Color color, int imageTextGap) {
             Rectangle textRect = r;
             textRect.X += (column.ImageList.ImageSize.Width + imageTextGap);
@@ -1116,7 +1191,15 @@ namespace BrightIdeasSoftware {
             this.DrawText(g, textRect, column, flags, f, color);
         }
 
-        private static void DrawVerticalText(Graphics g, Rectangle r, OLVColumn column, Font f, Color color) {
+		/// <summary>
+		/// Draws the vertical text.
+		/// </summary>
+		/// <param name="g">The g.</param>
+		/// <param name="r">The r.</param>
+		/// <param name="column">The column.</param>
+		/// <param name="f">The f.</param>
+		/// <param name="color">The color.</param>
+		private static void DrawVerticalText(Graphics g, Rectangle r, OLVColumn column, Font f, Color color) {
             try {
                 // Create a matrix transformation that will rotate the text 90 degrees vertically
                 // AND place the text in the middle of where it was previously. [Think of tipping

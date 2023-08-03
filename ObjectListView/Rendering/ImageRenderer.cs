@@ -183,7 +183,10 @@ namespace BrightIdeasSoftware
 
         private bool isPaused = true;
 
-        private void StopTickler() {
+		/// <summary>
+		/// Stops the tickler.
+		/// </summary>
+		private void StopTickler() {
             if (this.tickler == null)
                 return;
 
@@ -357,7 +360,10 @@ namespace BrightIdeasSoftware
                 this.OnTimerInThread();
         }
 
-        private bool IsListViewDead {
+		/// <summary>
+		/// Gets a value indicating whether list view is dead.
+		/// </summary>
+		private bool IsListViewDead {
             get {
                 // Apply a whole heap of sanity checks, which basically ensure that the ListView is still alive
                 return this.ListView == null ||

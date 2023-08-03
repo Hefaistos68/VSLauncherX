@@ -237,7 +237,6 @@ namespace VSLauncher
 
 		#endregion
 
-		private Label label1;
 		private TextBox txtFoldername;
 		private Button btnSelectFolder;
 		private Button btnOk;

@@ -12,6 +12,9 @@ using VSLauncher.DataModel;
 
 namespace VSLauncher
 {
+	/// <summary>
+	/// The dlg add folder.
+	/// </summary>
 	public partial class dlgAddFolder : Form
 	{
 		/// <summary>
@@ -38,6 +41,11 @@ namespace VSLauncher
 			btnOk.Enabled = txtFoldername.Text.Length > 0;
 		}
 
+		/// <summary>
+		/// btns the ok_ click.
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
 		private void btnOk_Click(object sender, EventArgs e)
 		{
 			this.Solution.Name = txtFoldername.Text;

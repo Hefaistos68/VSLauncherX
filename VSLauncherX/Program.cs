@@ -27,6 +27,9 @@ namespace VSLauncher
 			Application.Run(new MainDialog());
 		}
 
+		/// <summary>
+		/// Tests the.
+		/// </summary>
 		private static void Test()
 		{
 		}

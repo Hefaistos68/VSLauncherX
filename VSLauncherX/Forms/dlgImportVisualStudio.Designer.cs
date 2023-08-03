@@ -206,7 +206,6 @@ namespace VSLauncher
 
 		#endregion
 
-		private Label label1;
 		private Button btnOk;
 		private Button btnCancel;
 		private ColumnHeader colPath;

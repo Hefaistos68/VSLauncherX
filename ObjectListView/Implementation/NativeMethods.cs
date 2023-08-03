@@ -184,7 +184,10 @@ namespace BrightIdeasSoftware
             public IntPtr pvFilter;
         }
 
-        [StructLayout(LayoutKind.Sequential)]
+		/// <summary>
+		/// The h d h i t t e s t i n f o.
+		/// </summary>
+		[StructLayout(LayoutKind.Sequential)]
         public class HDHITTESTINFO
         {
             public int pt_x;
@@ -193,7 +196,10 @@ namespace BrightIdeasSoftware
             public int iItem;
         }
 
-        [StructLayout(LayoutKind.Sequential)]
+		/// <summary>
+		/// The h d l a y o u t.
+		/// </summary>
+		[StructLayout(LayoutKind.Sequential)]
         public class HDLAYOUT
         {
             public IntPtr prc;
@@ -506,7 +512,10 @@ namespace BrightIdeasSoftware
             public int bottom;
         }
 
-        [StructLayout(LayoutKind.Sequential)]
+		/// <summary>
+		/// The s c r o l l i n f o.
+		/// </summary>
+		[StructLayout(LayoutKind.Sequential)]
         public class SCROLLINFO
         {
             public int cbSize = Marshal.SizeOf(typeof(NativeMethods.SCROLLINFO));
@@ -518,7 +527,10 @@ namespace BrightIdeasSoftware
             public int nTrackPos;
         }
 
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+		/// <summary>
+		/// The t o o l i n f o.
+		/// </summary>
+		[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
         public class TOOLINFO
         {
             public int cbSize = Marshal.SizeOf(typeof(NativeMethods.TOOLINFO));
@@ -543,84 +555,299 @@ namespace BrightIdeasSoftware
             public int flags;
         }
 
-        #endregion
+		#endregion
 
-        #region Entry points
+		#region Entry points
 
-        // Various flavours of SendMessage: plain vanilla, and passing references to various structures
-        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+		// Various flavours of SendMessage: plain vanilla, and passing references to various structures
+		/// <summary>
+		/// Sends the message.
+		/// </summary>
+		/// <param name="hWnd">The h wnd.</param>
+		/// <param name="msg">The msg.</param>
+		/// <param name="wParam">The w param.</param>
+		/// <param name="lParam">The l param.</param>
+		/// <returns>An IntPtr.</returns>
+		[DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         public static extern IntPtr SendMessage(IntPtr hWnd, int msg, int wParam, int lParam);
-        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+		/// <summary>
+		/// Sends the message.
+		/// </summary>
+		/// <param name="hWnd">The h wnd.</param>
+		/// <param name="msg">The msg.</param>
+		/// <param name="wParam">The w param.</param>
+		/// <param name="lParam">The l param.</param>
+		/// <returns>An IntPtr.</returns>
+		[DllImport("user32.dll", CharSet = CharSet.Auto)]
         public static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, int lParam);
-        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+		/// <summary>
+		/// Sends the message.
+		/// </summary>
+		/// <param name="hWnd">The h wnd.</param>
+		/// <param name="msg">The msg.</param>
+		/// <param name="wParam">The w param.</param>
+		/// <param name="lParam">The l param.</param>
+		/// <returns>An IntPtr.</returns>
+		[DllImport("user32.dll", CharSet = CharSet.Auto)]
         public static extern IntPtr SendMessage(IntPtr hWnd, int msg, int wParam, IntPtr lParam);
-        [DllImport("user32.dll", EntryPoint = "SendMessage", CharSet = CharSet.Auto)]
+		/// <summary>
+		/// Sends the message l v item.
+		/// </summary>
+		/// <param name="hWnd">The h wnd.</param>
+		/// <param name="msg">The msg.</param>
+		/// <param name="wParam">The w param.</param>
+		/// <param name="lvi">The lvi.</param>
+		/// <returns>An IntPtr.</returns>
+		[DllImport("user32.dll", EntryPoint = "SendMessage", CharSet = CharSet.Auto)]
         public static extern IntPtr SendMessageLVItem(IntPtr hWnd, int msg, int wParam, ref LVITEM lvi);
-        [DllImport("user32.dll", EntryPoint = "SendMessage", CharSet = CharSet.Auto)]
+		/// <summary>
+		/// Sends the message.
+		/// </summary>
+		/// <param name="hWnd">The h wnd.</param>
+		/// <param name="msg">The msg.</param>
+		/// <param name="wParam">The w param.</param>
+		/// <param name="ht">The ht.</param>
+		/// <returns>An IntPtr.</returns>
+		[DllImport("user32.dll", EntryPoint = "SendMessage", CharSet = CharSet.Auto)]
         public static extern IntPtr SendMessage(IntPtr hWnd, int msg, int wParam, ref LVHITTESTINFO ht);
-        [DllImport("user32.dll", EntryPoint = "SendMessage", CharSet = CharSet.Auto)]
+		/// <summary>
+		/// Sends the message r e c t.
+		/// </summary>
+		/// <param name="hWnd">The h wnd.</param>
+		/// <param name="msg">The msg.</param>
+		/// <param name="wParam">The w param.</param>
+		/// <param name="r">The r.</param>
+		/// <returns>An IntPtr.</returns>
+		[DllImport("user32.dll", EntryPoint = "SendMessage", CharSet = CharSet.Auto)]
         public static extern IntPtr SendMessageRECT(IntPtr hWnd, int msg, int wParam, ref RECT r);
-        //[DllImport("user32.dll", EntryPoint = "SendMessage", CharSet = CharSet.Auto)]
-        //private static extern IntPtr SendMessageLVColumn(IntPtr hWnd, int m, int wParam, ref LVCOLUMN lvc);
-        [DllImport("user32.dll", EntryPoint = "SendMessage", CharSet = CharSet.Auto)]
+		//[DllImport("user32.dll", EntryPoint = "SendMessage", CharSet = CharSet.Auto)]
+		//private static extern IntPtr SendMessageLVColumn(IntPtr hWnd, int m, int wParam, ref LVCOLUMN lvc);
+		/// <summary>
+		/// Sends the message h d item.
+		/// </summary>
+		/// <param name="hWnd">The h wnd.</param>
+		/// <param name="msg">The msg.</param>
+		/// <param name="wParam">The w param.</param>
+		/// <param name="hdi">The hdi.</param>
+		/// <returns>An IntPtr.</returns>
+		[DllImport("user32.dll", EntryPoint = "SendMessage", CharSet = CharSet.Auto)]
         private static extern IntPtr SendMessageHDItem(IntPtr hWnd, int msg, int wParam, ref HDITEM hdi);
-        [DllImport("user32.dll", EntryPoint = "SendMessage", CharSet = CharSet.Auto)]
+		/// <summary>
+		/// Sends the message h d h i t t e s t i n f o.
+		/// </summary>
+		/// <param name="hWnd">The h wnd.</param>
+		/// <param name="Msg">The msg.</param>
+		/// <param name="wParam">The w param.</param>
+		/// <param name="lParam">The l param.</param>
+		/// <returns>An IntPtr.</returns>
+		[DllImport("user32.dll", EntryPoint = "SendMessage", CharSet = CharSet.Auto)]
         public static extern IntPtr SendMessageHDHITTESTINFO(IntPtr hWnd, int Msg, IntPtr wParam, [In, Out] HDHITTESTINFO lParam);
-        [DllImport("user32.dll", EntryPoint = "SendMessage", CharSet = CharSet.Auto)]
+		/// <summary>
+		/// Sends the message t o o l i n f o.
+		/// </summary>
+		/// <param name="hWnd">The h wnd.</param>
+		/// <param name="Msg">The msg.</param>
+		/// <param name="wParam">The w param.</param>
+		/// <param name="lParam">The l param.</param>
+		/// <returns>An IntPtr.</returns>
+		[DllImport("user32.dll", EntryPoint = "SendMessage", CharSet = CharSet.Auto)]
         public static extern IntPtr SendMessageTOOLINFO(IntPtr hWnd, int Msg, int wParam, NativeMethods.TOOLINFO lParam);
-        [DllImport("user32.dll", EntryPoint = "SendMessage", CharSet = CharSet.Auto)]
+		/// <summary>
+		/// Sends the message l v b k i m a g e.
+		/// </summary>
+		/// <param name="hWnd">The h wnd.</param>
+		/// <param name="Msg">The msg.</param>
+		/// <param name="wParam">The w param.</param>
+		/// <param name="lParam">The l param.</param>
+		/// <returns>An IntPtr.</returns>
+		[DllImport("user32.dll", EntryPoint = "SendMessage", CharSet = CharSet.Auto)]
         public static extern IntPtr SendMessageLVBKIMAGE(IntPtr hWnd, int Msg, int wParam, ref NativeMethods.LVBKIMAGE lParam);
-        [DllImport("user32.dll", EntryPoint = "SendMessage", CharSet = CharSet.Auto)]
+		/// <summary>
+		/// Sends the message string.
+		/// </summary>
+		/// <param name="hWnd">The h wnd.</param>
+		/// <param name="Msg">The msg.</param>
+		/// <param name="wParam">The w param.</param>
+		/// <param name="lParam">The l param.</param>
+		/// <returns>An IntPtr.</returns>
+		[DllImport("user32.dll", EntryPoint = "SendMessage", CharSet = CharSet.Auto)]
         public static extern IntPtr SendMessageString(IntPtr hWnd, int Msg, int wParam, string lParam);
-        [DllImport("user32.dll", EntryPoint = "SendMessage", CharSet = CharSet.Auto)]
+		/// <summary>
+		/// Sends the message i unknown.
+		/// </summary>
+		/// <param name="hWnd">The h wnd.</param>
+		/// <param name="msg">The msg.</param>
+		/// <param name="wParam">The w param.</param>
+		/// <param name="lParam">The l param.</param>
+		/// <returns>An IntPtr.</returns>
+		[DllImport("user32.dll", EntryPoint = "SendMessage", CharSet = CharSet.Auto)]
         public static extern IntPtr SendMessageIUnknown(IntPtr hWnd, int msg, [MarshalAs(UnmanagedType.IUnknown)] object wParam, int lParam);
-        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+		/// <summary>
+		/// Sends the message.
+		/// </summary>
+		/// <param name="hWnd">The h wnd.</param>
+		/// <param name="msg">The msg.</param>
+		/// <param name="wParam">The w param.</param>
+		/// <param name="lParam">The l param.</param>
+		/// <returns>An IntPtr.</returns>
+		[DllImport("user32.dll", CharSet = CharSet.Auto)]
         public static extern IntPtr SendMessage(IntPtr hWnd, int msg, int wParam, ref LVGROUP lParam);
-        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+		/// <summary>
+		/// Sends the message.
+		/// </summary>
+		/// <param name="hWnd">The h wnd.</param>
+		/// <param name="msg">The msg.</param>
+		/// <param name="wParam">The w param.</param>
+		/// <param name="lParam">The l param.</param>
+		/// <returns>An IntPtr.</returns>
+		[DllImport("user32.dll", CharSet = CharSet.Auto)]
         public static extern IntPtr SendMessage(IntPtr hWnd, int msg, int wParam, ref LVGROUP2 lParam);
-        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+		/// <summary>
+		/// Sends the message.
+		/// </summary>
+		/// <param name="hWnd">The h wnd.</param>
+		/// <param name="msg">The msg.</param>
+		/// <param name="wParam">The w param.</param>
+		/// <param name="lParam">The l param.</param>
+		/// <returns>An IntPtr.</returns>
+		[DllImport("user32.dll", CharSet = CharSet.Auto)]
         public static extern IntPtr SendMessage(IntPtr hWnd, int msg, int wParam, ref LVGROUPMETRICS lParam);
 
-        [DllImport("gdi32.dll")]
+		/// <summary>
+		/// Deletes the object.
+		/// </summary>
+		/// <param name="objectHandle">The object handle.</param>
+		/// <returns>A bool.</returns>
+		[DllImport("gdi32.dll")]
         public static extern bool DeleteObject(IntPtr objectHandle);
 
-        [DllImport("user32.dll", CharSet = CharSet.Auto, ExactSpelling = true)]
+		/// <summary>
+		/// Gets the client rect.
+		/// </summary>
+		/// <param name="hWnd">The h wnd.</param>
+		/// <param name="r">The r.</param>
+		/// <returns>A bool.</returns>
+		[DllImport("user32.dll", CharSet = CharSet.Auto, ExactSpelling = true)]
         public static extern bool GetClientRect(IntPtr hWnd, ref Rectangle r);
 
-        [DllImport("user32.dll", CharSet = CharSet.Auto, ExactSpelling = true)]
+		/// <summary>
+		/// Gets the scroll info.
+		/// </summary>
+		/// <param name="hWnd">The h wnd.</param>
+		/// <param name="fnBar">The fn bar.</param>
+		/// <param name="scrollInfo">The scroll info.</param>
+		/// <returns>A bool.</returns>
+		[DllImport("user32.dll", CharSet = CharSet.Auto, ExactSpelling = true)]
         public static extern bool GetScrollInfo(IntPtr hWnd, int fnBar, SCROLLINFO scrollInfo);
 
-        [DllImport("user32.dll", EntryPoint = "GetUpdateRect", CharSet = CharSet.Auto)]
+		/// <summary>
+		/// Gets the update rect internal.
+		/// </summary>
+		/// <param name="hWnd">The h wnd.</param>
+		/// <param name="r">The r.</param>
+		/// <param name="eraseBackground">If true, erase background.</param>
+		/// <returns>A bool.</returns>
+		[DllImport("user32.dll", EntryPoint = "GetUpdateRect", CharSet = CharSet.Auto)]
         private static extern bool GetUpdateRectInternal(IntPtr hWnd, ref Rectangle r, bool eraseBackground);
 
-        [DllImport("comctl32.dll", CharSet = CharSet.Auto)]
+		/// <summary>
+		/// Images the list_ draw.
+		/// </summary>
+		/// <param name="himl">The himl.</param>
+		/// <param name="i">The i.</param>
+		/// <param name="hdcDst">The hdc dst.</param>
+		/// <param name="x">The x.</param>
+		/// <param name="y">The y.</param>
+		/// <param name="fStyle">The f style.</param>
+		/// <returns>A bool.</returns>
+		[DllImport("comctl32.dll", CharSet = CharSet.Auto)]
         private static extern bool ImageList_Draw(IntPtr himl, int i, IntPtr hdcDst, int x, int y, int fStyle);
 
-        [DllImport("comctl32.dll", CharSet = CharSet.Auto)]
+		/// <summary>
+		/// Images the list_ draw indirect.
+		/// </summary>
+		/// <param name="parms">The parms.</param>
+		/// <returns>A bool.</returns>
+		[DllImport("comctl32.dll", CharSet = CharSet.Auto)]
         private static extern bool ImageList_DrawIndirect(ref IMAGELISTDRAWPARAMS parms);
 
-        [DllImport("user32.dll")]
+		/// <summary>
+		/// Sets the window pos.
+		/// </summary>
+		/// <param name="hWnd">The h wnd.</param>
+		/// <param name="hWndInsertAfter">The h wnd insert after.</param>
+		/// <param name="X">The x.</param>
+		/// <param name="Y">The y.</param>
+		/// <param name="cx">The cx.</param>
+		/// <param name="cy">The cy.</param>
+		/// <param name="uFlags">The u flags.</param>
+		/// <returns>A bool.</returns>
+		[DllImport("user32.dll")]
         public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
 
-        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+		/// <summary>
+		/// Gets the window rect.
+		/// </summary>
+		/// <param name="hWnd">The h wnd.</param>
+		/// <param name="r">The r.</param>
+		/// <returns>A bool.</returns>
+		[DllImport("user32.dll", CharSet = CharSet.Auto)]
         public static extern bool GetWindowRect(IntPtr hWnd, ref Rectangle r);
 
-        [DllImport("user32.dll", EntryPoint = "GetWindowLong", CharSet = CharSet.Auto)]
+		/// <summary>
+		/// Gets the window long32.
+		/// </summary>
+		/// <param name="hWnd">The h wnd.</param>
+		/// <param name="nIndex">The n index.</param>
+		/// <returns>An IntPtr.</returns>
+		[DllImport("user32.dll", EntryPoint = "GetWindowLong", CharSet = CharSet.Auto)]
         public static extern IntPtr GetWindowLong32(IntPtr hWnd, int nIndex);
 
-        [DllImport("user32.dll", EntryPoint = "GetWindowLongPtr", CharSet = CharSet.Auto)]
+		/// <summary>
+		/// Gets the window long ptr64.
+		/// </summary>
+		/// <param name="hWnd">The h wnd.</param>
+		/// <param name="nIndex">The n index.</param>
+		/// <returns>An IntPtr.</returns>
+		[DllImport("user32.dll", EntryPoint = "GetWindowLongPtr", CharSet = CharSet.Auto)]
         public static extern IntPtr GetWindowLongPtr64(IntPtr hWnd, int nIndex);
 
-        [DllImport("user32.dll", EntryPoint = "SetWindowLong", CharSet = CharSet.Auto)]
+		/// <summary>
+		/// Sets the window long ptr32.
+		/// </summary>
+		/// <param name="hWnd">The h wnd.</param>
+		/// <param name="nIndex">The n index.</param>
+		/// <param name="dwNewLong">The dw new long.</param>
+		/// <returns>An IntPtr.</returns>
+		[DllImport("user32.dll", EntryPoint = "SetWindowLong", CharSet = CharSet.Auto)]
         public static extern IntPtr SetWindowLongPtr32(IntPtr hWnd, int nIndex, int dwNewLong);
 
-        [DllImport("user32.dll", EntryPoint = "SetWindowLongPtr", CharSet = CharSet.Auto)]
+		/// <summary>
+		/// Sets the window long ptr64.
+		/// </summary>
+		/// <param name="hWnd">The h wnd.</param>
+		/// <param name="nIndex">The n index.</param>
+		/// <param name="dwNewLong">The dw new long.</param>
+		/// <returns>An IntPtr.</returns>
+		[DllImport("user32.dll", EntryPoint = "SetWindowLongPtr", CharSet = CharSet.Auto)]
         public static extern IntPtr SetWindowLongPtr64(IntPtr hWnd, int nIndex, int dwNewLong);
 
-        [DllImport("user32.dll")]
+		/// <summary>
+		/// Shows the window.
+		/// </summary>
+		/// <param name="hWnd">The h wnd.</param>
+		/// <param name="nCmdShow">The n cmd show.</param>
+		/// <returns>A bool.</returns>
+		[DllImport("user32.dll")]
         public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
 
-        [DllImport("user32.dll", EntryPoint = "ValidateRect", CharSet = CharSet.Auto)]
+		/// <summary>
+		/// Validateds the rect internal.
+		/// </summary>
+		/// <param name="hWnd">The h wnd.</param>
+		/// <param name="r">The r.</param>
+		/// <returns>An IntPtr.</returns>
+		[DllImport("user32.dll", EntryPoint = "ValidateRect", CharSet = CharSet.Auto)]
         private static extern IntPtr ValidatedRectInternal(IntPtr hWnd, ref Rectangle r);
 
         #endregion
@@ -677,7 +904,18 @@ namespace BrightIdeasSoftware
             return (result != IntPtr.Zero);
         }
 
-        public static bool DrawImageList(Graphics g, ImageList il, int index, int x, int y, bool isSelected, bool isDisabled) {
+		/// <summary>
+		/// Draws the image list.
+		/// </summary>
+		/// <param name="g">The g.</param>
+		/// <param name="il">The il.</param>
+		/// <param name="index">The index.</param>
+		/// <param name="x">The x.</param>
+		/// <param name="y">The y.</param>
+		/// <param name="isSelected">If true, is selected.</param>
+		/// <param name="isDisabled">If true, is disabled.</param>
+		/// <returns>A bool.</returns>
+		public static bool DrawImageList(Graphics g, ImageList il, int index, int x, int y, bool isSelected, bool isDisabled) {
             ImageListDrawItemConstants flags = (isSelected ? ImageListDrawItemConstants.ILD_SELECTED : ImageListDrawItemConstants.ILD_NORMAL) | ImageListDrawItemConstants.ILD_TRANSPARENT;
             ImageListDrawStateConstants state = isDisabled ? ImageListDrawStateConstants.ILS_SATURATE : ImageListDrawStateConstants.ILS_NORMAL;
             try {
@@ -1031,7 +1269,14 @@ namespace BrightIdeasSoftware
             return NativeMethods.HeaderControlHitTest(handle, pt, HHT_ONHEADER | HHT_ONDIVIDER);
         }
 
-        private static int HeaderControlHitTest(IntPtr handle, Point pt, int flag) {
+		/// <summary>
+		/// Headers the control hit test.
+		/// </summary>
+		/// <param name="handle">The handle.</param>
+		/// <param name="pt">The pt.</param>
+		/// <param name="flag">The flag.</param>
+		/// <returns>An int.</returns>
+		private static int HeaderControlHitTest(IntPtr handle, Point pt, int flag) {
             HDHITTESTINFO testInfo = new HDHITTESTINFO();
             testInfo.pt_x = pt.X;
             testInfo.pt_y = pt.Y;
@@ -1124,52 +1369,118 @@ namespace BrightIdeasSoftware
                 LVM_SETSELECTEDCOLUMN, (value == null) ? -1 : value.Index, 0);
         }
 
-        static public int GetTopIndex(ListView lv) {
+		/// <summary>
+		/// Gets the top index.
+		/// </summary>
+		/// <param name="lv">The lv.</param>
+		/// <returns>An int.</returns>
+		static public int GetTopIndex(ListView lv) {
             return (int)SendMessage(lv.Handle, LVM_GETTOPINDEX, 0, 0);
         }
 
-        static public IntPtr GetTooltipControl(ListView lv) {
+		/// <summary>
+		/// Gets the tooltip control.
+		/// </summary>
+		/// <param name="lv">The lv.</param>
+		/// <returns>An IntPtr.</returns>
+		static public IntPtr GetTooltipControl(ListView lv) {
             return SendMessage(lv.Handle, LVM_GETTOOLTIPS, 0, 0);
         }
 
-        static public IntPtr SetTooltipControl(ListView lv, ToolTipControl tooltip) {
+		/// <summary>
+		/// Sets the tooltip control.
+		/// </summary>
+		/// <param name="lv">The lv.</param>
+		/// <param name="tooltip">The tooltip.</param>
+		/// <returns>An IntPtr.</returns>
+		static public IntPtr SetTooltipControl(ListView lv, ToolTipControl tooltip) {
             return SendMessage(lv.Handle, LVM_SETTOOLTIPS, 0, tooltip.Handle);
         }
 
-        static public bool HasHorizontalScrollBar(ListView lv) {
+		/// <summary>
+		/// Have the horizontal scroll bar.
+		/// </summary>
+		/// <param name="lv">The lv.</param>
+		/// <returns>A bool.</returns>
+		static public bool HasHorizontalScrollBar(ListView lv) {
             const int GWL_STYLE = -16;
             const int WS_HSCROLL = 0x00100000;
 
             return (NativeMethods.GetWindowLong(lv.Handle, GWL_STYLE) & WS_HSCROLL) != 0;
         }
 
-        public static int GetWindowLong(IntPtr hWnd, int nIndex) {
+		/// <summary>
+		/// Gets the window long.
+		/// </summary>
+		/// <param name="hWnd">The h wnd.</param>
+		/// <param name="nIndex">The n index.</param>
+		/// <returns>An int.</returns>
+		public static int GetWindowLong(IntPtr hWnd, int nIndex) {
             if (IntPtr.Size == 4)
                 return (int)GetWindowLong32(hWnd, nIndex);
             else
                 return (int)(long)GetWindowLongPtr64(hWnd, nIndex);
         }
 
-        public static int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong) {
+		/// <summary>
+		/// Sets the window long.
+		/// </summary>
+		/// <param name="hWnd">The h wnd.</param>
+		/// <param name="nIndex">The n index.</param>
+		/// <param name="dwNewLong">The dw new long.</param>
+		/// <returns>An int.</returns>
+		public static int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong) {
             if (IntPtr.Size == 4)
                 return (int)SetWindowLongPtr32(hWnd, nIndex, dwNewLong);
             else
                 return (int)(long)SetWindowLongPtr64(hWnd, nIndex, dwNewLong);
         }
 
-        [DllImport("gdi32.dll", CharSet = CharSet.Auto, SetLastError = true, ExactSpelling = true)]
+		/// <summary>
+		/// Sets the bk color.
+		/// </summary>
+		/// <param name="hDC">The h d c.</param>
+		/// <param name="clr">The clr.</param>
+		/// <returns>An IntPtr.</returns>
+		[DllImport("gdi32.dll", CharSet = CharSet.Auto, SetLastError = true, ExactSpelling = true)]
         public static extern IntPtr SetBkColor(IntPtr hDC, int clr);
 
-        [DllImport("gdi32.dll", CharSet = CharSet.Auto, SetLastError = true, ExactSpelling = true)]
+		/// <summary>
+		/// Sets the text color.
+		/// </summary>
+		/// <param name="hDC">The h d c.</param>
+		/// <param name="crColor">The cr color.</param>
+		/// <returns>An IntPtr.</returns>
+		[DllImport("gdi32.dll", CharSet = CharSet.Auto, SetLastError = true, ExactSpelling = true)]
         public static extern IntPtr SetTextColor(IntPtr hDC, int crColor);
 
-        [DllImport("gdi32.dll", CharSet = CharSet.Auto, SetLastError = true, ExactSpelling = true)]
+		/// <summary>
+		/// Selects the object.
+		/// </summary>
+		/// <param name="hdc">The hdc.</param>
+		/// <param name="obj">The obj.</param>
+		/// <returns>An IntPtr.</returns>
+		[DllImport("gdi32.dll", CharSet = CharSet.Auto, SetLastError = true, ExactSpelling = true)]
         public static extern IntPtr SelectObject(IntPtr hdc, IntPtr obj);
 
-        [DllImport("uxtheme.dll", CharSet = CharSet.Auto, SetLastError = true, ExactSpelling = true)]
+		/// <summary>
+		/// Sets the window theme.
+		/// </summary>
+		/// <param name="hWnd">The h wnd.</param>
+		/// <param name="subApp">The sub app.</param>
+		/// <param name="subIdList">The sub id list.</param>
+		/// <returns>An IntPtr.</returns>
+		[DllImport("uxtheme.dll", CharSet = CharSet.Auto, SetLastError = true, ExactSpelling = true)]
         public static extern IntPtr SetWindowTheme(IntPtr hWnd, string subApp, string subIdList);
 
-        [DllImport("user32.dll", CharSet = CharSet.Auto, ExactSpelling = true)]
+		/// <summary>
+		/// Invalidates the rect.
+		/// </summary>
+		/// <param name="hWnd">The h wnd.</param>
+		/// <param name="ignored">The ignored.</param>
+		/// <param name="erase">If true, erase.</param>
+		/// <returns>A bool.</returns>
+		[DllImport("user32.dll", CharSet = CharSet.Auto, ExactSpelling = true)]
         public static extern bool InvalidateRect(IntPtr hWnd, int ignored, bool erase);
 
         [StructLayout(LayoutKind.Sequential)]
@@ -1186,31 +1497,73 @@ namespace BrightIdeasSoftware
             public int y;
         }
 
-        public static int GetGroupInfo(ObjectListView olv, int groupId, ref LVGROUP2 group) {
+		/// <summary>
+		/// Gets the group info.
+		/// </summary>
+		/// <param name="olv">The olv.</param>
+		/// <param name="groupId">The group id.</param>
+		/// <param name="group">The group.</param>
+		/// <returns>An int.</returns>
+		public static int GetGroupInfo(ObjectListView olv, int groupId, ref LVGROUP2 group) {
             return (int)NativeMethods.SendMessage(olv.Handle, LVM_GETGROUPINFO, groupId, ref group);
         }
 
-        public static GroupState GetGroupState(ObjectListView olv, int groupId, GroupState mask) {
+		/// <summary>
+		/// Gets the group state.
+		/// </summary>
+		/// <param name="olv">The olv.</param>
+		/// <param name="groupId">The group id.</param>
+		/// <param name="mask">The mask.</param>
+		/// <returns>A GroupState.</returns>
+		public static GroupState GetGroupState(ObjectListView olv, int groupId, GroupState mask) {
             return (GroupState)NativeMethods.SendMessage(olv.Handle, LVM_GETGROUPSTATE, groupId, (int)mask);
         }
 
-        public static int InsertGroup(ObjectListView olv, LVGROUP2 group) {
+		/// <summary>
+		/// Inserts the group.
+		/// </summary>
+		/// <param name="olv">The olv.</param>
+		/// <param name="group">The group.</param>
+		/// <returns>An int.</returns>
+		public static int InsertGroup(ObjectListView olv, LVGROUP2 group) {
             return (int)NativeMethods.SendMessage(olv.Handle, LVM_INSERTGROUP, -1, ref group);
         }
 
-        public static int SetGroupInfo(ObjectListView olv, int groupId, LVGROUP2 group) {
+		/// <summary>
+		/// Sets the group info.
+		/// </summary>
+		/// <param name="olv">The olv.</param>
+		/// <param name="groupId">The group id.</param>
+		/// <param name="group">The group.</param>
+		/// <returns>An int.</returns>
+		public static int SetGroupInfo(ObjectListView olv, int groupId, LVGROUP2 group) {
             return (int)NativeMethods.SendMessage(olv.Handle, LVM_SETGROUPINFO, groupId, ref group);
         }
 
-        public static int SetGroupMetrics(ObjectListView olv, LVGROUPMETRICS metrics) {
+		/// <summary>
+		/// Sets the group metrics.
+		/// </summary>
+		/// <param name="olv">The olv.</param>
+		/// <param name="metrics">The metrics.</param>
+		/// <returns>An int.</returns>
+		public static int SetGroupMetrics(ObjectListView olv, LVGROUPMETRICS metrics) {
             return (int)NativeMethods.SendMessage(olv.Handle, LVM_SETGROUPMETRICS, 0, ref metrics);
         }
 
-        public static void ClearGroups(VirtualObjectListView virtualObjectListView) {
+		/// <summary>
+		/// Clears the groups.
+		/// </summary>
+		/// <param name="virtualObjectListView">The virtual object list view.</param>
+		public static void ClearGroups(VirtualObjectListView virtualObjectListView) {
             NativeMethods.SendMessage(virtualObjectListView.Handle, LVM_REMOVEALLGROUPS, 0, 0);
         }
 
-        public static void SetGroupImageList(ObjectListView olv, ImageList il) {
+		/// <summary>
+		/// Sets the group image list.
+		/// </summary>
+		/// <param name="olv">The olv.</param>
+		/// <param name="il">The il.</param>
+		public static void SetGroupImageList(ObjectListView olv, ImageList il) {
             const int LVSIL_GROUPHEADER = 3;
             IntPtr handle = IntPtr.Zero;
             if (il != null)
@@ -1218,7 +1571,13 @@ namespace BrightIdeasSoftware
             NativeMethods.SendMessage(olv.Handle, LVM_SETIMAGELIST, LVSIL_GROUPHEADER, handle);
         }
 
-        public static int HitTest(ObjectListView olv, ref LVHITTESTINFO hittest)
+		/// <summary>
+		/// Hits the test.
+		/// </summary>
+		/// <param name="olv">The olv.</param>
+		/// <param name="hittest">The hittest.</param>
+		/// <returns>An int.</returns>
+		public static int HitTest(ObjectListView olv, ref LVHITTESTINFO hittest)
         {
             return (int)NativeMethods.SendMessage(olv.Handle, olv.View == View.Details ? LVM_SUBITEMHITTEST : LVM_HITTEST, -1, ref hittest);
         }

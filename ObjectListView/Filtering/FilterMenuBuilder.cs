@@ -170,7 +170,13 @@ namespace BrightIdeasSoftware {
             return new List<ICluster>(map.Values);
         }
 
-        private void ClusterOneModel(IClusteringStrategy strategy, NullableDictionary<object, ICluster> map, object model) {
+		/// <summary>
+		/// Clusters the one model.
+		/// </summary>
+		/// <param name="strategy">The strategy.</param>
+		/// <param name="map">The map.</param>
+		/// <param name="model">The model.</param>
+		private void ClusterOneModel(IClusteringStrategy strategy, NullableDictionary<object, ICluster> map, object model) {
             object clusterKey = strategy.GetClusterKey(model);
 
             // If the returned value is an IEnumerable, that means the given model can belong to more than one cluster

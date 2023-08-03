@@ -82,5 +82,17 @@ namespace VSLauncher.Properties {
                 this["OnlyDefaultInstances"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool AlwaysAdmin {
+            get {
+                return ((bool)(this["AlwaysAdmin"]));
+            }
+            set {
+                this["AlwaysAdmin"] = value;
+            }
+        }
     }
 }

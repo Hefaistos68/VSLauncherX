@@ -124,7 +124,7 @@ namespace VSLauncher.DataModel
 		/// <param name="bShowSplash">If true, b show splash.</param>
 		/// <param name="instanceName">The instance name.</param>
 		/// <param name="command">The command.</param>
-		internal void ExecuteWith(bool bAdmin, bool bShowSplash, string projectOrSolution, string instanceName, string command)
+		internal void ExecuteWith(bool bAdmin, bool bShowSplash, string projectOrSolution, string? instanceName, string? command)
 		{
 			Process.Start(BuildStartInfo(bAdmin, bShowSplash, instanceName, command, projectOrSolution));
 		}
@@ -134,7 +134,7 @@ namespace VSLauncher.DataModel
 		/// </summary>
 		/// <param name="bAdmin">If true, b admin.</param>
 		/// <param name="instanceName">The instance name.</param>
-		internal void ExecuteWithInstance(bool bAdmin, string instanceName)
+		internal void ExecuteWithInstance(bool bAdmin, string? instanceName)
 		{
 			Process.Start(BuildStartInfo(bAdmin, instance: instanceName));
 		}

@@ -105,12 +105,15 @@ namespace VSLauncher.DataModel
 				{
 					try
 					{
-						string name = baseObj.Properties["Name"].Value.ToString();
-						string version = baseObj.Properties["Version"].Value.ToString();
-						string location = baseObj.Properties["ProductLocation"].Value.ToString();
-						string identifier = baseObj.Properties["IdentifyingNumber"].Value.ToString();
+						string? name = baseObj.Properties["Name"].Value.ToString();
+						string? version = baseObj.Properties["Version"].Value.ToString();
+						string? location = baseObj.Properties["ProductLocation"].Value.ToString();
+						string? identifier = baseObj.Properties["IdentifyingNumber"].Value.ToString();
 
-						list.Add(new VisualStudioInstance(name, version, location, identifier, VisualStudioInstanceManager.YearFromVersion(version[..2])));
+						if (name != null && version != null && location != null && identifier != null)
+						{
+							list.Add(new VisualStudioInstance(name, version, location, identifier, VisualStudioInstanceManager.YearFromVersion(version[..2])));
+						}
 					}
 					catch (Exception ex)
 					{
@@ -126,15 +129,6 @@ namespace VSLauncher.DataModel
 			list.Sort((x, y) => x.Version.CompareTo(y.Version));
 
 			return list;
-		}
-
-		/// <summary>
-		/// Get the highest installed version
-		/// </summary>
-		/// <returns>A string.</returns>
-		public VisualStudioInstance HighestVersion()
-		{
-			return this.allInstances.Last();
 		}
 
 		/// <summary>
@@ -197,7 +191,7 @@ namespace VSLauncher.DataModel
 								if (bOnlyDefaultInstances && groupName.Contains('/'))
 									continue;
 
-								var group = new VsFolder(groupName, string.Empty) { ItemType = eItemType.VisualStudio };		// keep the path empty for VS groups
+								var group = new VsFolder(groupName, string.Empty) { ItemType = ItemTypeEnum.VisualStudio };        // keep the path empty for VS groups
 								group.Icon = this.GetByName(vsName!)?.AppIcon;
 
 								// add the projects to the solution
@@ -207,7 +201,7 @@ namespace VSLauncher.DataModel
 
 									if (s.Value.LocalProperties.Type == 1)
 									{
-										item = new VsFolder(Path.GetFileNameWithoutExtension(s.Key), s.Value.LocalProperties.FullPath) { ItemType = eItemType.Project };
+										item = new VsFolder(Path.GetFileNameWithoutExtension(s.Key), s.Value.LocalProperties.FullPath) { ItemType = ItemTypeEnum.Project };
 									}
 									else
 									{
@@ -219,7 +213,6 @@ namespace VSLauncher.DataModel
 										item.Warning = item is VsFolder ? !Directory.Exists(item.Path) : !File.Exists(item.Path);
 										group.Items.Add(item);
 									}
-
 								}
 
 								solutionList.Items.Add(group);
@@ -233,6 +226,25 @@ namespace VSLauncher.DataModel
 			}
 
 			return solutionList.Items;
+		}
+
+		/// <summary>
+		/// Get the highest installed version
+		/// </summary>
+		/// <returns>A string.</returns>
+		public VisualStudioInstance HighestVersion()
+		{
+			return this.allInstances.Last();
+		}
+
+		/// <summary>
+		/// Gets the by version.
+		/// </summary>
+		/// <param name="identifier">The VS identifer</param>
+		/// <returns>A VisualStudioInstance.</returns>
+		internal VisualStudioInstance? GetByIdentifier(string identifier)
+		{
+			return this.allInstances.Where(x => x.Identifier == identifier).FirstOrDefault();
 		}
 
 		/// <summary>
@@ -253,16 +265,6 @@ namespace VSLauncher.DataModel
 		internal VisualStudioInstance? GetByVersion(string version)
 		{
 			return this.allInstances.Where(x => x.Version.StartsWith(version, StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault();
-		}
-
-		/// <summary>
-		/// Gets the by version.
-		/// </summary>
-		/// <param name="identifier">The VS identifer</param>
-		/// <returns>A VisualStudioInstance.</returns>
-		internal VisualStudioInstance? GetByIdentifier(string identifier)
-		{
-			return this.allInstances.Where(x => x.Identifier == identifier).FirstOrDefault();
 		}
 
 		/// <summary>
