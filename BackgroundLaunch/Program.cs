@@ -26,6 +26,7 @@ namespace BackgroundLaunch
 
 			if(args.Length != 2)
 			{
+				Console.WriteLine("no commandline arguments");
 				Application.Exit();
 				return;
 			}

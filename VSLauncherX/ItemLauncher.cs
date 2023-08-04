@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -73,19 +74,19 @@ namespace VSLauncher
 
 				// execute BackgroundLauncher.exe and pass s as parameter
 				string env = Environment.CurrentDirectory;
+
+				// get working directory of current assembly
+				string current = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? env;
+
 				var psi = new System.Diagnostics.ProcessStartInfo
 				{
-					FileName = "BackgroundLaunch.exe",
+					FileName = Path.Combine(current, "BackgroundLaunch.exe"),
 					Arguments = s,
 					ErrorDialog = true,
 					UseShellExecute = true,
 					Verb = (bForceAdmin | this.Solution.Items.First().RunAsAdmin) ? "runas" : "run",
-					WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden,
-					WorkingDirectory = env
+					WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden
 				};
-				// 				psi.CreateNoWindow = true;
-				// 				psi.RedirectStandardOutput = true;
-				// 				psi.RedirectStandardError = true;
 
 				var p = System.Diagnostics.Process.Start(psi);
 			});

@@ -101,7 +101,6 @@ namespace VSLauncher
 			// olvFiles
 			// 
 			olvFiles.AllColumns.Add(olvColumnFilename);
-			olvFiles.AllowDrop = true;
 			olvFiles.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
 			olvFiles.CellEditUseWholeCell = false;
 			olvFiles.CellVerticalAlignment = StringAlignment.Near;

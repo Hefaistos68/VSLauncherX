@@ -126,8 +126,6 @@ namespace VSLauncher
 			// olvFiles
 			// 
 			olvFiles.AllColumns.Add(olvColumnFilename);
-			olvFiles.AllowColumnReorder = true;
-			olvFiles.AllowDrop = true;
 			olvFiles.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
 			olvFiles.CellEditUseWholeCell = false;
 			olvFiles.CheckBoxes = true;

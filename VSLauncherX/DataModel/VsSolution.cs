@@ -155,7 +155,7 @@ namespace VSLauncher.DataModel
 		}
 
 		/// <inheritdoc/>
-		public override string? ToString()
+		public new string? ToString()
 		{
 			return $"{this.Name} ({this.TypeAsName()}, Visual Studio {this.RequiredVersion})";
 		}

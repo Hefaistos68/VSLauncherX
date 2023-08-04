@@ -1296,7 +1296,7 @@ namespace BrightIdeasSoftware
 				r3.Height -= 1;
 
 				width = r3.Width + 6;
-				g.DrawRectangle(Pens.DarkGreen, r3);
+				// g.DrawRectangle(Pens.DarkGreen, r3);
 				if (r3.Contains(x, y))
 				{
 					hti.HitTestLocation = HitTestLocation.CheckBox;

@@ -2,15 +2,22 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net6.0-windows</TargetFramework>
+    <TargetFramework>net6.0-windows10.0.17763.0</TargetFramework>
     <Nullable>enable</Nullable>
     <UseWindowsForms>false</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
     <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
-    <SignAssembly>True</SignAssembly>
+    <SignAssembly>False</SignAssembly>
     <EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
     <AnalysisLevel>latest-all</AnalysisLevel>
     <BaseOutputPath>..\VSLauncherX\bin</BaseOutputPath>
+    <StartupObject>BackgroundLaunch.Program</StartupObject>
+    <Title>Launcher for Visual Studio solutions and projects</Title>
+    <Authors>Hefaistos68</Authors>
+    <Company>ExcerWise Lda.</Company>
+    <Product>VSLauncherX</Product>
+    <Copyright>2023 ExcerWise Lda, Hefaistos68</Copyright>
+    <NeutralLanguage>en</NeutralLanguage>
   </PropertyGroup>
 
   <ItemGroup>

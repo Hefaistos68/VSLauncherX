@@ -1,6 +1,9 @@
 ﻿using System.Diagnostics;
+
 using BrightIdeasSoftware;
+
 using Newtonsoft.Json;
+
 using VSLauncher.DataModel;
 using VSLauncher.Forms;
 using VSLauncher.Helpers;
@@ -463,7 +466,13 @@ namespace VSLauncher
 		/// <param name="e">The e.</param>
 		private void olvFiles_CellToolTipShowing(object sender, ToolTipShowingEventArgs e)
 		{
-			if (e.Model is VsFolder)
+
+			if (e.ColumnIndex == olvColumnOptions.DisplayIndex)
+			{
+				VsOptions itemOptions = (VsOptions)e.Model;
+				e.Text = ((VsOptions)itemOptions).ToString();
+			}
+			else if (e.Model is VsFolder)
 			{
 				e.Text = e.Item.Text;
 			}
@@ -1005,6 +1014,14 @@ namespace VSLauncher
 
 			// don't forget to save the settings
 			Properties.Settings.Default.Save();
+		}
+
+		private void mainPanel_Resize(object sender, EventArgs e)
+		{
+			int w = txtFilter.Parent.Width;
+			w -= (34 * 5) + 12; // 5 buttons + spacer
+			w -= txtFilter.Location.X;
+			txtFilter.Width = w;
 		}
 	}
 }

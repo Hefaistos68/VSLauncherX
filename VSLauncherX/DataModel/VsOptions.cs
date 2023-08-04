@@ -1,4 +1,6 @@
-﻿namespace VSLauncher.DataModel
+﻿using System.Text;
+
+namespace VSLauncher.DataModel
 {
 	/// <summary>
 	/// The vs options.
@@ -44,5 +46,30 @@
 		/// Gets or sets the preferred monitor.
 		/// </summary>
 		public int? PreferredMonitor { get; set; }
+
+		/// <inheritdoc/>
+		public override string? ToString()
+		{
+			StringBuilder sb = new();
+			if(this.RunBefore != null)
+			{
+				sb.Append("Run Before: ");
+				sb.Append(this.RunBefore.Name);
+				sb.Append("\r\n");
+			}
+			if(this.RunAsAdmin)
+			{
+				sb.Append("Run as Admin");
+				sb.Append("\r\n");
+			}
+			if(this.RunAfter != null)
+			{
+				sb.Append("Run After: ");
+				sb.Append(this.RunAfter.Name);
+				sb.Append("\r\n");
+			}
+
+			return sb.ToString();
+		}
 	}
 }

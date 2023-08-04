@@ -93,7 +93,7 @@ namespace BackgroundLaunch
 					startInfo.Arguments += " " + item.Commands;
 				}
 			}
-			else
+			else if(item.ItemType == ItemTypeEnum.Other)
 			{
 				// startInfo.FileName = "explorer.exe";
 				startInfo.FileName = item.Path;
@@ -101,6 +101,10 @@ namespace BackgroundLaunch
 				{
 					startInfo.Arguments += item.Commands;
 				}
+			}
+			else
+			{
+				return null;
 			}
 
 			process = Process.Start(startInfo);
@@ -115,9 +119,10 @@ namespace BackgroundLaunch
 			{
 				process?.WaitForExit();
 				process?.Close();
+				process = null;
 			}
 
-			return process;
+			return process?.HasExited == true ? null : process;
 		}
 
 		/// <summary>
@@ -127,17 +132,20 @@ namespace BackgroundLaunch
 		/// <param name="preferredMonitor">The preferred monitor.</param>
 		private static void MoveProcessToMonitor(Process process, int preferredMonitor)
 		{
-			process.WaitForInputIdle(1000);
-
-			if (process.MainWindowHandle != IntPtr.Zero)
+			if (!process.HasExited)
 			{
-				if (Screen.AllScreens.Length >= preferredMonitor)
+				process.WaitForInputIdle(1000);
+
+				if (process.MainWindowHandle != IntPtr.Zero)
 				{
-					SetWindowPos(process.MainWindowHandle,
-						IntPtr.Zero,
-						Screen.AllScreens[preferredMonitor].WorkingArea.Left,
-						Screen.AllScreens[preferredMonitor].WorkingArea.Top,
-						0, 0, SWP_NOSIZE | SWP_NOZORDER);
+					if (Screen.AllScreens.Length >= preferredMonitor)
+					{
+						SetWindowPos(process.MainWindowHandle,
+							IntPtr.Zero,
+							Screen.AllScreens[preferredMonitor].WorkingArea.Left,
+							Screen.AllScreens[preferredMonitor].WorkingArea.Top,
+							0, 0, SWP_NOSIZE | SWP_NOZORDER);
+					}
 				}
 			}
 		}
@@ -149,7 +157,7 @@ namespace BackgroundLaunch
 		{
 			if (launchInfo != null && launchInfo.Solution != null)
 			{
-				RunAll(launchInfo.Solution.Items.First());
+				RunAll(launchInfo.Solution);
 			}
 		}
 

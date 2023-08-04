@@ -31,28 +31,27 @@ namespace VSLauncher
 		private void InitializeComponent()
 		{
 			this.components = new System.ComponentModel.Container();
-			ToolStripLabel toolStripLabel1;
 			ToolStripSeparator toolStripMenuItem1;
 			ToolStripSeparator toolStripMenuItem2;
+			FlowLayoutPanel flowLayoutPanel2;
+			Label label3;
 			System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainDialog));
-			mainPanel = new TableLayoutPanel();
-			leftSubPanel = new TableLayoutPanel();
-			label1 = new Label();
-			mainToolstrip = new ToolStrip();
-			txtFilter = new ToolStripTextBox();
-			toolStripSeparator1 = new ToolStripSeparator();
-			mainFolderAdd = new ToolStripButton();
-			mainImportFolder = new ToolStripButton();
-			mainImportVS = new ToolStripButton();
-			mainRefresh = new ToolStripButton();
-			_1 = new ToolStripSeparator();
-			mainSettings = new ToolStripButton();
+			TableLayoutPanel leftSubPanel;
+			Label titleLabel;
+			txtFilter = new TextBox();
+			button1 = new Button();
+			button2 = new Button();
+			button3 = new Button();
+			button4 = new Button();
+			spacer = new Label();
+			button5 = new Button();
 			olvFiles = new TreeListView();
 			olvColumnFilename = new OLVColumn();
 			olvColumnDate = new OLVColumn();
 			olvColumnOptions = new OLVColumn();
 			optionsRenderer = new MultiImageRenderer();
 			imageList3 = new ImageList(this.components);
+			mainPanel = new TableLayoutPanel();
 			flowLayoutPanel1 = new FlowLayoutPanel();
 			label2 = new Label();
 			this.selectVisualStudioVersion = new VisualStudioCombobox();
@@ -72,23 +71,20 @@ namespace VSLauncher
 			settingsToolStripMenuItem = new ToolStripMenuItem();
 			statusStrip1 = new StatusStrip();
 			mainStatusLabel = new ToolStripStatusLabel();
-			toolStripLabel1 = new ToolStripLabel();
 			toolStripMenuItem1 = new ToolStripSeparator();
 			toolStripMenuItem2 = new ToolStripSeparator();
-			mainPanel.SuspendLayout();
+			flowLayoutPanel2 = new FlowLayoutPanel();
+			label3 = new Label();
+			leftSubPanel = new TableLayoutPanel();
+			titleLabel = new Label();
+			flowLayoutPanel2.SuspendLayout();
 			leftSubPanel.SuspendLayout();
-			mainToolstrip.SuspendLayout();
 			((System.ComponentModel.ISupportInitialize)olvFiles).BeginInit();
+			mainPanel.SuspendLayout();
 			flowLayoutPanel1.SuspendLayout();
 			ctxMenu.SuspendLayout();
 			statusStrip1.SuspendLayout();
 			SuspendLayout();
-			// 
-			// toolStripLabel1
-			// 
-			toolStripLabel1.Name = "toolStripLabel1";
-			toolStripLabel1.Size = new Size(45, 34);
-			toolStripLabel1.Text = "Search:";
 			// 
 			// toolStripMenuItem1
 			// 
@@ -100,137 +96,149 @@ namespace VSLauncher
 			toolStripMenuItem2.Name = "toolStripMenuItem2";
 			toolStripMenuItem2.Size = new Size(145, 6);
 			// 
-			// mainPanel
+			// flowLayoutPanel2
 			// 
-			mainPanel.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
-			mainPanel.ColumnCount = 2;
-			mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 75F));
-			mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25F));
-			mainPanel.Controls.Add(leftSubPanel, 0, 0);
-			mainPanel.Controls.Add(flowLayoutPanel1, 1, 0);
-			mainPanel.Location = new Point(0, 0);
-			mainPanel.Margin = new Padding(4, 3, 4, 3);
-			mainPanel.Name = "mainPanel";
-			mainPanel.RowCount = 1;
-			mainPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-			mainPanel.Size = new Size(933, 496);
-			mainPanel.TabIndex = 0;
+			flowLayoutPanel2.BackColor = SystemColors.ScrollBar;
+			flowLayoutPanel2.Controls.Add(label3);
+			flowLayoutPanel2.Controls.Add(txtFilter);
+			flowLayoutPanel2.Controls.Add(button1);
+			flowLayoutPanel2.Controls.Add(button2);
+			flowLayoutPanel2.Controls.Add(button3);
+			flowLayoutPanel2.Controls.Add(button4);
+			flowLayoutPanel2.Controls.Add(spacer);
+			flowLayoutPanel2.Controls.Add(button5);
+			flowLayoutPanel2.Dock = DockStyle.Fill;
+			flowLayoutPanel2.Location = new Point(0, 40);
+			flowLayoutPanel2.Margin = new Padding(0);
+			flowLayoutPanel2.Name = "flowLayoutPanel2";
+			flowLayoutPanel2.Size = new Size(695, 35);
+			flowLayoutPanel2.TabIndex = 2;
+			flowLayoutPanel2.WrapContents = false;
 			// 
-			// leftSubPanel
+			// label3
 			// 
-			leftSubPanel.ColumnCount = 1;
-			leftSubPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
-			leftSubPanel.Controls.Add(label1, 0, 0);
-			leftSubPanel.Controls.Add(mainToolstrip, 0, 1);
-			leftSubPanel.Controls.Add(olvFiles, 0, 2);
-			leftSubPanel.Dock = DockStyle.Fill;
-			leftSubPanel.Location = new Point(4, 3);
-			leftSubPanel.Margin = new Padding(4, 3, 4, 3);
-			leftSubPanel.Name = "leftSubPanel";
-			leftSubPanel.RowCount = 3;
-			leftSubPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 26F));
-			leftSubPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 37F));
-			leftSubPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-			leftSubPanel.Size = new Size(691, 490);
-			leftSubPanel.TabIndex = 0;
-			// 
-			// label1
-			// 
-			label1.AutoSize = true;
-			label1.Font = new Font("Verdana", 14.25F, FontStyle.Bold, GraphicsUnit.Point);
-			label1.Location = new Point(4, 0);
-			label1.Margin = new Padding(4, 0, 4, 0);
-			label1.Name = "label1";
-			label1.Size = new Size(230, 23);
-			label1.TabIndex = 0;
-			label1.Text = "Solutions && Projects";
-			// 
-			// mainToolstrip
-			// 
-			mainToolstrip.AllowMerge = false;
-			mainToolstrip.Dock = DockStyle.Fill;
-			mainToolstrip.GripMargin = new Padding(0);
-			mainToolstrip.GripStyle = ToolStripGripStyle.Hidden;
-			mainToolstrip.Items.AddRange(new ToolStripItem[] { toolStripLabel1, txtFilter, toolStripSeparator1, mainFolderAdd, mainImportFolder, mainImportVS, mainRefresh, _1, mainSettings });
-			mainToolstrip.Location = new Point(0, 26);
-			mainToolstrip.Name = "mainToolstrip";
-			mainToolstrip.Padding = new Padding(0);
-			mainToolstrip.RenderMode = ToolStripRenderMode.System;
-			mainToolstrip.Size = new Size(691, 37);
-			mainToolstrip.Stretch = true;
-			mainToolstrip.TabIndex = 1;
-			mainToolstrip.Text = "toolStrip1";
+			label3.Anchor = AnchorStyles.Top | AnchorStyles.Bottom;
+			label3.Location = new Point(3, 0);
+			label3.Name = "label3";
+			label3.Size = new Size(58, 35);
+			label3.TabIndex = 0;
+			label3.Text = "Search:";
+			label3.TextAlign = ContentAlignment.MiddleRight;
 			// 
 			// txtFilter
 			// 
-			txtFilter.MaxLength = 200;
+			txtFilter.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+			txtFilter.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point);
+			txtFilter.Location = new Point(67, 3);
 			txtFilter.Name = "txtFilter";
-			txtFilter.Size = new Size(200, 37);
+			txtFilter.Size = new Size(439, 29);
+			txtFilter.TabIndex = 1;
+			txtFilter.Text = "type here";
 			txtFilter.TextChanged += txtFilter_TextChanged;
 			// 
-			// toolStripSeparator1
+			// button1
 			// 
-			toolStripSeparator1.Name = "toolStripSeparator1";
-			toolStripSeparator1.Size = new Size(6, 37);
+			button1.Image = (Image)resources.GetObject("button1.Image");
+			button1.Location = new Point(510, 1);
+			button1.Margin = new Padding(1);
+			button1.Name = "button1";
+			button1.Size = new Size(32, 32);
+			button1.TabIndex = 2;
+			tooltipForButtons.SetToolTip(button1, "Add new Group");
+			button1.UseVisualStyleBackColor = true;
+			button1.Click += mainFolderAdd_Click;
 			// 
-			// mainFolderAdd
+			// button2
 			// 
-			mainFolderAdd.DisplayStyle = ToolStripItemDisplayStyle.Image;
-			mainFolderAdd.Image = (Image)resources.GetObject("mainFolderAdd.Image");
-			mainFolderAdd.ImageTransparentColor = Color.Magenta;
-			mainFolderAdd.Name = "mainFolderAdd";
-			mainFolderAdd.Size = new Size(23, 34);
-			mainFolderAdd.Text = "&New";
-			mainFolderAdd.ToolTipText = "Add new group";
-			mainFolderAdd.Click += mainFolderAdd_Click;
+			button2.Image = (Image)resources.GetObject("button2.Image");
+			button2.Location = new Point(544, 1);
+			button2.Margin = new Padding(1);
+			button2.Name = "button2";
+			button2.Size = new Size(32, 32);
+			button2.TabIndex = 2;
+			tooltipForButtons.SetToolTip(button2, "Import from Folder");
+			button2.UseVisualStyleBackColor = true;
+			button2.Click += mainImportFolder_Click;
 			// 
-			// mainImportFolder
+			// button3
 			// 
-			mainImportFolder.DisplayStyle = ToolStripItemDisplayStyle.Image;
-			mainImportFolder.Image = Resources.OpenProjectFolder;
-			mainImportFolder.ImageTransparentColor = Color.Magenta;
-			mainImportFolder.Name = "mainImportFolder";
-			mainImportFolder.Size = new Size(23, 34);
-			mainImportFolder.Text = "Import From Folder";
-			mainImportFolder.Click += mainImportFolder_Click;
+			button3.Image = (Image)resources.GetObject("button3.Image");
+			button3.Location = new Point(578, 1);
+			button3.Margin = new Padding(1);
+			button3.Name = "button3";
+			button3.Size = new Size(32, 32);
+			button3.TabIndex = 2;
+			tooltipForButtons.SetToolTip(button3, "Import Visual Studio Recents");
+			button3.UseVisualStyleBackColor = true;
+			button3.Click += mainImportVS_Click;
 			// 
-			// mainImportVS
+			// button4
 			// 
-			mainImportVS.DisplayStyle = ToolStripItemDisplayStyle.Image;
-			mainImportVS.Image = Resources.ImportVS;
-			mainImportVS.ImageTransparentColor = Color.Magenta;
-			mainImportVS.Name = "mainImportVS";
-			mainImportVS.Size = new Size(23, 34);
-			mainImportVS.Text = "toolStripButton2";
-			mainImportVS.ToolTipText = "Import from Visual Studio";
-			mainImportVS.Click += mainImportVS_Click;
+			button4.Image = (Image)resources.GetObject("button4.Image");
+			button4.Location = new Point(612, 1);
+			button4.Margin = new Padding(1);
+			button4.Name = "button4";
+			button4.Size = new Size(32, 32);
+			button4.TabIndex = 2;
+			tooltipForButtons.SetToolTip(button4, "Refresh & Sync");
+			button4.UseVisualStyleBackColor = true;
+			button4.Click += mainRefresh_Click;
 			// 
-			// mainRefresh
+			// spacer
 			// 
-			mainRefresh.DisplayStyle = ToolStripItemDisplayStyle.Image;
-			mainRefresh.Image = (Image)resources.GetObject("mainRefresh.Image");
-			mainRefresh.ImageTransparentColor = Color.Magenta;
-			mainRefresh.Name = "mainRefresh";
-			mainRefresh.Size = new Size(23, 34);
-			mainRefresh.Text = "He&lp";
-			mainRefresh.ToolTipText = "Reload";
-			mainRefresh.Click += mainRefresh_Click;
+			spacer.Anchor = AnchorStyles.Top | AnchorStyles.Bottom;
+			spacer.Location = new Point(648, 0);
+			spacer.Name = "spacer";
+			spacer.Size = new Size(4, 35);
+			spacer.TabIndex = 0;
+			spacer.Text = " ";
+			spacer.TextAlign = ContentAlignment.MiddleRight;
 			// 
-			// _1
+			// button5
 			// 
-			_1.Name = "_1";
-			_1.Size = new Size(6, 37);
+			button5.Image = (Image)resources.GetObject("button5.Image");
+			button5.Location = new Point(656, 1);
+			button5.Margin = new Padding(1);
+			button5.Name = "button5";
+			button5.Size = new Size(32, 32);
+			button5.TabIndex = 2;
+			tooltipForButtons.SetToolTip(button5, "Application Settings");
+			button5.UseVisualStyleBackColor = true;
+			button5.Click += mainSettings_Click;
 			// 
-			// mainSettings
+			// leftSubPanel
 			// 
-			mainSettings.DisplayStyle = ToolStripItemDisplayStyle.Image;
-			mainSettings.Image = (Image)resources.GetObject("mainSettings.Image");
-			mainSettings.ImageTransparentColor = Color.Magenta;
-			mainSettings.Name = "mainSettings";
-			mainSettings.Size = new Size(23, 34);
-			mainSettings.Text = "mainSettings";
-			mainSettings.ToolTipText = "Settings";
-			mainSettings.Click += mainSettings_Click;
+			leftSubPanel.BackColor = SystemColors.ScrollBar;
+			leftSubPanel.ColumnCount = 1;
+			leftSubPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+			leftSubPanel.Controls.Add(titleLabel, 0, 0);
+			leftSubPanel.Controls.Add(olvFiles, 0, 2);
+			leftSubPanel.Controls.Add(flowLayoutPanel2, 0, 1);
+			leftSubPanel.Dock = DockStyle.Fill;
+			leftSubPanel.Location = new Point(0, 0);
+			leftSubPanel.Margin = new Padding(0, 0, 4, 0);
+			leftSubPanel.Name = "leftSubPanel";
+			leftSubPanel.RowCount = 3;
+			leftSubPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 40F));
+			leftSubPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 35F));
+			leftSubPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+			leftSubPanel.Size = new Size(695, 519);
+			leftSubPanel.TabIndex = 0;
+			// 
+			// titleLabel
+			// 
+			titleLabel.BackColor = SystemColors.ScrollBar;
+			titleLabel.CausesValidation = false;
+			titleLabel.Dock = DockStyle.Fill;
+			titleLabel.Font = new Font("Verdana", 18F, FontStyle.Bold, GraphicsUnit.Point);
+			titleLabel.Location = new Point(4, 0);
+			titleLabel.Margin = new Padding(4, 0, 4, 0);
+			titleLabel.Name = "titleLabel";
+			titleLabel.Size = new Size(687, 40);
+			titleLabel.TabIndex = 0;
+			titleLabel.Text = "Solutions & Projects";
+			titleLabel.TextAlign = ContentAlignment.MiddleLeft;
+			titleLabel.UseMnemonic = false;
 			// 
 			// olvFiles
 			// 
@@ -244,14 +252,15 @@ namespace VSLauncher
 			olvFiles.EmptyListMsg = "Add a group, import a folder or import recent items";
 			olvFiles.EmptyListMsgFont = new Font("Segoe UI", 11.25F, FontStyle.Regular, GraphicsUnit.Point);
 			olvFiles.FullRowSelect = true;
-			olvFiles.Location = new Point(3, 66);
+			olvFiles.Location = new Point(0, 75);
+			olvFiles.Margin = new Padding(0);
 			olvFiles.MultiSelect = false;
 			olvFiles.Name = "olvFiles";
 			olvFiles.SelectColumnsOnRightClickBehaviour = ObjectListView.ColumnSelectBehaviour.Submenu;
 			olvFiles.ShowCommandMenuOnRightClick = true;
 			olvFiles.ShowGroups = false;
 			olvFiles.ShowItemToolTips = true;
-			olvFiles.Size = new Size(685, 421);
+			olvFiles.Size = new Size(695, 444);
 			olvFiles.SmallImageList = imageList3;
 			olvFiles.TabIndex = 1;
 			olvFiles.UseCompatibleStateImageBehavior = false;
@@ -334,21 +343,37 @@ namespace VSLauncher
 			imageList3.Images.SetKeyName(11, "FSProject");
 			imageList3.Images.SetKeyName(12, "OpenProjectFolder");
 			imageList3.Images.SetKeyName(13, "Refresh");
-			imageList3.Images.SetKeyName(14, "RightArrowAsterisk");
-			imageList3.Images.SetKeyName(15, "Run");
-			imageList3.Images.SetKeyName(16, "RunAll");
-			imageList3.Images.SetKeyName(17, "RunUpdate");
-			imageList3.Images.SetKeyName(18, "Settings");
-			imageList3.Images.SetKeyName(19, "TSProject");
-			imageList3.Images.SetKeyName(20, "VBProject");
-			imageList3.Images.SetKeyName(21, "RunAfter");
-			imageList3.Images.SetKeyName(22, "RunBefore");
-			imageList3.Images.SetKeyName(23, "None");
-			imageList3.Images.SetKeyName(24, "RunAsAdmin");
-			imageList3.Images.SetKeyName(25, "Application");
-			imageList3.Images.SetKeyName(26, "ApplicationGroup");
-			imageList3.Images.SetKeyName(27, "VsSolution");
-			imageList3.Images.SetKeyName(28, "WebProject");
+			imageList3.Images.SetKeyName(14, "Run");
+			imageList3.Images.SetKeyName(15, "RunAll");
+			imageList3.Images.SetKeyName(16, "RunUpdate");
+			imageList3.Images.SetKeyName(17, "Settings");
+			imageList3.Images.SetKeyName(18, "TSProject");
+			imageList3.Images.SetKeyName(19, "VBProject");
+			imageList3.Images.SetKeyName(20, "None");
+			imageList3.Images.SetKeyName(21, "RunAsAdmin");
+			imageList3.Images.SetKeyName(22, "Application");
+			imageList3.Images.SetKeyName(23, "ApplicationGroup");
+			imageList3.Images.SetKeyName(24, "VsSolution");
+			imageList3.Images.SetKeyName(25, "WebProject");
+			imageList3.Images.SetKeyName(26, "RunAfter");
+			imageList3.Images.SetKeyName(27, "RunBefore");
+			// 
+			// mainPanel
+			// 
+			mainPanel.ColumnCount = 2;
+			mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+			mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 234F));
+			mainPanel.Controls.Add(leftSubPanel, 0, 0);
+			mainPanel.Controls.Add(flowLayoutPanel1, 1, 0);
+			mainPanel.Dock = DockStyle.Fill;
+			mainPanel.Location = new Point(0, 0);
+			mainPanel.Margin = new Padding(4, 3, 3, 3);
+			mainPanel.Name = "mainPanel";
+			mainPanel.RowCount = 1;
+			mainPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+			mainPanel.Size = new Size(933, 519);
+			mainPanel.TabIndex = 0;
+			mainPanel.Resize += mainPanel_Resize;
 			// 
 			// flowLayoutPanel1
 			// 
@@ -364,14 +389,14 @@ namespace VSLauncher
 			flowLayoutPanel1.Location = new Point(699, 0);
 			flowLayoutPanel1.Margin = new Padding(0);
 			flowLayoutPanel1.Name = "flowLayoutPanel1";
-			flowLayoutPanel1.Size = new Size(234, 496);
+			flowLayoutPanel1.Size = new Size(234, 519);
 			flowLayoutPanel1.TabIndex = 1;
 			// 
 			// label2
 			// 
 			label2.AutoSize = true;
-			label2.Location = new Point(3, 3);
-			label2.Margin = new Padding(3, 3, 3, 0);
+			label2.Location = new Point(3, 25);
+			label2.Margin = new Padding(3, 25, 3, 0);
 			label2.Name = "label2";
 			label2.Size = new Size(119, 15);
 			label2.TabIndex = 6;
@@ -383,13 +408,14 @@ namespace VSLauncher
 			this.selectVisualStudioVersion.DropDownHeight = 300;
 			this.selectVisualStudioVersion.DropDownStyle = ComboBoxStyle.DropDownList;
 			this.selectVisualStudioVersion.IntegralHeight = false;
-			this.selectVisualStudioVersion.ItemHeight = 26;
-			this.selectVisualStudioVersion.Location = new Point(0, 18);
-			this.selectVisualStudioVersion.Margin = new Padding(0, 0, 0, 18);
+			this.selectVisualStudioVersion.ItemHeight = 28;
+			this.selectVisualStudioVersion.Location = new Point(0, 40);
+			this.selectVisualStudioVersion.Margin = new Padding(0, 0, 0, 6);
 			this.selectVisualStudioVersion.Name = "selectVisualStudioVersion";
 			this.selectVisualStudioVersion.SelectedItem = null;
-			this.selectVisualStudioVersion.Size = new Size(232, 32);
+			this.selectVisualStudioVersion.Size = new Size(232, 34);
 			this.selectVisualStudioVersion.TabIndex = 0;
+			tooltipForButtons.SetToolTip(this.selectVisualStudioVersion, "Visual Studio versions currently instlled");
 			this.selectVisualStudioVersion.DrawItem += selectVisualStudioVersion_DrawItem;
 			this.selectVisualStudioVersion.SelectedIndexChanged += selectVisualStudioVersion_SelectedIndexChanged;
 			// 
@@ -398,7 +424,7 @@ namespace VSLauncher
 			btnMainStartVisualStudio1.Font = new Font("Segoe UI", 10F, FontStyle.Bold, GraphicsUnit.Point);
 			btnMainStartVisualStudio1.Image = (Image)resources.GetObject("btnMainStartVisualStudio1.Image");
 			btnMainStartVisualStudio1.ImageAlign = ContentAlignment.MiddleLeft;
-			btnMainStartVisualStudio1.Location = new Point(0, 68);
+			btnMainStartVisualStudio1.Location = new Point(0, 80);
 			btnMainStartVisualStudio1.Margin = new Padding(0);
 			btnMainStartVisualStudio1.Name = "btnMainStartVisualStudio1";
 			btnMainStartVisualStudio1.Padding = new Padding(4);
@@ -417,13 +443,13 @@ namespace VSLauncher
 			btnMainStartVisualStudio2.Font = new Font("Segoe UI", 10F, FontStyle.Bold, GraphicsUnit.Point);
 			btnMainStartVisualStudio2.Image = (Image)resources.GetObject("btnMainStartVisualStudio2.Image");
 			btnMainStartVisualStudio2.ImageAlign = ContentAlignment.MiddleLeft;
-			btnMainStartVisualStudio2.Location = new Point(0, 132);
+			btnMainStartVisualStudio2.Location = new Point(0, 144);
 			btnMainStartVisualStudio2.Margin = new Padding(0);
 			btnMainStartVisualStudio2.Name = "btnMainStartVisualStudio2";
 			btnMainStartVisualStudio2.Padding = new Padding(4);
 			btnMainStartVisualStudio2.Size = new Size(232, 64);
 			btnMainStartVisualStudio2.TabIndex = 2;
-			btnMainStartVisualStudio2.Tag = "Start {0} as admin";
+			btnMainStartVisualStudio2.Tag = "Start {0} as Admin";
 			btnMainStartVisualStudio2.Text = "Start Visual Studio \r\nas Admin";
 			btnMainStartVisualStudio2.TextAlign = ContentAlignment.MiddleLeft;
 			btnMainStartVisualStudio2.TextImageRelation = TextImageRelation.ImageBeforeText;
@@ -436,7 +462,7 @@ namespace VSLauncher
 			btnMainStartVisualStudio3.Font = new Font("Segoe UI", 10F, FontStyle.Bold, GraphicsUnit.Point);
 			btnMainStartVisualStudio3.Image = (Image)resources.GetObject("btnMainStartVisualStudio3.Image");
 			btnMainStartVisualStudio3.ImageAlign = ContentAlignment.MiddleLeft;
-			btnMainStartVisualStudio3.Location = new Point(0, 196);
+			btnMainStartVisualStudio3.Location = new Point(0, 208);
 			btnMainStartVisualStudio3.Margin = new Padding(0);
 			btnMainStartVisualStudio3.Name = "btnMainStartVisualStudio3";
 			btnMainStartVisualStudio3.Padding = new Padding(4);
@@ -455,7 +481,7 @@ namespace VSLauncher
 			btnMainStartVisualStudio4.Font = new Font("Segoe UI", 10F, FontStyle.Bold, GraphicsUnit.Point);
 			btnMainStartVisualStudio4.Image = (Image)resources.GetObject("btnMainStartVisualStudio4.Image");
 			btnMainStartVisualStudio4.ImageAlign = ContentAlignment.MiddleLeft;
-			btnMainStartVisualStudio4.Location = new Point(0, 260);
+			btnMainStartVisualStudio4.Location = new Point(0, 272);
 			btnMainStartVisualStudio4.Margin = new Padding(0);
 			btnMainStartVisualStudio4.Name = "btnMainStartVisualStudio4";
 			btnMainStartVisualStudio4.Padding = new Padding(4);
@@ -474,7 +500,7 @@ namespace VSLauncher
 			btnMainStartVisualStudio5.Font = new Font("Segoe UI", 10F, FontStyle.Bold, GraphicsUnit.Point);
 			btnMainStartVisualStudio5.Image = (Image)resources.GetObject("btnMainStartVisualStudio5.Image");
 			btnMainStartVisualStudio5.ImageAlign = ContentAlignment.MiddleLeft;
-			btnMainStartVisualStudio5.Location = new Point(0, 324);
+			btnMainStartVisualStudio5.Location = new Point(0, 336);
 			btnMainStartVisualStudio5.Margin = new Padding(0);
 			btnMainStartVisualStudio5.Name = "btnMainStartVisualStudio5";
 			btnMainStartVisualStudio5.Padding = new Padding(4);
@@ -565,7 +591,7 @@ namespace VSLauncher
 			// mainStatusLabel
 			// 
 			mainStatusLabel.Name = "mainStatusLabel";
-			mainStatusLabel.Size = new Size(94, 17);
+			mainStatusLabel.Size = new Size(193, 17);
 			mainStatusLabel.Text = "Lets do something incredible today";
 			// 
 			// MainDialog
@@ -581,12 +607,11 @@ namespace VSLauncher
 			this.Text = "Visual Studio Launcher";
 			FormClosing += MainDialog_FormClosing;
 			Load += MainDialog_Load;
-			mainPanel.ResumeLayout(false);
+			flowLayoutPanel2.ResumeLayout(false);
+			flowLayoutPanel2.PerformLayout();
 			leftSubPanel.ResumeLayout(false);
-			leftSubPanel.PerformLayout();
-			mainToolstrip.ResumeLayout(false);
-			mainToolstrip.PerformLayout();
 			((System.ComponentModel.ISupportInitialize)olvFiles).EndInit();
+			mainPanel.ResumeLayout(false);
 			flowLayoutPanel1.ResumeLayout(false);
 			flowLayoutPanel1.PerformLayout();
 			ctxMenu.ResumeLayout(false);
@@ -597,26 +622,16 @@ namespace VSLauncher
 		}
 
 		#endregion
-		private ToolStrip mainToolstrip;
-		private ToolStripButton mainFolderAdd;
-		private ToolStripButton mainRefresh;
-		private ToolStripButton mainSettings;
 		private TreeListView olvFiles;
 		private OLVColumn olvColumnFilename;
 		private OLVColumn olvColumnOptions;
 		private OLVColumn olvColumnDate;
 
-		private ContextMenuStrip contextMenuStrip2;
 		private ToolStripStatusLabel toolStripStatusLabel3;
 		private TableLayoutPanel mainPanel;
-		private TableLayoutPanel leftSubPanel;
-		private Label label1;
-		private ToolStripSeparator _1;
 		private ImageList imageList3;
 		private ImageList imageListMainIcons;
 		private MultiImageRenderer optionsRenderer;
-		private ToolStripButton mainImportFolder;
-		private ToolStripButton mainImportVS;
 		private FlowLayoutPanel flowLayoutPanel1;
 		private Button btnMainStartVisualStudio1;
 		private Button btnMainStartVisualStudio2;
@@ -629,14 +644,19 @@ namespace VSLauncher
 		private ToolStripMenuItem runToolStripMenuItem;
 		private ToolStripMenuItem runAsAdminToolStripMenuItem;
 		private ToolStripMenuItem renameToolStripMenuItem;
-		private ToolStripSeparator toolStripMenuItem1;
 		private ToolStripMenuItem settingsToolStripMenuItem;
-		private ToolStripTextBox txtFilter;
-		private ToolStripSeparator toolStripSeparator1;
 		private StatusStrip statusStrip1;
 		private ToolStripStatusLabel mainStatusLabel;
 		private ToolStripMenuItem deleteToolStripMenuItem;
 		private Label label2;
+		private Label label3;
+		private TextBox txtFilter;
+		private Button button1;
+		private Button button2;
+		private Button button3;
+		private Button button4;
+		private Button button5;
+		private Label spacer;
 	}
 }
 
