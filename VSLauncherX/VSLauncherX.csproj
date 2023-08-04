@@ -7,7 +7,7 @@
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
     <StartupObject>VSLauncher.Program</StartupObject>
-    <ApplicationIcon>Resources\AppLogo.ico</ApplicationIcon>
+    <ApplicationIcon>Resources\AppLogo2.ico</ApplicationIcon>
     <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
     <RootNamespace>VSLauncher</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
@@ -31,7 +31,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="Resources\AppLogo.ico" />
+    <Content Include="Resources\AppLogo2.ico" />
     <Content Include="Resources\Images\AddFavorite.png" />
     <Content Include="Resources\Images\AddFolder.png" />
     <Content Include="Resources\Images\ArrowDownEnd.png" />

@@ -1,9 +1,6 @@
 ﻿using System.Diagnostics;
-
 using BrightIdeasSoftware;
-
 using Newtonsoft.Json;
-
 using VSLauncher.DataModel;
 using VSLauncher.Forms;
 using VSLauncher.Helpers;
@@ -281,6 +278,14 @@ namespace VSLauncher
 		/// <param name="e">The e.</param>
 		private void MainDialog_Load(object sender, EventArgs e)
 		{
+			if (Properties.Settings.Default.AppState == "saved")
+			{
+				// we don't want a minimized window at startup
+				this.WindowState = Properties.Settings.Default.AppWindow == FormWindowState.Minimized ? FormWindowState.Normal : Properties.Settings.Default.AppWindow;
+				this.Location = Properties.Settings.Default.AppLocation;
+				this.Size = Properties.Settings.Default.AppSize;
+			}
+
 			txtFilter.Focus();
 		}
 
@@ -944,7 +949,7 @@ namespace VSLauncher
 				this.Cursor = Cursors.WaitCursor;
 				var vs = dlg.VsVersion;
 
-				if(dlg.Item is not null)
+				if (dlg.Item is not null)
 				{
 					vs.ExecuteWith(dlg.Item.RunAsAdmin, dlg.Item.ShowSplash, dlg.Item.Path!, dlg.Item.Instance, dlg.Item.Commands);
 				}
@@ -973,6 +978,33 @@ namespace VSLauncher
 			// TODO: must verify items before loading, indicate missing items through warning icon
 			this.olvFiles.SetObjects(this.solutionGroups.Items);
 			this.olvFiles.ExpandAll();
+		}
+
+		/// <summary>
+		/// Handles the form closing, saves state
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
+		private void MainDialog_FormClosing(object sender, FormClosingEventArgs e)
+		{
+			Properties.Settings.Default.AppWindow = this.WindowState;
+			if (this.WindowState == FormWindowState.Normal)
+			{
+				// save location and size if the state is normal
+				Properties.Settings.Default.AppLocation = this.Location;
+				Properties.Settings.Default.AppSize = this.Size;
+			}
+			else
+			{
+				// save the RestoreBounds if the form is minimized or maximized!
+				Properties.Settings.Default.AppLocation = this.RestoreBounds.Location;
+				Properties.Settings.Default.AppSize = this.RestoreBounds.Size;
+			}
+
+			Properties.Settings.Default.AppState = "saved";
+
+			// don't forget to save the settings
+			Properties.Settings.Default.Save();
 		}
 	}
 }

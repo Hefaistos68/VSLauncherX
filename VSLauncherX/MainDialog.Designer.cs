@@ -54,6 +54,7 @@ namespace VSLauncher
 			optionsRenderer = new MultiImageRenderer();
 			imageList3 = new ImageList(this.components);
 			flowLayoutPanel1 = new FlowLayoutPanel();
+			label2 = new Label();
 			this.selectVisualStudioVersion = new VisualStudioCombobox();
 			btnMainStartVisualStudio1 = new Button();
 			btnMainStartVisualStudio2 = new Button();
@@ -71,7 +72,6 @@ namespace VSLauncher
 			settingsToolStripMenuItem = new ToolStripMenuItem();
 			statusStrip1 = new StatusStrip();
 			mainStatusLabel = new ToolStripStatusLabel();
-			label2 = new Label();
 			toolStripLabel1 = new ToolStripLabel();
 			toolStripMenuItem1 = new ToolStripSeparator();
 			toolStripMenuItem2 = new ToolStripSeparator();
@@ -367,6 +367,16 @@ namespace VSLauncher
 			flowLayoutPanel1.Size = new Size(234, 496);
 			flowLayoutPanel1.TabIndex = 1;
 			// 
+			// label2
+			// 
+			label2.AutoSize = true;
+			label2.Location = new Point(3, 3);
+			label2.Margin = new Padding(3, 3, 3, 0);
+			label2.Name = "label2";
+			label2.Size = new Size(119, 15);
+			label2.TabIndex = 6;
+			label2.Text = "Visual Studio version:";
+			// 
 			// selectVisualStudioVersion
 			// 
 			this.selectVisualStudioVersion.DrawMode = DrawMode.OwnerDrawFixed;
@@ -377,6 +387,7 @@ namespace VSLauncher
 			this.selectVisualStudioVersion.Location = new Point(0, 18);
 			this.selectVisualStudioVersion.Margin = new Padding(0, 0, 0, 18);
 			this.selectVisualStudioVersion.Name = "selectVisualStudioVersion";
+			this.selectVisualStudioVersion.SelectedItem = null;
 			this.selectVisualStudioVersion.Size = new Size(232, 32);
 			this.selectVisualStudioVersion.TabIndex = 0;
 			this.selectVisualStudioVersion.DrawItem += selectVisualStudioVersion_DrawItem;
@@ -555,17 +566,7 @@ namespace VSLauncher
 			// 
 			mainStatusLabel.Name = "mainStatusLabel";
 			mainStatusLabel.Size = new Size(94, 17);
-			mainStatusLabel.Text = "mainStatusLabel";
-			// 
-			// label2
-			// 
-			label2.AutoSize = true;
-			label2.Location = new Point(3, 3);
-			label2.Margin = new Padding(3, 3, 3, 0);
-			label2.Name = "label2";
-			label2.Size = new Size(119, 15);
-			label2.TabIndex = 6;
-			label2.Text = "Visual Studio version:";
+			mainStatusLabel.Text = "Lets do something incredible today";
 			// 
 			// MainDialog
 			// 
@@ -578,6 +579,7 @@ namespace VSLauncher
 			this.Margin = new Padding(4, 3, 4, 3);
 			this.Name = "MainDialog";
 			this.Text = "Visual Studio Launcher";
+			FormClosing += MainDialog_FormClosing;
 			Load += MainDialog_Load;
 			mainPanel.ResumeLayout(false);
 			leftSubPanel.ResumeLayout(false);
