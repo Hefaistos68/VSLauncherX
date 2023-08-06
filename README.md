@@ -4,6 +4,8 @@
 
 This application is a helper application for developers who use Visual Studio as their main tool for building applications.
 
+![Main screen](.\docs\MainScreen - sample.jpg)
+
 At its core, it is a list of recently used solutions and projects in any currently installed Visual Studio version. It can detect all installed versions from 2017 to 2022 currently, including all profiles created in any of them.
 
 Note: will use SoP as abbreviation for "Solutions and/or Projects"
@@ -48,4 +50,7 @@ Also, as of late, the "Start Window" of Visual Studio is not the most helpful, b
 - Taskbar integration for even quicker launching
 - Support for dark mode
 - Support for non-Windows environments 
+
+![SoP Settings](.\docs\Settings - sample.jpg)
+
 
