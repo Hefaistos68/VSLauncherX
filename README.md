@@ -4,7 +4,7 @@
 
 This application is a helper application for developers who use Visual Studio as their main tool for building applications.
 
-![Main screen](.\docs\MainScreen - sample.jpg)
+![Main screen](https://github.com/Hefaistos68/VSLauncherX/docs/MainScreen-sample.jpg)
 
 At its core, it is a list of recently used solutions and projects in any currently installed Visual Studio version. It can detect all installed versions from 2017 to 2022 currently, including all profiles created in any of them.
 
@@ -51,6 +51,6 @@ Also, as of late, the "Start Window" of Visual Studio is not the most helpful, b
 - Support for dark mode
 - Support for non-Windows environments 
 
-![SoP Settings](.\docs\Settings - sample.jpg)
+![SoP Settings](https://github.com/Hefaistos68/VSLauncherX/docs/Settings-sample.jpg)
 
 
