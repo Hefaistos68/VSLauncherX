@@ -17,6 +17,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Files", "Solution 
 		README.md = README.md
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{7BBE1A8C-C32D-48A9-832B-68055165EE65}"
+	ProjectSection(SolutionItems) = preProject
+		docs\MainScreen - sample.jpg = docs\MainScreen - sample.jpg
+		docs\Settings - sample.jpg = docs\Settings - sample.jpg
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
