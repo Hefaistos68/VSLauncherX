@@ -68,6 +68,7 @@ namespace VSLauncher
 			btnSelectFolder.TabIndex = 1;
 			btnSelectFolder.Text = "...";
 			btnSelectFolder.UseVisualStyleBackColor = true;
+			btnSelectFolder.Click += btnSelectFolder_Click;
 			// 
 			// txtFoldername
 			// 

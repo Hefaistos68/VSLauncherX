@@ -19,5 +19,20 @@ namespace VSLauncher.Forms
 		{
 			InitializeComponent();
 		}
+
+		private void btnOk_Click(object sender, EventArgs e)
+		{
+			Properties.Settings.Default.AlwaysAdmin = chkAlwaysAdmin.Checked;
+			Properties.Settings.Default.SynchronizeVS = chkSync.Checked;
+			Properties.Settings.Default.ShowPathForSolutions = chkShowPath.Checked;
+			Properties.Settings.Default.Save();
+		}
+
+		private void dlgSettings_Load(object sender, EventArgs e)
+		{
+			chkAlwaysAdmin.Checked = Properties.Settings.Default.AlwaysAdmin;
+			chkSync.Checked = Properties.Settings.Default.SynchronizeVS;
+			chkShowPath.Checked = Properties.Settings.Default.ShowPathForSolutions;
+		}
 	}
 }

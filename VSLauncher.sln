@@ -8,6 +8,15 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BackgroundLaunch", "Backgro
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ObjectListView2022", "ObjectListView\ObjectListView2022.csproj", "{18FEDA0C-D147-4286-B39A-01204808106A}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Files", "Solution Files", "{FC707DC2-F9AD-4DD2-B2B3-A82FBBEF96EF}"
+	ProjectSection(SolutionItems) = preProject
+		AUTHORS.md = AUTHORS.md
+		CODE_OF_CONDUCT.md = CODE_OF_CONDUCT.md
+		CONTRIBUTING.md = CONTRIBUTING.md
+		LICENSE.md = LICENSE.md
+		README.md = README.md
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

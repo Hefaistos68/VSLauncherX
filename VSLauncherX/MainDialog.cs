@@ -346,7 +346,7 @@ namespace VSLauncher
 					if (r.RowObject is VsFolder sg)
 					{
 						// add below selected item
-						sg.Items.Add(dlg.Solution.Items.First());
+						sg.Items.AddRange(dlg.Solution.Items);
 					}
 					else
 					{

@@ -106,5 +106,17 @@ namespace VSLauncher.Properties {
                 this["AppState"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool SynchronizeVS {
+            get {
+                return ((bool)(this["SynchronizeVS"]));
+            }
+            set {
+                this["SynchronizeVS"] = value;
+            }
+        }
     }
 }

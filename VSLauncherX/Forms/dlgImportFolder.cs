@@ -93,7 +93,6 @@ namespace VSLauncher
 
 				// read the last folder from the application settings and set it as the initial folder
 				folderBrowserDialog.SelectedPath = Properties.Settings.Default.LastImportFolder;
-
 				folderBrowserDialog.RootFolder = Environment.SpecialFolder.MyComputer;
 
 				if (folderBrowserDialog.ShowDialog() == DialogResult.OK)
@@ -104,7 +103,6 @@ namespace VSLauncher
 
 					// store current folderPath in application settings
 					Properties.Settings.Default.LastImportFolder = folderPath;
-
 
 					this.Cursor = Cursors.WaitCursor;
 					UpdateList();
@@ -247,6 +245,7 @@ namespace VSLauncher
 			}
 			else
 			{
+				txtFoldername.Text = Properties.Settings.Default.LastImportFolder;
 				UpdateList();
 			}
 		}

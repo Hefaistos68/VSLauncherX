@@ -61,6 +61,7 @@
 			btnOk.Text = " Ok";
 			btnOk.TextImageRelation = TextImageRelation.ImageBeforeText;
 			btnOk.UseVisualStyleBackColor = true;
+			btnOk.Click += btnOk_Click;
 			// 
 			// chkAlwaysAdmin
 			// 
@@ -113,6 +114,7 @@
 			this.SizeGripStyle = SizeGripStyle.Hide;
 			this.StartPosition = FormStartPosition.CenterParent;
 			this.Text = "Visual Studio Launcher General Settings";
+			Load += dlgSettings_Load;
 			ResumeLayout(false);
 			PerformLayout();
 		}
