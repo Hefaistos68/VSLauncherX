@@ -92,12 +92,26 @@ namespace VSLauncher.DataModel
 			return $"{Name} ({Version})";
 		}
 
+		private bool Execute(ProcessStartInfo psi)
+		{
+			try
+			{
+				Process.Start(psi);
+			}
+			catch(Exception ex)
+			{
+				MessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+				return false;
+			}
+
+			return true;
+		}
 		/// <summary>
 		/// Executes the.
 		/// </summary>
 		internal void Execute()
 		{
-			Process.Start(BuildStartInfo());
+			Execute(BuildStartInfo());
 		}
 
 		/// <summary>
@@ -105,7 +119,7 @@ namespace VSLauncher.DataModel
 		/// </summary>
 		internal void ExecuteAsAdmin()
 		{
-			Process.Start(BuildStartInfo(true));
+			Execute(BuildStartInfo(true));
 		}
 
 		/// <summary>
@@ -114,7 +128,7 @@ namespace VSLauncher.DataModel
 		/// <param name="bAdmin">If true, b admin.</param>
 		internal void ExecuteNewProject(bool bAdmin)
 		{
-			Process.Start(BuildStartInfo(bAdmin, command: "np"));
+			Execute(BuildStartInfo(bAdmin, command: "np"));
 		}
 
 		/// <summary>
@@ -126,7 +140,7 @@ namespace VSLauncher.DataModel
 		/// <param name="command">The command.</param>
 		internal void ExecuteWith(bool bAdmin, bool bShowSplash, string projectOrSolution, string? instanceName, string? command)
 		{
-			Process.Start(BuildStartInfo(bAdmin, bShowSplash, instanceName, command, projectOrSolution));
+			Execute(BuildStartInfo(bAdmin, bShowSplash, instanceName, command, projectOrSolution));
 		}
 
 		/// <summary>
@@ -136,7 +150,7 @@ namespace VSLauncher.DataModel
 		/// <param name="instanceName">The instance name.</param>
 		internal void ExecuteWithInstance(bool bAdmin, string? instanceName)
 		{
-			Process.Start(BuildStartInfo(bAdmin, instance: instanceName));
+			Execute(BuildStartInfo(bAdmin, instance: instanceName));
 		}
 
 		/// <summary>
@@ -185,7 +199,10 @@ namespace VSLauncher.DataModel
 				// TODO: must run as non-admin user, revert to user from admin
 			}
 
-			si.UseShellExecute = true;
+			if (bAdmin)
+				si.UseShellExecute = true;
+			else
+				si.UseShellExecute = false;
 
 			BuildVisualStudioCommandline(bShowSplash, instance, command, projectOrSolution).ForEach(x => si.ArgumentList.Add(x));
 			

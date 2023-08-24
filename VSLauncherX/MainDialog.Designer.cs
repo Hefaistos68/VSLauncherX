@@ -133,7 +133,7 @@ namespace VSLauncher
 			txtFilter.Name = "txtFilter";
 			txtFilter.Size = new Size(439, 29);
 			txtFilter.TabIndex = 1;
-			txtFilter.Text = "type here";
+			txtFilter.Text = "";
 			txtFilter.TextChanged += txtFilter_TextChanged;
 			// 
 			// button1

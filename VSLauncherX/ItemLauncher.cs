@@ -78,14 +78,15 @@ namespace VSLauncher
 				// get working directory of current assembly
 				string current = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? env;
 
+				bool bRequireAdmin = (bForceAdmin | this.Solution.RunAsAdmin);
 				var psi = new System.Diagnostics.ProcessStartInfo
 				{
 					FileName = Path.Combine(current, "BackgroundLaunch.exe"),
 					Arguments = s,
-					ErrorDialog = true,
-					UseShellExecute = true,
-					Verb = (bForceAdmin | this.Solution.Items.First().RunAsAdmin) ? "runas" : "run",
-					WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden
+					ErrorDialog = false,
+					UseShellExecute = bRequireAdmin,
+					Verb = bRequireAdmin ? "runas" : "run",
+					WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden,
 				};
 
 				var p = System.Diagnostics.Process.Start(psi);
