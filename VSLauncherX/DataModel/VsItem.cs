@@ -69,6 +69,11 @@ namespace VSLauncher.DataModel
 		public string? Instance { get; set; }
 
 		/// <summary>
+		/// Gets or sets the Visual Studio Version to use
+		/// </summary>
+		public string? VsVersion { get; set; }
+
+		/// <summary>
 		/// Gets the last modified.
 		/// </summary>
 		[JsonIgnore]

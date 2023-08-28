@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using System.Management;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
@@ -244,6 +245,9 @@ namespace VSLauncher.DataModel
 		/// <returns>A VisualStudioInstance.</returns>
 		internal VisualStudioInstance? GetByIdentifier(string identifier)
 		{
+			if (string.IsNullOrEmpty(identifier))
+				return HighestVersion();
+
 			return this.allInstances.Where(x => x.Identifier == identifier).FirstOrDefault();
 		}
 
@@ -254,6 +258,9 @@ namespace VSLauncher.DataModel
 		/// <returns>A VisualStudioInstance.</returns>
 		internal VisualStudioInstance? GetByName(string name)
 		{
+			if (string.IsNullOrEmpty(name))
+				return HighestVersion();
+
 			return this.allInstances.Where(x => x.ShortName.Equals(name, StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault();
 		}
 
@@ -262,8 +269,11 @@ namespace VSLauncher.DataModel
 		/// </summary>
 		/// <param name="version">The version.</param>
 		/// <returns>A VisualStudioInstance.</returns>
-		internal VisualStudioInstance? GetByVersion(string version)
+		internal VisualStudioInstance? GetByVersion(string? version)
 		{
+			if (string.IsNullOrEmpty(version))
+				return HighestVersion();
+
 			return this.allInstances.Where(x => x.Version.StartsWith(version, StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault();
 		}
 

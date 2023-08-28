@@ -18,7 +18,12 @@ namespace VSLauncher.Forms
 		public frmPing(int n)
 		{
 			InitializeComponent();
-			this.txtInfo.Text = n.ToString();
+			this.txtInfo.Text = (1+n).ToString();
+			
+			if(n >= 0 && n < Screen.AllScreens.Length)
+			{
+				this.Location = Screen.AllScreens[n].Bounds.Location;
+			}
 		}
 
 		/// <summary>

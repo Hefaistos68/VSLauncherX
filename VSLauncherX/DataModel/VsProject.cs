@@ -44,11 +44,6 @@ namespace VSLauncher.DataModel
 		public ProjectTypeEnum ProjectType { get; set; }
 
 		/// <summary>
-		/// Gets the required visual studio version, this is the instance identifier
-		/// </summary>
-		public string VsVersion { get; set; } = "";
-
-		/// <summary>
 		/// Gets the .Net version.
 		/// </summary>
 		/// <returns>A string.</returns>

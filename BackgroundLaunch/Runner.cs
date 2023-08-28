@@ -75,22 +75,23 @@ namespace BackgroundLaunch
 			startInfo.Verb = item.RunAsAdmin ? "runas" : "run";
 			startInfo.ErrorDialog = true;
 
-			if (item.ItemType == ItemTypeEnum.Solution)
-			{
-				startInfo.FileName = this.launchInfo.Target;
-				startInfo.Arguments = item.Path;
-				if(!string.IsNullOrEmpty(item.Commands))
-				{
-					startInfo.Arguments += " " + item.Commands;
-				}
-			}
-			else if (item.ItemType == ItemTypeEnum.Project)
+			if ((item.ItemType == ItemTypeEnum.Solution) || (item.ItemType == ItemTypeEnum.Project))
 			{
 				startInfo.FileName = this.launchInfo.Target;
 				startInfo.Arguments = item.Path;
 				if (!string.IsNullOrEmpty(item.Commands))
 				{
 					startInfo.Arguments += " " + item.Commands;
+				}
+
+				if (!item.ShowSplash)
+				{
+					startInfo.Arguments += " /NoSplash";
+				}
+
+				if (item.Instance != null)
+				{
+					startInfo.Arguments += " /RootSuffix " + item.Instance;
 				}
 			}
 			else if(item.ItemType == ItemTypeEnum.Other)
@@ -132,9 +133,10 @@ namespace BackgroundLaunch
 		/// <param name="preferredMonitor">The preferred monitor.</param>
 		private static void MoveProcessToMonitor(Process process, int preferredMonitor)
 		{
-			if (!process.HasExited)
+			while (!process.HasExited)
 			{
-				process.WaitForInputIdle(1000);
+				process.WaitForInputIdle(500);
+				process.Refresh();
 
 				if (process.MainWindowHandle != IntPtr.Zero)
 				{
@@ -146,6 +148,8 @@ namespace BackgroundLaunch
 							Screen.AllScreens[preferredMonitor].WorkingArea.Top,
 							0, 0, SWP_NOSIZE | SWP_NOZORDER);
 					}
+
+					return;
 				}
 			}
 		}

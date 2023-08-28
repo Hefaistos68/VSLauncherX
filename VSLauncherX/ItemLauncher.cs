@@ -51,13 +51,18 @@ namespace VSLauncher
 		public VisualStudioInstance Target { get; }
 
 		/// <summary>
+		/// Gets the last exception.
+		/// </summary>
+		public Exception LastException { get; private set; }
+
+		/// <summary>
 		/// Launches the.
 		/// </summary>
 		/// <param name="bForceAdmin">If true, b force admin.</param>
-		public void Launch(bool bForceAdmin = false)
+		public Task Launch(bool bForceAdmin = false)
 		{
 			// Execute the item, run the before and after items if set, elevate to admin if required
-			Task.Run(() =>
+			return Task.Run(() =>
 			{
 				var li = new LaunchInfo() { Solution = this.Solution, Target = this.Target.Location };
 
@@ -89,7 +94,15 @@ namespace VSLauncher
 					WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden,
 				};
 
-				var p = System.Diagnostics.Process.Start(psi);
+				try
+				{
+					var p = System.Diagnostics.Process.Start(psi);
+				}
+				catch(Exception ex)
+				{
+					this.LastException = ex;
+					Debug.WriteLine(ex.ToString());
+				}
 			});
 		}
 

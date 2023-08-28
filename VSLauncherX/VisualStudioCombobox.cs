@@ -41,7 +41,7 @@ namespace VSLauncher
 			}
 		}
 		/// <summary>
-		/// Selects the active item from a version string
+		/// Selects the active item from a version string (exact or major version), a shortname or an identifier
 		/// </summary>
 		/// <param name="v">The v.</param>
 		internal void SelectFromVersion(string? v)

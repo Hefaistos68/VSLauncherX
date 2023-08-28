@@ -713,22 +713,35 @@ namespace VSLauncher
 		private void runToolStripMenuItem_Click(object sender, EventArgs e)
 		{
 			var item = olvFiles.SelectedItem.RowObject;
-			var vs = this.selectVisualStudioVersion.SelectedItem as VisualStudioInstance ?? throw new InvalidCastException();
+			var vs = this.selectVisualStudioVersion.SelectedItem;
+			ItemLauncher il = null;
 
 			if (item is VsFolder f)
 			{
-				new ItemLauncher(f, vs).Launch();
+				vs = String.IsNullOrEmpty(f.VsVersion) ? visualStudioInstances.GetByIdentifier(f.VsVersion) : vs;
+				il = new ItemLauncher(f, vs);
 			}
 			else if (item is VsSolution s)
 			{
 				vs = visualStudioInstances.GetByVersion(s.RequiredVersion) ?? vs;
-				new ItemLauncher(s, vs).Launch();
+				il = new ItemLauncher(s, vs);
 			}
 			else if (item is VsProject p)
 			{
 				vs = visualStudioInstances.GetByIdentifier(p.VsVersion) ?? vs;
-				new ItemLauncher(p, vs).Launch();
+				il = new ItemLauncher(p, vs);
 			}
+
+			if (il != null)
+			{
+				il.Launch().Wait();
+
+				if(il.LastException != null)
+				{
+					MessageBox.Show(il.LastException.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+				}
+			}
+
 		}
 
 		/// <summary>

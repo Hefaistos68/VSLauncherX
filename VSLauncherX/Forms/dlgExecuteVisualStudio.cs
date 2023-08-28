@@ -26,7 +26,7 @@ namespace VSLauncher
 															"Cxx Projects (*.vcxproj)|*.vcxproj" +
 															"All files (*.*)|*.*";
 
-		public VsItem? Item;
+		private VsItem? currentItem;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="dlgExecuteVisualStudio"/> class.
@@ -34,7 +34,7 @@ namespace VSLauncher
 		public dlgExecuteVisualStudio(int index)
 		{
 			InitializeComponent();
-			this.visualStudioCombobox1.SelectedIndex = index; // that is always the same as in the main dialog
+			this.cbxVisualStudioVersion.SelectedIndex = index; // that is always the same as in the main dialog
 			this.Item = new VsItem();
 		}
 
@@ -62,15 +62,7 @@ namespace VSLauncher
 			this.cbxMonitors.Items.AddRange(monitors.Select(m => m.DeviceName).ToArray());
 			this.cbxMonitors.SelectedIndex = 0;
 
-			if (monitors.Length > 1)
-			{
-			}
-			else
-			{
-				this.cbxMonitors.Enabled = false;
-			}
-			
-			this.cbxMonitors.Enabled = true;
+			this.cbxMonitors.Enabled = monitors.Length > 1;
 		}
 
 		/// <summary>
@@ -78,8 +70,10 @@ namespace VSLauncher
 		/// </summary>
 		private void UpdateControlsFromData()
 		{
-			if(this.Item is not null)
+			if (this.Item is not null)
 			{
+				this.txtName.Text = this.Item.Name;
+				this.cbxVisualStudioVersion.SelectFromVersion(this.Item.VsVersion);
 				this.txtFoldername.Text = this.Item.Path;
 				this.txtCommand.Text = this.Item.Commands;
 				this.cbxInstance.Text = string.IsNullOrWhiteSpace(this.Item.Instance) ? "<default>" : this.Item.Instance;
@@ -93,6 +87,19 @@ namespace VSLauncher
 		/// Gets the vs version.
 		/// </summary>
 		public VisualStudioInstance VsVersion { get; private set; }
+
+		public VsItem? Item
+		{
+			get
+			{
+				return this.currentItem;
+			}
+
+			set
+			{
+				this.currentItem = value;
+			}
+		}
 
 		/// <summary>
 		/// Handles text changes
@@ -108,14 +115,14 @@ namespace VSLauncher
 		/// </summary>
 		/// <param name="sender">The sender.</param>
 		/// <param name="e">The e.</param>
-		private void visualStudioCombobox1_SelectedIndexChanged(object sender, EventArgs e)
+		private void cbxVisualStudioVersion_SelectedIndexChanged(object sender, EventArgs e)
 		{
-			var s = this.visualStudioCombobox1.Versions[visualStudioCombobox1.SelectedIndex].GetInstances();
+			var s = this.cbxVisualStudioVersion.Versions[cbxVisualStudioVersion.SelectedIndex].GetInstances();
 			this.cbxInstance.Items.Clear();
 			this.cbxInstance.Items.AddRange(s.ToArray());
 			this.cbxInstance.SelectedIndex = 0;
 
-			this.VsVersion = visualStudioCombobox1.SelectedItem;
+			this.VsVersion = cbxVisualStudioVersion.SelectedItem;
 		}
 
 		/// <summary>
@@ -128,19 +135,21 @@ namespace VSLauncher
 			if (this.Item is not null)
 			{
 				this.Item.Path = txtFoldername.Text;
+				this.Item.Name = txtName.Text;
 				this.Item.RunAsAdmin = chkAdmin.Checked;
 				this.Item.ShowSplash = chkSplash.Checked;
 				this.Item.Instance = (cbxInstance.Text == "<default>") || string.IsNullOrWhiteSpace(cbxInstance.Text) ? null : cbxInstance.Text;
 				this.Item.Commands = txtCommand.Text;
 				this.Item.PreferredMonitor = cbxMonitors.SelectedIndex;
-				
+				this.Item.VsVersion = cbxVisualStudioVersion.SelectedItem.Identifier;
+
 				if (this.Item is VsProject p)
 				{
-					p.VsVersion = this.visualStudioCombobox1.SelectedItem.Identifier;
+					p.VsVersion = this.cbxVisualStudioVersion.SelectedItem.Identifier;
 				}
-				else if(this.Item is VsSolution s)
+				else if (this.Item is VsSolution s)
 				{
-					s.RequiredVersion = this.visualStudioCombobox1.SelectedItem.Identifier;
+					s.RequiredVersion = this.cbxVisualStudioVersion.SelectedItem.Identifier;
 				}
 			}
 		}
@@ -242,7 +251,7 @@ namespace VSLauncher
 			string? version ="";
 
 			// make this a change dialog and add Save
-			if(this.Item != null)
+			if (this.Item != null)
 			{
 				this.btnOk.Text = this.btnOk.Tag as string;
 			}
@@ -250,16 +259,16 @@ namespace VSLauncher
 			if (this.Item is VsProject p)
 			{
 				version = p.GetRequiredVersion();
-				this.visualStudioCombobox1.SelectFromVersion(version);
+				this.cbxVisualStudioVersion.SelectFromVersion(version);
 			}
 			else if (this.Item is VsSolution s)
 			{
 				version = s.GetRequiredVersion();
-				this.visualStudioCombobox1.SelectFromVersion(version);
+				this.cbxVisualStudioVersion.SelectFromVersion(version);
 			}
 			else if (this.Item is VsFolder f)
 			{
-				this.visualStudioCombobox1.Enabled = false;
+				this.cbxVisualStudioVersion.Enabled = false;
 				this.cbxInstance.Enabled = false;
 				this.txtFoldername.Focus();
 			}
@@ -268,7 +277,7 @@ namespace VSLauncher
 				throw new ArgumentException("Unknown type of item");
 			}
 
-			if (this.visualStudioCombobox1.SelectedIndex == -1)
+			if (this.cbxVisualStudioVersion.SelectedIndex == -1)
 			{
 				if (string.IsNullOrEmpty(version))
 				{
@@ -314,32 +323,9 @@ namespace VSLauncher
 			// show an transparent window on the selected monitor in cbxMonitors
 			if (cbxMonitors.SelectedIndex != -1)
 			{
-				var monitor = (int)cbxMonitors.SelectedIndex;
-
-				if(false)
-				{
-					string s = (monitor+1).ToString();
-					var screen = Screen.AllScreens[monitor];
-
-					var pt = screen.WorkingArea;
-
-					IntPtr desktop = GetDC(IntPtr.Zero);
-					using (Graphics g = Graphics.FromHdc(desktop))
-					{
-						var fontB = new Font("Segoe UI", (pt.Height / 2) + 4, FontStyle.Bold);
-						var font = new Font("Segoe UI", pt.Height / 2, FontStyle.Bold);
-						var numberBox = g.MeasureString(s, font);
-
-						g.DrawString(s, fontB, Brushes.Black, pt.X + ((pt.Width - numberBox.Width) / 2) - 2, pt.Y + ((pt.Height - numberBox.Height) / 2) - 2);
-						g.DrawString(s, font, Brushes.White, pt.X + ((pt.Width - numberBox.Width) / 2), pt.Y + ((pt.Height - numberBox.Height) / 2));
-					}
-					ReleaseDC(IntPtr.Zero, desktop);
-				}
-				else
-				{
-					var f = new frmPing(monitor + 1);
-					f.Show();
-				}
+				var monitor = cbxMonitors.SelectedIndex;
+				var f = new frmPing(monitor);
+				f.Show();
 			}
 		}
 	}
