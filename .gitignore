@@ -364,3 +364,5 @@ FodyWeavers.xsd
 
 # vshistory backup files
 .vshistory/
+/BackgroundLaunch/Properties/launchSettings.json
+/BackgroundLaunch/Properties/launchSettings.json
