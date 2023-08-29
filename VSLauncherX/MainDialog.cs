@@ -187,6 +187,23 @@ namespace VSLauncher
 			{
 				return x is VsFolder;
 			};
+
+			this.olvFiles.Expanded += delegate (object? sender, TreeBranchExpandedEventArgs e)
+			{
+				if (e.Model is VsFolder sg)
+				{
+					sg.Expanded = true;
+				}
+			};
+
+			this.olvFiles.Collapsed += delegate (object? sender, TreeBranchCollapsedEventArgs e)
+			{
+				if (e.Model is VsFolder sg)
+				{
+					sg.Expanded = false;
+				}
+			};
+
 			this.olvFiles.ChildrenGetter = delegate (object x)
 			{
 				if (x is VsFolder sg)
@@ -259,7 +276,16 @@ namespace VSLauncher
 				{
 					TypeNameHandling = TypeNameHandling.All
 				};
-				var data = JsonConvert.DeserializeObject<VsFolder>(json, settings);
+
+				VsFolder? data = null;
+				try
+				{
+					data = JsonConvert.DeserializeObject<VsFolder>(json, settings);
+				}
+				catch (System.Exception ex)
+				{
+					// probably wrong format
+				}
 
 				if (data is null)
 				{
@@ -275,7 +301,7 @@ namespace VSLauncher
 		}
 
 		/// <summary>
-		/// Mains the dialog_ load.
+		/// Handles the load event.
 		/// </summary>
 		/// <param name="sender">The sender.</param>
 		/// <param name="e">The e.</param>
@@ -293,7 +319,7 @@ namespace VSLauncher
 		}
 
 		/// <summary>
-		/// mains the folder add_ click.
+		/// Handles adding a folder.
 		/// </summary>
 		/// <param name="sender">The sender.</param>
 		/// <param name="e">The e.</param>
@@ -326,7 +352,7 @@ namespace VSLauncher
 		}
 
 		/// <summary>
-		/// mains the import folder_ click.
+		/// Handles importing from a folder.
 		/// </summary>
 		/// <param name="sender">The sender.</param>
 		/// <param name="e">The e.</param>
@@ -350,8 +376,11 @@ namespace VSLauncher
 					}
 					else
 					{
+						// get parent of this item
+						var vsi = this.solutionGroups.FindParent( r.RowObject as VsItem);
+
 						// add at the end
-						this.solutionGroups.Items.Add(dlg.Solution.Items.First());
+						this.solutionGroups.Items.AddRange(dlg.Solution.Items);
 					}
 				}
 
@@ -360,7 +389,7 @@ namespace VSLauncher
 		}
 
 		/// <summary>
-		/// mains the import v s_ click.
+		/// Handles importing from VS button.
 		/// </summary>
 		/// <param name="sender">The sender.</param>
 		/// <param name="e">The e.</param>
@@ -390,7 +419,7 @@ namespace VSLauncher
 		}
 
 		/// <summary>
-		/// mains the refresh_ click.
+		/// Handles the refresh button.
 		/// </summary>
 		/// <param name="sender">The sender.</param>
 		/// <param name="e">The e.</param>
@@ -1010,7 +1039,7 @@ namespace VSLauncher
 		{
 			// TODO: must verify items before loading, indicate missing items through warning icon
 			this.olvFiles.SetObjects(this.solutionGroups.Items);
-			this.olvFiles.ExpandAll();
+			// this.olvFiles.ExpandAll();
 		}
 
 		/// <summary>

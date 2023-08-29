@@ -24,6 +24,7 @@ namespace VSLauncher
 		{
 			InitializeComponent();
 			this.ItemName = vsi.Name ?? "";
+			this.txtItemName.Text = this.ItemName;
 		}
 
 		/// <summary>

@@ -59,6 +59,7 @@ namespace VSLauncher
 			var monitors = Screen.AllScreens;
 
 			this.cbxMonitors.Items.Clear();
+			this.cbxMonitors.Items.Add("<default>");
 			this.cbxMonitors.Items.AddRange(monitors.Select(m => m.DeviceName).ToArray());
 			this.cbxMonitors.SelectedIndex = 0;
 
@@ -79,7 +80,7 @@ namespace VSLauncher
 				this.cbxInstance.Text = string.IsNullOrWhiteSpace(this.Item.Instance) ? "<default>" : this.Item.Instance;
 				this.chkAdmin.Checked = this.Item.RunAsAdmin;
 				this.chkSplash.Checked = this.Item.ShowSplash;
-				this.cbxMonitors.SelectedItem = this.Item.PreferredMonitor ?? 0;
+				this.cbxMonitors.SelectedItem = this.Item.PreferredMonitor.HasValue ? this.Item.PreferredMonitor : 0;
 			}
 		}
 
@@ -140,7 +141,7 @@ namespace VSLauncher
 				this.Item.ShowSplash = chkSplash.Checked;
 				this.Item.Instance = (cbxInstance.Text == "<default>") || string.IsNullOrWhiteSpace(cbxInstance.Text) ? null : cbxInstance.Text;
 				this.Item.Commands = txtCommand.Text;
-				this.Item.PreferredMonitor = cbxMonitors.SelectedIndex;
+				this.Item.PreferredMonitor = cbxMonitors.SelectedIndex > 0 ? cbxMonitors.SelectedIndex - 1 : null;
 				this.Item.VsVersion = cbxVisualStudioVersion.SelectedItem.Identifier;
 
 				if (this.Item is VsProject p)
@@ -321,9 +322,9 @@ namespace VSLauncher
 		private void btnPingMonitor_Click(object sender, EventArgs e)
 		{
 			// show an transparent window on the selected monitor in cbxMonitors
-			if (cbxMonitors.SelectedIndex != -1)
+			if (cbxMonitors.SelectedIndex > 0)
 			{
-				var monitor = cbxMonitors.SelectedIndex;
+				var monitor = cbxMonitors.SelectedIndex - 1;
 				var f = new frmPing(monitor);
 				f.Show();
 			}

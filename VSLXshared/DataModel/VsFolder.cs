@@ -107,6 +107,11 @@ namespace VSLauncher.DataModel
 		}
 
 		/// <summary>
+		/// Gets or sets a value indicating whether this folder is expanded
+		/// </summary>
+		public bool Expanded { get; set; }
+
+		/// <summary>
 		/// Clones the object
 		/// </summary>
 		/// <returns>A VsItem.</returns>
