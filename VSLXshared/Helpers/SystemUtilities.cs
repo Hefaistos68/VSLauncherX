@@ -33,7 +33,7 @@ namespace VSLauncher.Helpers
         /// process directly without it becoming elevated. So to workaround this, we have
         /// explorer do the process creation (explorer is typically running unelevated).
         /// </summary>
-        internal static void ExecuteProcessUnElevated(string process, string args, string currentDirectory = "")
+        public static void ExecuteProcessUnElevated(string process, string args, string currentDirectory = "")
         {
             var shellWindows = (IShellWindows)new CShellWindows();
 

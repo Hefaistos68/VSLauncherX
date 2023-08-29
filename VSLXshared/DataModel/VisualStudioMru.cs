@@ -11,7 +11,7 @@ namespace VSLauncher.DataModel
 	/// <summary>
 	/// The visual studio MRU structure as used in %LOCALAPPDATA%\Local\Microsoft\VisualStudio\*\ApplicationPrivateSettings.xml
 	/// </summary>
-	internal class VisualStudioMru
+	public class VisualStudioMru
 	{
 		public List<MruEntry> MruList { get; set; }
 	}

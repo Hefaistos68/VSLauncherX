@@ -683,6 +683,17 @@ namespace VSLauncher
 		/// <param name="e">The e.</param>
 		private void renameToolStripMenuItem_Click(object sender, EventArgs e)
 		{
+			var item = olvFiles.SelectedItem.RowObject;
+			if (item is VsItem vsi)
+			{
+				var dlg = new dlgRename(vsi);
+				if (dlg.ShowDialog() == DialogResult.OK)
+				{
+					vsi.Name = dlg.ItemName;
+
+					this.SolutionData_OnChanged(true);
+				}
+			}
 		}
 
 		/// <summary>
@@ -736,7 +747,7 @@ namespace VSLauncher
 			{
 				il.Launch().Wait();
 
-				if(il.LastException != null)
+				if (il.LastException != null)
 				{
 					MessageBox.Show(il.LastException.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
 				}
@@ -1035,6 +1046,36 @@ namespace VSLauncher
 			w -= (34 * 5) + 12; // 5 buttons + spacer
 			w -= txtFilter.Location.X;
 			txtFilter.Width = w;
+		}
+
+		private void newGroupToolStripMenuItem_Click(object sender, EventArgs e)
+		{
+			// redirect to existing code
+			mainFolderAdd_Click(sender, e);
+		}
+
+		private void fromFolderToolStripMenuItem_Click(object sender, EventArgs e)
+		{
+			// redirect to existing code
+			mainImportFolder_Click(sender, e);
+		}
+
+		private void solutionProjectToolStripMenuItem_Click(object sender, EventArgs e)
+		{
+
+		}
+
+		private void ctxMenu_Opening(object sender, System.ComponentModel.CancelEventArgs e)
+		{
+			// if the currently selected item is a group, enable the "Add..." menu item, otherwise remove it 
+			if (this.olvFiles.SelectedObject is VsFolder)
+			{
+				this.ctxMenu.Items[0].Enabled = true;
+			}
+			else
+			{
+				this.ctxMenu.Items[0].Enabled = false;
+			}
 		}
 	}
 }

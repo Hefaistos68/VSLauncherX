@@ -243,7 +243,7 @@ namespace VSLauncher.DataModel
 		/// </summary>
 		/// <param name="identifier">The VS identifer</param>
 		/// <returns>A VisualStudioInstance.</returns>
-		internal VisualStudioInstance? GetByIdentifier(string identifier)
+		public VisualStudioInstance? GetByIdentifier(string identifier)
 		{
 			if (string.IsNullOrEmpty(identifier))
 				return HighestVersion();
@@ -256,7 +256,7 @@ namespace VSLauncher.DataModel
 		/// </summary>
 		/// <param name="name">The name.</param>
 		/// <returns>A VisualStudioInstance.</returns>
-		internal VisualStudioInstance? GetByName(string name)
+		public VisualStudioInstance? GetByName(string name)
 		{
 			if (string.IsNullOrEmpty(name))
 				return HighestVersion();
@@ -269,7 +269,7 @@ namespace VSLauncher.DataModel
 		/// </summary>
 		/// <param name="version">The version.</param>
 		/// <returns>A VisualStudioInstance.</returns>
-		internal VisualStudioInstance? GetByVersion(string? version)
+		public VisualStudioInstance? GetByVersion(string? version)
 		{
 			if (string.IsNullOrEmpty(version))
 				return HighestVersion();

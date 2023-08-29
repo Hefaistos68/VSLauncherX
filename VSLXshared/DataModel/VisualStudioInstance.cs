@@ -8,6 +8,8 @@ using System.Reflection;
 using System.Xml.Linq;
 using System.Security.Principal;
 using VSLauncher.Helpers;
+using System.Drawing;
+using VSLXshared;
 
 namespace VSLauncher.DataModel
 {
@@ -109,7 +111,7 @@ namespace VSLauncher.DataModel
 		/// <summary>
 		/// Executes the.
 		/// </summary>
-		internal void Execute()
+		public void Execute()
 		{
 			Execute(BuildStartInfo());
 		}
@@ -117,7 +119,7 @@ namespace VSLauncher.DataModel
 		/// <summary>
 		/// Executes the as admin.
 		/// </summary>
-		internal void ExecuteAsAdmin()
+		public void ExecuteAsAdmin()
 		{
 			Execute(BuildStartInfo(true));
 		}
@@ -126,7 +128,7 @@ namespace VSLauncher.DataModel
 		/// Executes the new project.
 		/// </summary>
 		/// <param name="bAdmin">If true, b admin.</param>
-		internal void ExecuteNewProject(bool bAdmin)
+		public void ExecuteNewProject(bool bAdmin)
 		{
 			Execute(BuildStartInfo(bAdmin, command: "np"));
 		}
@@ -138,7 +140,7 @@ namespace VSLauncher.DataModel
 		/// <param name="bShowSplash">If true, b show splash.</param>
 		/// <param name="instanceName">The instance name.</param>
 		/// <param name="command">The command.</param>
-		internal void ExecuteWith(bool bAdmin, bool bShowSplash, string projectOrSolution, string? instanceName, string? command)
+		public void ExecuteWith(bool bAdmin, bool bShowSplash, string projectOrSolution, string? instanceName, string? command)
 		{
 			Execute(BuildStartInfo(bAdmin, bShowSplash, instanceName, command, projectOrSolution));
 		}
@@ -148,7 +150,7 @@ namespace VSLauncher.DataModel
 		/// </summary>
 		/// <param name="bAdmin">If true, b admin.</param>
 		/// <param name="instanceName">The instance name.</param>
-		internal void ExecuteWithInstance(bool bAdmin, string? instanceName)
+		public void ExecuteWithInstance(bool bAdmin, string? instanceName)
 		{
 			Execute(BuildStartInfo(bAdmin, instance: instanceName));
 		}

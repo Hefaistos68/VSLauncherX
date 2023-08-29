@@ -137,7 +137,7 @@ namespace VSLauncher.DataModel
 		/// </summary>
 		/// <param name="solutionType">The solution type.</param>
 		/// <returns>An object.</returns>
-		internal string TypeAsName()
+		public string TypeAsName()
 		{
 			return this.ProjectType switch
 			{

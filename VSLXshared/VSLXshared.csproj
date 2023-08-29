@@ -1,20 +1,15 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>WinExe</OutputType>
-    <TargetFramework>net6.0-windows10.0.17763.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <UseWindowsForms>true</UseWindowsForms>
+    <TargetFramework>net6.0-windows</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
-    <StartupObject>VSLauncher.Program</StartupObject>
-    <ApplicationIcon>Resources\AppLogo2.ico</ApplicationIcon>
-    <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
-    <RootNamespace>VSLauncher</RootNamespace>
-    <ApplicationManifest>app.manifest</ApplicationManifest>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	  <UseWindowsForms>true</UseWindowsForms>
+	  <Nullable>enable</Nullable>
+	  <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Resources\AppLogo2.ico" />
     <None Remove="Resources\Images\AddFavorite.png" />
     <None Remove="Resources\Images\AddFolder.png" />
     <None Remove="Resources\Images\ArrowDownEnd.png" />
@@ -49,60 +44,24 @@
 
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="System.Drawing.Common" Version="7.0.0" />
     <PackageReference Include="System.Management" Version="7.0.2" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\ObjectListView\ObjectListView2022.csproj" />
-    <ProjectReference Include="..\VSLXshared\VSLXshared.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Update="Forms\dlgImportVisualStudio.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Update="Forms\dlgImportFolder.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Update="dlgNewInstance - Copy.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Update="Forms\dlgRename.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Update="MainDialog.cs" />
-    <Compile Update="Properties\Settings.Designer.cs">
-      <DesignTimeSharedInput>True</DesignTimeSharedInput>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Settings.settings</DependentUpon>
-    </Compile>
     <Compile Update="Resources.Designer.cs">
+      <DependentUpon>Resources.resx</DependentUpon>
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
-      <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Update="Forms\dlgImportVisualStudio.resx">
-      <SubType>Designer</SubType>
-    </EmbeddedResource>
     <EmbeddedResource Update="Resources.resx">
       <SubType>Designer</SubType>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
       <Generator>ResXFileCodeGenerator</Generator>
     </EmbeddedResource>
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Update="Properties\Settings.settings">
-      <Generator>SettingsSingleFileGenerator</Generator>
-      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
-    </None>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="reference\" />
   </ItemGroup>
 
 </Project>

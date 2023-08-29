@@ -4,7 +4,7 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net6.0-windows10.0.17763.0</TargetFramework>
     <Nullable>enable</Nullable>
-    <UseWindowsForms>false</UseWindowsForms>
+    <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
     <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
     <SignAssembly>False</SignAssembly>
@@ -30,7 +30,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\VSLauncherX\VSLauncherX.csproj" />
+    <ProjectReference Include="..\VCLXshared\VSLXshared.csproj" />
+    <ProjectReference Include="..\VSLXshared\VSLXshared.csproj" />
   </ItemGroup>
 
 </Project>

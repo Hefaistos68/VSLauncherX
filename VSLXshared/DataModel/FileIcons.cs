@@ -2,6 +2,8 @@
 
 using Microsoft.Win32;
 
+using VSLXshared;
+
 namespace VSLauncher.DataModel
 {
 	/// <summary>

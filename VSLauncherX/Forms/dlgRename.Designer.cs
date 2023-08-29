@@ -1,6 +1,6 @@
 ﻿namespace VSLauncher
 {
-	partial class dlgNewInstance
+	partial class dlgRename
 	{
 		/// <summary>
 		/// Required designer variable.
@@ -31,7 +31,7 @@
 			Label label1;
 			btnCancel = new Button();
 			btnOk = new Button();
-			txtInstanceName = new TextBox();
+			txtItemName = new TextBox();
 			label1 = new Label();
 			SuspendLayout();
 			// 
@@ -42,7 +42,7 @@
 			label1.Name = "label1";
 			label1.Size = new Size(152, 15);
 			label1.TabIndex = 0;
-			label1.Text = "Name for the new instance:";
+			label1.Text = "Name for item:";
 			// 
 			// btnCancel
 			// 
@@ -70,11 +70,11 @@
 			// 
 			// txtItemName
 			// 
-			txtInstanceName.Location = new Point(12, 27);
-			txtInstanceName.Name = "txtInstanceName";
-			txtInstanceName.Size = new Size(322, 23);
-			txtInstanceName.TabIndex = 1;
-			txtInstanceName.TextChanged += txtInstanceName_TextChanged;
+			txtItemName.Location = new Point(12, 27);
+			txtItemName.Name = "txtItemName";
+			txtItemName.Size = new Size(322, 23);
+			txtItemName.TabIndex = 1;
+			txtItemName.TextChanged += txtItemName_TextChanged;
 			// 
 			// dlgNewInstance
 			// 
@@ -86,17 +86,17 @@
 			this.ControlBox = false;
 			this.Controls.Add(btnCancel);
 			this.Controls.Add(btnOk);
-			this.Controls.Add(txtInstanceName);
+			this.Controls.Add(txtItemName);
 			this.Controls.Add(label1);
 			this.FormBorderStyle = FormBorderStyle.FixedDialog;
 			this.MaximizeBox = false;
 			this.MdiChildrenMinimizedAnchorBottom = false;
 			this.MinimizeBox = false;
-			this.Name = "dlgNewInstance";
+			this.Name = "dlgRename";
 			this.ShowIcon = false;
 			this.SizeGripStyle = SizeGripStyle.Hide;
 			this.StartPosition = FormStartPosition.CenterParent;
-			this.Text = "New Instance";
+			this.Text = "Rename Item";
 			ResumeLayout(false);
 			PerformLayout();
 		}
@@ -105,6 +105,6 @@
 
 		private Button btnCancel;
 		private Button btnOk;
-		private TextBox txtInstanceName;
+		private TextBox txtItemName;
 	}
 }

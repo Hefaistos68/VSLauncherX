@@ -189,7 +189,7 @@ namespace VSLauncher.DataModel
 		/// </summary>
 		/// <param name="item">The item.</param>
 		/// <returns>A VsFolder.</returns>
-		internal VsFolder? FindParent(object item)
+		public VsFolder? FindParent(object item)
 		{
 			if (this.Items.Contains(item))
 				return this;
