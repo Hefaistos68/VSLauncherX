@@ -1,5 +1,7 @@
 ﻿using VSLauncher.DataModel;
 
+using VSLXshared.Helpers;
+
 namespace VSLauncher
 {
 	/// <summary>
@@ -7,12 +9,6 @@ namespace VSLauncher
 	/// </summary>
 	public partial class dlgBeforeAfter : Form
 	{
-		private readonly string executablesFilterString = "Executable files (*.exe)|*.exe|" +
-															"Batch files (*.bat)|*.bat|" +
-															"Command files (*.cmd)|*.cmd|" +
-															"PowerShell files (*.ps1)|*.ps1|" +
-															"All files (*.*)|*.*";
-
 		/// <summary>
 		/// Initializes a new instance of the <see cref="dlgAddFolder"/> class.
 		/// </summary>
@@ -56,7 +52,7 @@ namespace VSLauncher
 		{
 			using (OpenFileDialog openFileDialog = new OpenFileDialog())
 			{
-				openFileDialog.Filter = executablesFilterString;
+				openFileDialog.Filter = FileHelper.ExecutablesFilterString;
 				openFileDialog.FilterIndex = 1;
 				openFileDialog.RestoreDirectory = true;
 
@@ -78,7 +74,7 @@ namespace VSLauncher
 		{
 			using (OpenFileDialog openFileDialog = new OpenFileDialog())
 			{
-				openFileDialog.Filter = executablesFilterString;
+				openFileDialog.Filter = FileHelper.ExecutablesFilterString;
 				openFileDialog.FilterIndex = 1;
 				openFileDialog.RestoreDirectory = true;
 

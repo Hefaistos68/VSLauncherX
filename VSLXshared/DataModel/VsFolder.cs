@@ -109,6 +109,7 @@ namespace VSLauncher.DataModel
 		/// <summary>
 		/// Gets or sets a value indicating whether this folder is expanded
 		/// </summary>
+		[JsonIgnore]
 		public bool Expanded { get; set; }
 
 		/// <summary>

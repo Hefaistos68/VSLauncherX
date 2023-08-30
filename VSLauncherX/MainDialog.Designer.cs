@@ -38,6 +38,7 @@ namespace VSLauncher
 			System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainDialog));
 			TableLayoutPanel leftSubPanel;
 			Label titleLabel;
+			Label label2;
 			txtFilter = new TextBox();
 			button1 = new Button();
 			button2 = new Button();
@@ -53,7 +54,6 @@ namespace VSLauncher
 			imageList3 = new ImageList(this.components);
 			mainPanel = new TableLayoutPanel();
 			flowLayoutPanel1 = new FlowLayoutPanel();
-			label2 = new Label();
 			this.selectVisualStudioVersion = new VisualStudioCombobox();
 			btnMainStartVisualStudio1 = new Button();
 			btnMainStartVisualStudio2 = new Button();
@@ -82,6 +82,7 @@ namespace VSLauncher
 			label3 = new Label();
 			leftSubPanel = new TableLayoutPanel();
 			titleLabel = new Label();
+			label2 = new Label();
 			flowLayoutPanel2.SuspendLayout();
 			leftSubPanel.SuspendLayout();
 			((System.ComponentModel.ISupportInitialize)olvFiles).BeginInit();
@@ -362,6 +363,16 @@ namespace VSLauncher
 			imageList3.Images.SetKeyName(26, "RunAfter");
 			imageList3.Images.SetKeyName(27, "RunBefore");
 			// 
+			// label2
+			// 
+			label2.AutoSize = true;
+			label2.Location = new Point(3, 25);
+			label2.Margin = new Padding(3, 25, 3, 0);
+			label2.Name = "label2";
+			label2.Size = new Size(119, 15);
+			label2.TabIndex = 6;
+			label2.Text = "Visual Studio version:";
+			// 
 			// mainPanel
 			// 
 			mainPanel.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
@@ -395,16 +406,6 @@ namespace VSLauncher
 			flowLayoutPanel1.Name = "flowLayoutPanel1";
 			flowLayoutPanel1.Size = new Size(234, 497);
 			flowLayoutPanel1.TabIndex = 1;
-			// 
-			// label2
-			// 
-			label2.AutoSize = true;
-			label2.Location = new Point(3, 25);
-			label2.Margin = new Padding(3, 25, 3, 0);
-			label2.Name = "label2";
-			label2.Size = new Size(119, 15);
-			label2.TabIndex = 6;
-			label2.Text = "Visual Studio version:";
 			// 
 			// selectVisualStudioVersion
 			// 
@@ -687,7 +688,6 @@ namespace VSLauncher
 		private ToolStripStatusLabel mainStatusLabel;
 		private ToolStripMenuItem deleteToolStripMenuItem;
 		private Label label2;
-		private Label label3;
 		private TextBox txtFilter;
 		private Button button1;
 		private Button button2;

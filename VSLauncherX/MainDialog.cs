@@ -8,6 +8,8 @@ using VSLauncher.DataModel;
 using VSLauncher.Forms;
 using VSLauncher.Helpers;
 
+using VSLXshared.Helpers;
+
 namespace VSLauncher
 {
 	/// <summary>
@@ -34,7 +36,7 @@ namespace VSLauncher
 			this.solutionGroups.Items.OnChanged += SolutionData_OnChanged;
 
 			InitializeComponent();
-			InitializeListview(this.solutionGroups.Items);
+			InitializeListview();
 			SetupDragAndDrop();
 
 			// BuildTestData();
@@ -158,7 +160,7 @@ namespace VSLauncher
 		/// Initializes the listview.
 		/// </summary>
 		/// <param name="list">The list.</param>
-		private void InitializeListview(VsItemList list)
+		private void InitializeListview()
 		{
 			this.olvFiles.FullRowSelect = true;
 			this.olvFiles.RowHeight = 56;
@@ -362,29 +364,66 @@ namespace VSLauncher
 			if (dlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
 			{
 				var r = this.olvFiles.SelectedItem;
-				if (r == null)
+				var source = dlg.Solution.Items;
+
+				MergeNewItems(r, source);
+
+				this.SolutionData_OnChanged(true);
+			}
+		}
+
+		/// <summary>
+		/// Merges the new items into the selected list item
+		/// </summary>
+		/// <param name="r">The selected item</param>
+		/// <param name="source">The source.</param>
+		private void MergeNewItems(OLVListItem r, VsItemList source)
+		{
+			if (r == null)
+			{
+				// nothing selected, add to the end
+				this.solutionGroups.Items.AddRange(source);
+			}
+			else
+			{
+				if (r.RowObject is VsFolder sg)
 				{
-					// nothing selected, add to the end
-					this.solutionGroups.Items.Add(dlg.Solution.Items.First());
+					// add below selected item
+					sg.Items.AddRange(source);
 				}
 				else
 				{
-					if (r.RowObject is VsFolder sg)
-					{
-						// add below selected item
-						sg.Items.AddRange(dlg.Solution.Items);
-					}
-					else
-					{
-						// get parent of this item
-						var vsi = this.solutionGroups.FindParent( r.RowObject as VsItem);
+					// get parent of this item
+					var vsi = this.solutionGroups.FindParent(r.RowObject as VsItem);
 
-						// add at the end
-						this.solutionGroups.Items.AddRange(dlg.Solution.Items);
-					}
+					// add at the end
+					this.solutionGroups.Items.AddRange(source);
 				}
+			}
+		}
 
-				this.SolutionData_OnChanged(true);
+		private void MergeNewItem(OLVListItem r, VsItem source)
+		{
+			if (r == null)
+			{
+				// nothing selected, add to the end
+				this.solutionGroups.Items.Add(source);
+			}
+			else
+			{
+				if (r.RowObject is VsFolder sg)
+				{
+					// add below selected item
+					sg.Items.Add(source);
+				}
+				else
+				{
+					// get parent of this item
+					var vsi = this.solutionGroups.FindParent(r.RowObject as VsItem);
+
+					// add at the end
+					this.solutionGroups.Items.Add(source);
+				}
 			}
 		}
 
@@ -399,20 +438,9 @@ namespace VSLauncher
 			if (dlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
 			{
 				var r = this.olvFiles.SelectedItem;
-				if (r == null)
-				{
-					solutionGroups = dlg.Solution;
-				}
-				else
-				{
-					if (r.RowObject is VsFolder sg)
-					{
-						sg.Items.Add(dlg.Solution);
-					}
-					else
-					{
-					}
-				}
+				var source = dlg.Solution.Items;
+
+				MergeNewItems(r, source);
 
 				this.SolutionData_OnChanged(true);
 			}
@@ -522,15 +550,6 @@ namespace VSLauncher
 		}
 
 		/// <summary>
-		/// olvs the files_ dropped.
-		/// </summary>
-		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
-		private void olvFiles_Dropped(object sender, OlvDropEventArgs e)
-		{
-		}
-
-		/// <summary>
 		/// olv_S the hot item changed.
 		/// </summary>
 		/// <param name="sender">The sender.</param>
@@ -554,14 +573,6 @@ namespace VSLauncher
 			Object rowObject = this.olvFiles.SelectedObject;
 			if (rowObject == null)
 				return;
-
-			if (rowObject is DirectoryInfo)
-			{
-			}
-			else
-			{
-				// ShellUtilities.Execute(((FileInfo)rowObject).FullName);
-			}
 		}
 
 		/// <summary>
@@ -612,7 +623,7 @@ namespace VSLauncher
 		/// </summary>
 		/// <param name="sender">The sender.</param>
 		/// <param name="e">The e.</param>
-		private void olvFiles_ModelDroppedHandler(object sender, ModelDropEventArgs e)
+		private void olvFiles_ModelDroppedHandler(object? sender, ModelDropEventArgs e)
 		{
 			if (e.SourceModels.Count == 1)
 			{
@@ -671,7 +682,7 @@ namespace VSLauncher
 		/// </summary>
 		/// <param name="sender">The sender.</param>
 		/// <param name="e">The e.</param>
-		private void olvFiles_SelectedIndexChanged(object sender, EventArgs e)
+		private void olvFiles_SelectedIndexChanged(object? sender, EventArgs e)
 		{
 			// update status bar text with info on selected item
 			if (olvFiles.SelectedItem != null)
@@ -921,6 +932,39 @@ namespace VSLauncher
 
 			this.olvFiles.ModelCanDrop += olvFiles_ModelCanDropHandler;
 			this.olvFiles.ModelDropped += olvFiles_ModelDroppedHandler;
+
+			this.olvFiles.CanDrop += olvFiles_CanDrop;
+			this.olvFiles.Dropped += olvFiles_Dropped;
+		}
+
+		private void olvFiles_Dropped(object? sender, OlvDropEventArgs e)
+		{
+			string[] files = (string[])((DataObject)e.DataObject).GetData(DataFormats.FileDrop);
+
+			foreach (string file in files)
+			{
+				var item = ImportHelper.GetItemFromExtension(Path.GetFileNameWithoutExtension(file), file);
+				if(item != null && item.ItemType != ItemTypeEnum.Other)
+				{
+					MergeNewItem(e.DropTargetItem, item);
+				}
+			}
+
+			e.Handled = true;
+		}
+
+		private void olvFiles_CanDrop(object? sender, OlvDropEventArgs e)
+		{
+			// check if a solution or project is being dragged and allow
+			// only if the target is a solution group
+			if (e.DataObject is not null)
+			{
+				if(((DataObject)e.DataObject).GetDataPresent(DataFormats.FileDrop))
+				{
+					e.Effect = DragDropEffects.Copy;
+					e.Handled = true;
+				}
+			}
 		}
 
 		/// <summary>
@@ -1091,7 +1135,23 @@ namespace VSLauncher
 
 		private void solutionProjectToolStripMenuItem_Click(object sender, EventArgs e)
 		{
+			var dlg = new OpenFileDialog
+			{
+				Filter = FileHelper.SolutionFilterString,
+				Title = "Select a solution or project file"
+			};
 
+			if (dlg.ShowDialog() == DialogResult.OK)
+			{
+				var item = ImportHelper.GetItemFromExtension(Path.GetFileNameWithoutExtension(dlg.FileName), dlg.FileName);
+				var dlg2 = new dlgExecuteVisualStudio(item);
+				if (dlg2.ShowDialog() == DialogResult.OK)
+				{
+					// add the item to the list
+					MergeNewItem(this.olvFiles.SelectedItem, dlg2.Item!);
+					UpdateList();
+				}
+			}
 		}
 
 		private void ctxMenu_Opening(object sender, System.ComponentModel.CancelEventArgs e)

@@ -12,6 +12,8 @@ using System.Windows.Forms;
 using VSLauncher.DataModel;
 using VSLauncher.Forms;
 
+using VSLXshared.Helpers;
+
 namespace VSLauncher
 {
 	/// <summary>
@@ -19,13 +21,6 @@ namespace VSLauncher
 	/// </summary>
 	public partial class dlgExecuteVisualStudio : Form
 	{
-		private readonly string solutionFilterString =   "Solutions (*.sln)|*.sln|" +
-															"C# Projects (*.csproj)|*.csproj" +
-															"F# Projects (*.fsproj)|*.fsproj" +
-															"TS/JS Projects (*.esproj, *.tsproj)|*.esproj" +
-															"Cxx Projects (*.vcxproj)|*.vcxproj" +
-															"All files (*.*)|*.*";
-
 		private VsItem? currentItem;
 
 		/// <summary>
@@ -165,7 +160,7 @@ namespace VSLauncher
 			// let the user select a folder through the system dialog
 			using (OpenFileDialog openFileDialog = new())
 			{
-				openFileDialog.Filter = solutionFilterString;
+				openFileDialog.Filter = FileHelper.SolutionFilterString;
 				openFileDialog.FilterIndex = 1;
 				openFileDialog.CheckFileExists = true;
 				openFileDialog.Multiselect = false;
