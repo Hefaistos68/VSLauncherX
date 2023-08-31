@@ -31,7 +31,6 @@ Doing so manually is most often a tedious and time consuming process.
 Also, as of late, the "Start Window" of Visual Studio is not the most helpful, besides its inherent limitations of managing its recently used list.
 
 ## Working Features
-
 - Importing from folders
 - Importing from any Visual Studio version and profile
 - Support for VS 2017, 2019 and 2022
@@ -50,6 +49,16 @@ Also, as of late, the "Start Window" of Visual Studio is not the most helpful, b
 - Taskbar integration for even quicker launching
 - Support for dark mode
 - Support for non-Windows environments 
+
+## How to use
+First either import your whole recent list from VS by using the toolbar button with the VS symbol, or import from folder directly with the folder-up-arrow toolbar button. You can also drag solutions or projects from the explorer directly into it.
+
+After you have at least one SoP in the list, you can start it by pressing enter on the selected item or double clicking it. When you double click on a folder/group then the whole folder will be launched, each item in its own VS instance as defined in the items settings.
+
+As expected, you can use drag and drop to order items, alt+enter to open the items settings, del to delete an item, etc. Remember that the settings of a folder/group item are applied before all items. This means that when you set a folder to execute as admin, all the contained SoPs will run as admin too. 
+You can set for each SoP which (installed) version of Visual Studio you want to open it with. Recomended version is shown for each as it is defined in the solution file.
+There are also context menus that you can invoke with right clicking on an item.
+
 
 ![SoP Settings](https://github.com/Hefaistos68/VSLauncherX/blob/master/docs/Settings-sample.jpg)
 
