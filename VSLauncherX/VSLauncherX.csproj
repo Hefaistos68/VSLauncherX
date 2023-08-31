@@ -15,6 +15,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="client_secret.json" />
     <None Remove="Resources\Images\AddFavorite.png" />
     <None Remove="Resources\Images\AddFolder.png" />
     <None Remove="Resources\Images\ArrowDownEnd.png" />
@@ -31,6 +32,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Include="client_secret.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="Resources\AppLogo2.ico" />
     <Content Include="Resources\Images\AddFavorite.png" />
     <Content Include="Resources\Images\AddFolder.png" />
@@ -48,6 +52,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Google.Apis.Drive.v3" Version="1.61.0.3155" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="System.Management" Version="7.0.2" />
   </ItemGroup>
@@ -65,6 +70,9 @@
       <SubType>Form</SubType>
     </Compile>
     <Compile Update="dlgNewInstance - Copy.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="Forms\dlgWarnMultiple.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Update="Forms\dlgRename.cs">
