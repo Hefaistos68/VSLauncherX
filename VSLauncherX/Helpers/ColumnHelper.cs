@@ -229,7 +229,29 @@ namespace VSLauncher.Helpers
 						break;
 
 					case ItemTypeEnum.Folder:
-						desc = $"Contains {f.ContainedSolutionsCount()} solution{((f.ContainedSolutionsCount() != 1) ? 's' : "")}";
+						{
+							var so = f.ContainedSolutionsCount();
+							var pr = f.ContainedProjectsCount();
+							desc = "Contains ";
+							if(pr > 0)
+							{
+								desc += $"{pr} project{((pr != 1) ? 's' : "")}";
+							}
+							
+							if(so > 0)
+							{
+								if (pr > 0)
+								{
+									desc += " and ";
+								}
+								desc += $"{so} solution{((so != 1) ? 's' : "")}";
+							}
+
+							if(pr == 0 && so == 0)
+							{
+								desc += "nothing yet";
+							}
+						}
 						break;
 
 					default:
