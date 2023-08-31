@@ -1,5 +1,7 @@
 ﻿using BrightIdeasSoftware;
 
+using VSLauncher.Controls;
+
 namespace VSLauncher
 {
 	partial class MainDialog
@@ -38,7 +40,8 @@ namespace VSLauncher
 			System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainDialog));
 			TableLayoutPanel leftSubPanel;
 			Label titleLabel;
-			txtFilter = new TextBox();
+			Label label2;
+			txtFilter = new TextBoxEx();
 			button1 = new Button();
 			button2 = new Button();
 			button3 = new Button();
@@ -53,7 +56,6 @@ namespace VSLauncher
 			imageList3 = new ImageList(this.components);
 			mainPanel = new TableLayoutPanel();
 			flowLayoutPanel1 = new FlowLayoutPanel();
-			label2 = new Label();
 			this.selectVisualStudioVersion = new VisualStudioCombobox();
 			btnMainStartVisualStudio1 = new Button();
 			btnMainStartVisualStudio2 = new Button();
@@ -72,7 +74,7 @@ namespace VSLauncher
 			runToolStripMenuItem = new ToolStripMenuItem();
 			runAsAdminToolStripMenuItem = new ToolStripMenuItem();
 			renameToolStripMenuItem = new ToolStripMenuItem();
-			deleteToolStripMenuItem = new ToolStripMenuItem();
+			removeToolStripMenuItem = new ToolStripMenuItem();
 			settingsToolStripMenuItem = new ToolStripMenuItem();
 			statusStrip1 = new StatusStrip();
 			mainStatusLabel = new ToolStripStatusLabel();
@@ -82,6 +84,7 @@ namespace VSLauncher
 			label3 = new Label();
 			leftSubPanel = new TableLayoutPanel();
 			titleLabel = new Label();
+			label2 = new Label();
 			flowLayoutPanel2.SuspendLayout();
 			leftSubPanel.SuspendLayout();
 			((System.ComponentModel.ISupportInitialize)olvFiles).BeginInit();
@@ -136,9 +139,11 @@ namespace VSLauncher
 			txtFilter.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point);
 			txtFilter.Location = new Point(67, 3);
 			txtFilter.Name = "txtFilter";
+			txtFilter.ShowClearButton = true;
 			txtFilter.Size = new Size(439, 29);
 			txtFilter.TabIndex = 1;
 			txtFilter.TextChanged += txtFilter_TextChanged;
+			txtFilter.KeyPress += txtFilter_KeyPress;
 			// 
 			// button1
 			// 
@@ -262,6 +267,7 @@ namespace VSLauncher
 			olvFiles.Name = "olvFiles";
 			olvFiles.SelectColumnsOnRightClickBehaviour = ObjectListView.ColumnSelectBehaviour.Submenu;
 			olvFiles.ShowCommandMenuOnRightClick = true;
+			olvFiles.ShowFilterMenuOnRightClick = false;
 			olvFiles.ShowGroups = false;
 			olvFiles.ShowItemToolTips = true;
 			olvFiles.Size = new Size(695, 422);
@@ -270,18 +276,18 @@ namespace VSLauncher
 			olvFiles.UseCompatibleStateImageBehavior = false;
 			olvFiles.UseFilterIndicator = true;
 			olvFiles.UseFiltering = true;
+			olvFiles.UseWaitCursorWhenExpanding = false;
 			olvFiles.View = View.Details;
 			olvFiles.VirtualMode = true;
-			olvFiles.CellEditFinished += olvFiles_CellEditFinished;
-			olvFiles.CellClick += olvFiles_CellClick;
 			olvFiles.CellRightClick += olvFiles_CellRightClick;
 			olvFiles.CellToolTipShowing += olvFiles_CellToolTipShowing;
 			olvFiles.Dropped += olvFiles_Dropped;
 			olvFiles.HotItemChanged += olvFiles_HotItemChanged;
 			olvFiles.AfterLabelEdit += olvFiles_AfterLabelEdit;
-			olvFiles.ItemActivate += olvFiles_ItemActivate;
 			olvFiles.SelectedIndexChanged += olvFiles_SelectedIndexChanged;
 			olvFiles.DoubleClick += olvFiles_DoubleClick;
+			olvFiles.KeyDown += olvFiles_KeyDown;
+			olvFiles.KeyPress += olvFiles_KeyPress;
 			// 
 			// olvColumnFilename
 			// 
@@ -362,6 +368,16 @@ namespace VSLauncher
 			imageList3.Images.SetKeyName(26, "RunAfter");
 			imageList3.Images.SetKeyName(27, "RunBefore");
 			// 
+			// label2
+			// 
+			label2.AutoSize = true;
+			label2.Location = new Point(3, 25);
+			label2.Margin = new Padding(3, 25, 3, 0);
+			label2.Name = "label2";
+			label2.Size = new Size(119, 15);
+			label2.TabIndex = 6;
+			label2.Text = "Visual Studio version:";
+			// 
 			// mainPanel
 			// 
 			mainPanel.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
@@ -395,16 +411,6 @@ namespace VSLauncher
 			flowLayoutPanel1.Name = "flowLayoutPanel1";
 			flowLayoutPanel1.Size = new Size(234, 497);
 			flowLayoutPanel1.TabIndex = 1;
-			// 
-			// label2
-			// 
-			label2.AutoSize = true;
-			label2.Location = new Point(3, 25);
-			label2.Margin = new Padding(3, 25, 3, 0);
-			label2.Name = "label2";
-			label2.Size = new Size(119, 15);
-			label2.TabIndex = 6;
-			label2.Text = "Visual Studio version:";
 			// 
 			// selectVisualStudioVersion
 			// 
@@ -544,7 +550,7 @@ namespace VSLauncher
 			// 
 			// ctxMenu
 			// 
-			ctxMenu.Items.AddRange(new ToolStripItem[] { addToolStripMenuItem, toolStripMenuItem3, runToolStripMenuItem, runAsAdminToolStripMenuItem, renameToolStripMenuItem, toolStripMenuItem1, deleteToolStripMenuItem, toolStripMenuItem2, settingsToolStripMenuItem });
+			ctxMenu.Items.AddRange(new ToolStripItem[] { addToolStripMenuItem, toolStripMenuItem3, runToolStripMenuItem, runAsAdminToolStripMenuItem, renameToolStripMenuItem, toolStripMenuItem1, removeToolStripMenuItem, toolStripMenuItem2, settingsToolStripMenuItem });
 			ctxMenu.Name = "ctxMenu";
 			ctxMenu.Size = new Size(149, 154);
 			ctxMenu.Opening += ctxMenu_Opening;
@@ -603,12 +609,12 @@ namespace VSLauncher
 			renameToolStripMenuItem.Text = "Rename...";
 			renameToolStripMenuItem.Click += renameToolStripMenuItem_Click;
 			// 
-			// deleteToolStripMenuItem
+			// removeToolStripMenuItem
 			// 
-			deleteToolStripMenuItem.Name = "deleteToolStripMenuItem";
-			deleteToolStripMenuItem.Size = new Size(148, 22);
-			deleteToolStripMenuItem.Text = "Delete...";
-			deleteToolStripMenuItem.Click += deleteToolStripMenuItem_Click;
+			removeToolStripMenuItem.Name = "removeToolStripMenuItem";
+			removeToolStripMenuItem.Size = new Size(148, 22);
+			removeToolStripMenuItem.Text = "Remove...";
+			removeToolStripMenuItem.Click += removeToolStripMenuItem_Click;
 			// 
 			// settingsToolStripMenuItem
 			// 
@@ -685,10 +691,8 @@ namespace VSLauncher
 		private ToolStripMenuItem settingsToolStripMenuItem;
 		private StatusStrip statusStrip1;
 		private ToolStripStatusLabel mainStatusLabel;
-		private ToolStripMenuItem deleteToolStripMenuItem;
-		private Label label2;
-		private Label label3;
-		private TextBox txtFilter;
+		private ToolStripMenuItem removeToolStripMenuItem;
+		private TextBoxEx txtFilter;
 		private Button button1;
 		private Button button2;
 		private Button button3;

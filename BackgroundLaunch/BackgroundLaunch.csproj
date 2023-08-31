@@ -30,7 +30,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\VCLXshared\VSLXshared.csproj" />
     <ProjectReference Include="..\VSLXshared\VSLXshared.csproj" />
   </ItemGroup>
 

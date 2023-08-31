@@ -78,7 +78,7 @@ namespace BackgroundLaunch
 			if ((item.ItemType == ItemTypeEnum.Solution) || (item.ItemType == ItemTypeEnum.Project))
 			{
 				startInfo.FileName = this.launchInfo.Target;
-				startInfo.Arguments = item.Path;
+				startInfo.Arguments = "\"" + item.Path + "\"";
 				if (!string.IsNullOrEmpty(item.Commands))
 				{
 					startInfo.Arguments += " " + item.Commands;
