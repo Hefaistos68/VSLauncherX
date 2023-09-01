@@ -869,6 +869,20 @@ namespace VSLauncher
 
 			if (item is VsFolder f)
 			{
+				if (!Properties.Settings.Default.DontShowMultiplesWarning)
+				{
+					var n = f.ContainedSolutionsCount()+f.ContainedProjectsCount();
+					if(n > 3)
+					{
+						var dlg = new dlgWarnMultiple(n);
+
+						if(dlg.ShowDialog() == DialogResult.Cancel)
+						{
+							return;
+						}
+					}
+				}
+
 				vs = string.IsNullOrEmpty(f.VsVersion) ? this.visualStudioInstances.GetByIdentifier(f.VsVersion) : vs;
 				il = new ItemLauncher(f, vs);
 			}
@@ -1021,6 +1035,19 @@ namespace VSLauncher
 		/// </summary>
 		private void SaveSolutionData()
 		{
+// 			if (true)
+// 			{
+// 				JsonSerializerSettings settings = new JsonSerializerSettings()
+// 				{
+// 					Formatting = Formatting.Indented,
+// 					TypeNameHandling = TypeNameHandling.All
+// 				};
+// 
+// 				string json = JsonConvert.SerializeObject(this.solutionGroups, settings);
+// 				// testing out storing the file in the google drive
+// 				new GoogleDriveStorage().Upload(json);
+// 			}
+
 			// save this.solutionGroups data to a JSON file in the users data folder
 			string fileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "VSLauncher", "VSLauncher.json");
 
