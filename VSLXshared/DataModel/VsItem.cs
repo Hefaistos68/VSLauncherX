@@ -102,6 +102,8 @@ namespace VSLauncher.DataModel
 		[JsonIgnore]
 		public bool Warning { get; set; }
 
+		public bool IsFavorite { get; set; }
+
 		/// <summary>
 		/// Refreshes the item
 		/// </summary>

@@ -64,29 +64,14 @@ namespace VSLauncher
 			// Execute the item, run the before and after items if set, elevate to admin if required
 			return Task.Run(() =>
 			{
-				var li = new LaunchInfo() { Solution = this.Solution, Target = this.Target.Location };
-
-				JsonSerializerSettings settings = new JsonSerializerSettings()
-				{
-					Formatting = Formatting.None,
-				};
-
-				string s = JsonConvert.SerializeObject(li, settings);
-
-				s = s.Replace('\"', '«').Replace(' ', '»');
+				string s = CreateLaunchInfoString();
 
 				Debug.WriteLine(s);
-
-				// execute BackgroundLauncher.exe and pass s as parameter
-				string env = Environment.CurrentDirectory;
-
-				// get working directory of current assembly
-				string current = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? env;
 
 				bool bRequireAdmin = (bForceAdmin | this.Solution.RunAsAdmin);
 				var psi = new System.Diagnostics.ProcessStartInfo
 				{
-					FileName = Path.Combine(current, "BackgroundLaunch.exe"),
+					FileName = this.GetLauncherPath(),
 					Arguments = s,
 					ErrorDialog = false,
 					UseShellExecute = bRequireAdmin,
@@ -98,7 +83,7 @@ namespace VSLauncher
 				{
 					var p = System.Diagnostics.Process.Start(psi);
 				}
-				catch(Exception ex)
+				catch (Exception ex)
 				{
 					this.LastException = ex;
 					Debug.WriteLine(ex.ToString());
@@ -106,5 +91,29 @@ namespace VSLauncher
 			});
 		}
 
+		public string GetLauncherPath()
+		{
+			string env = Environment.CurrentDirectory;
+
+			// get working directory of current assembly
+			string current = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? env;
+
+			return Path.Combine(current, "BackgroundLaunch.exe");
+		}
+		public string CreateLaunchInfoString()
+		{
+			var li = new LaunchInfo() { Solution = this.Solution, Target = this.Target.Location };
+
+			JsonSerializerSettings settings = new JsonSerializerSettings()
+			{
+				Formatting = Formatting.None,
+			};
+
+			string s = JsonConvert.SerializeObject(li, settings);
+
+			s = s.Replace('\"', '«').Replace(' ', '»');
+
+			return s;
+		}
 	}
 }

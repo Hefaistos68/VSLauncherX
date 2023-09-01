@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using Microsoft.WindowsAPICodePack.Taskbar;
 
 using BrightIdeasSoftware;
 
@@ -9,6 +10,8 @@ using VSLauncher.Forms;
 using VSLauncher.Helpers;
 
 using VSLXshared.Helpers;
+using System.Globalization;
+using System.Reflection;
 
 namespace VSLauncher
 {
@@ -26,6 +29,8 @@ namespace VSLauncher
 		private DescribedTaskRenderer? itemRenderer;
 		private VsFolder solutionGroups = new VsFolder();
 		private DataObject? lastDroppedData;
+
+		public JumpList TaskbarJumpList { get; private set; }
 
 		/// <summary>
 		/// Returns if the control key is pressed.
@@ -200,7 +205,15 @@ namespace VSLauncher
 				this.WindowState = Properties.Settings.Default.AppWindow == FormWindowState.Minimized ? FormWindowState.Normal : Properties.Settings.Default.AppWindow;
 				this.Location = Properties.Settings.Default.AppLocation;
 				this.Size = Properties.Settings.Default.AppSize;
+
+				// now set the columns
+				this.olvColumnDate.IsVisible = Properties.Settings.Default.ColumnDateVisible;
+				this.olvColumnOptions.IsVisible = Properties.Settings.Default.ColumnOptionsVisible;
+
+				this.olvFiles.RebuildColumns();
 			}
+
+			SetupTaskbarTasks();
 
 			_ = this.txtFilter.Focus();
 		}
@@ -225,6 +238,9 @@ namespace VSLauncher
 				Properties.Settings.Default.AppLocation = this.RestoreBounds.Location;
 				Properties.Settings.Default.AppSize = this.RestoreBounds.Size;
 			}
+
+			Properties.Settings.Default.ColumnDateVisible = this.olvColumnDate.IsVisible;
+			Properties.Settings.Default.ColumnOptionsVisible = this.olvColumnOptions.IsVisible;
 
 			Properties.Settings.Default.AppState = "saved";
 
@@ -292,7 +308,63 @@ namespace VSLauncher
 			}
 		}
 
-#region Main button handling
+		#region Taskbar handling
+
+		private void SetupTaskbarTasks()
+		{
+			var cat = new JumpListCustomCategory ( "Test" );
+			// Create a jump list.
+			this.TaskbarJumpList = JumpList.CreateJumpList();
+
+			RebuildTaskbarItems();
+		}
+
+		/// <summary>
+		/// Adds the item to taskbar.
+		/// </summary>
+		/// <param name="item">The item.</param>
+		private void AddItemToTaskbar(VsItem item)
+		{
+			var il = new ItemLauncher(item, visualStudioInstances.GetByIdentifier(item.VsVersion));
+
+			// Add a jump task to the jump list.
+			var jll = new JumpListLink(il.GetLauncherPath(), item.Name);
+			// need to find a way to pass admin requirement
+			jll.Arguments = il.CreateLaunchInfoString();
+			jll.IconReference = new Microsoft.WindowsAPICodePack.Shell.IconReference(Assembly.GetExecutingAssembly().Location, 1);
+			jll.ShowCommand = Microsoft.WindowsAPICodePack.Shell.WindowShowCommand.Hide;
+
+			this.TaskbarJumpList.AddUserTasks(jll);
+
+		}
+		private void RebuildTaskbarItems(VsFolder? folder = null)
+		{
+			if (folder is null)
+			{
+				folder = this.solutionGroups;
+			}
+
+			// iterate through all items in SolutionItems and add the favorite items to the taskbar
+			foreach (VsItem item in folder.Items)
+			{
+				if (item.IsFavorite)
+				{
+					AddItemToTaskbar(item);
+				}
+				if(item is VsFolder f)
+				{
+					RebuildTaskbarItems(f);
+				}
+			}
+
+			if(folder is null || folder == this.solutionGroups)
+			{
+				this.TaskbarJumpList.Refresh();
+			}
+		}
+		#endregion
+
+		#region Main button handling
 		/// <summary>
 		/// Handles adding a folder.
 		/// </summary>
@@ -393,9 +465,9 @@ namespace VSLauncher
 				_ = SolutionData_OnChanged(true);
 			}
 		}
-#endregion
+		#endregion
 
-#region ListView event handling
+		#region ListView event handling
 
 		/// <summary>
 		/// Handles ending label editing on the list view.
@@ -532,7 +604,7 @@ namespace VSLauncher
 			}
 		}
 
-#endregion
+		#endregion
 
 		#region Drag and Drop handling
 
@@ -556,7 +628,7 @@ namespace VSLauncher
 					{
 						MergeNewItem(e.DropTargetItem, item);
 					}
-					else if(item?.ItemType == ItemTypeEnum.Other)
+					else if (item?.ItemType == ItemTypeEnum.Other)
 					{
 						// check if the file is actually a folder, then invoke the import folder dialog
 						FileInfo fi = new FileInfo(file);
@@ -725,7 +797,7 @@ namespace VSLauncher
 
 		#endregion
 
-#region Context Menu item handling
+		#region Context Menu item handling
 
 		/// <summary>
 		/// Handles the settings menu item.
@@ -872,11 +944,11 @@ namespace VSLauncher
 				if (!Properties.Settings.Default.DontShowMultiplesWarning)
 				{
 					var n = f.ContainedSolutionsCount()+f.ContainedProjectsCount();
-					if(n > 3)
+					if (n > 3)
 					{
 						var dlg = new dlgWarnMultiple(n);
 
-						if(dlg.ShowDialog() == DialogResult.Cancel)
+						if (dlg.ShowDialog() == DialogResult.Cancel)
 						{
 							return;
 						}
@@ -907,7 +979,19 @@ namespace VSLauncher
 				}
 			}
 		}
-#endregion
+		private void favoriteToolStripMenuItem_Click(object sender, EventArgs e)
+		{
+			// make the selected item a favorite and add to the taskbar
+			if (this.olvFiles.SelectedObject is VsItem i)
+			{
+				i.IsFavorite = !i.IsFavorite;
+
+				SetupTaskbarTasks();
+				//RebuildTaskbarItems();
+			}
+		}
+
+		#endregion
 
 		/// <summary>
 		/// Handles visual studio version item drawing with icon.
@@ -974,7 +1058,7 @@ namespace VSLauncher
 			}
 		}
 
-#region Solution Data Handling
+		#region Solution Data Handling
 		/// <summary>
 		/// Handles changes to Solution data
 		/// </summary>
@@ -1035,18 +1119,18 @@ namespace VSLauncher
 		/// </summary>
 		private void SaveSolutionData()
 		{
-// 			if (true)
-// 			{
-// 				JsonSerializerSettings settings = new JsonSerializerSettings()
-// 				{
-// 					Formatting = Formatting.Indented,
-// 					TypeNameHandling = TypeNameHandling.All
-// 				};
-// 
-// 				string json = JsonConvert.SerializeObject(this.solutionGroups, settings);
-// 				// testing out storing the file in the google drive
-// 				new GoogleDriveStorage().Upload(json);
-// 			}
+			// 			if (true)
+			// 			{
+			// 				JsonSerializerSettings settings = new JsonSerializerSettings()
+			// 				{
+			// 					Formatting = Formatting.Indented,
+			// 					TypeNameHandling = TypeNameHandling.All
+			// 				};
+			// 
+			// 				string json = JsonConvert.SerializeObject(this.solutionGroups, settings);
+			// 				// testing out storing the file in the google drive
+			// 				new GoogleDriveStorage().Upload(json);
+			// 			}
 
 			// save this.solutionGroups data to a JSON file in the users data folder
 			string fileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "VSLauncher", "VSLauncher.json");
@@ -1101,9 +1185,9 @@ namespace VSLauncher
 			this.olvFiles.SetObjects(this.solutionGroups.Items);
 			// this.olvFiles.ExpandAll();
 		}
-#endregion
+		#endregion
 
-#region Main VS Execution Buttons handling
+		#region Main VS Execution Buttons handling
 
 		/// <summary>
 		/// Handles click on the btnMainStartVisualStudio1 button (Start VS)
@@ -1184,7 +1268,7 @@ namespace VSLauncher
 				this.Cursor = Cursors.Default;
 			}
 		}
-#endregion
+		#endregion
 
 		/// <summary>
 		/// Handles text changes in the filter field and updates the list
@@ -1217,7 +1301,11 @@ namespace VSLauncher
 		private void ctxMenu_Opening(object sender, System.ComponentModel.CancelEventArgs e)
 		{
 			// if the currently selected item is a group, enable the "Add..." menu item, otherwise remove it
-			this.ctxMenu.Items[0].Enabled = this.olvFiles.SelectedObject is VsFolder;
+			this.ctxMenu.Items[0].Enabled = this.olvFiles.SelectedObject is VsFolder || this.olvFiles.SelectedObject is null;
+			if(this.olvFiles.SelectedObject is VsItem i)
+			{
+				this.favoriteToolStripMenuItem.Checked = i.IsFavorite;
+			}
 		}
 
 		/// <summary>

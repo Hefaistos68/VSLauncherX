@@ -78,6 +78,8 @@ namespace VSLauncher
 			settingsToolStripMenuItem = new ToolStripMenuItem();
 			statusStrip1 = new StatusStrip();
 			mainStatusLabel = new ToolStripStatusLabel();
+			favoriteToolStripMenuItem = new ToolStripMenuItem();
+			toolStripMenuItem4 = new ToolStripSeparator();
 			toolStripMenuItem1 = new ToolStripSeparator();
 			toolStripMenuItem2 = new ToolStripSeparator();
 			flowLayoutPanel2 = new FlowLayoutPanel();
@@ -97,12 +99,12 @@ namespace VSLauncher
 			// toolStripMenuItem1
 			// 
 			toolStripMenuItem1.Name = "toolStripMenuItem1";
-			toolStripMenuItem1.Size = new Size(145, 6);
+			toolStripMenuItem1.Size = new Size(177, 6);
 			// 
 			// toolStripMenuItem2
 			// 
 			toolStripMenuItem2.Name = "toolStripMenuItem2";
-			toolStripMenuItem2.Size = new Size(145, 6);
+			toolStripMenuItem2.Size = new Size(177, 6);
 			// 
 			// flowLayoutPanel2
 			// 
@@ -550,16 +552,16 @@ namespace VSLauncher
 			// 
 			// ctxMenu
 			// 
-			ctxMenu.Items.AddRange(new ToolStripItem[] { addToolStripMenuItem, toolStripMenuItem3, runToolStripMenuItem, runAsAdminToolStripMenuItem, renameToolStripMenuItem, toolStripMenuItem1, removeToolStripMenuItem, toolStripMenuItem2, settingsToolStripMenuItem });
+			ctxMenu.Items.AddRange(new ToolStripItem[] { addToolStripMenuItem, toolStripMenuItem3, runToolStripMenuItem, runAsAdminToolStripMenuItem, renameToolStripMenuItem, toolStripMenuItem1, removeToolStripMenuItem, toolStripMenuItem2, settingsToolStripMenuItem, toolStripMenuItem4, favoriteToolStripMenuItem });
 			ctxMenu.Name = "ctxMenu";
-			ctxMenu.Size = new Size(149, 154);
+			ctxMenu.Size = new Size(181, 204);
 			ctxMenu.Opening += ctxMenu_Opening;
 			// 
 			// addToolStripMenuItem
 			// 
 			addToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { newGroupToolStripMenuItem, fromFolderToolStripMenuItem, solutionProjectToolStripMenuItem });
 			addToolStripMenuItem.Name = "addToolStripMenuItem";
-			addToolStripMenuItem.Size = new Size(148, 22);
+			addToolStripMenuItem.Size = new Size(180, 22);
 			addToolStripMenuItem.Text = "Add...";
 			// 
 			// newGroupToolStripMenuItem
@@ -586,40 +588,40 @@ namespace VSLauncher
 			// toolStripMenuItem3
 			// 
 			toolStripMenuItem3.Name = "toolStripMenuItem3";
-			toolStripMenuItem3.Size = new Size(145, 6);
+			toolStripMenuItem3.Size = new Size(177, 6);
 			// 
 			// runToolStripMenuItem
 			// 
 			runToolStripMenuItem.Name = "runToolStripMenuItem";
-			runToolStripMenuItem.Size = new Size(148, 22);
+			runToolStripMenuItem.Size = new Size(180, 22);
 			runToolStripMenuItem.Text = "Run";
 			runToolStripMenuItem.Click += runToolStripMenuItem_Click;
 			// 
 			// runAsAdminToolStripMenuItem
 			// 
 			runAsAdminToolStripMenuItem.Name = "runAsAdminToolStripMenuItem";
-			runAsAdminToolStripMenuItem.Size = new Size(148, 22);
+			runAsAdminToolStripMenuItem.Size = new Size(180, 22);
 			runAsAdminToolStripMenuItem.Text = "Run as Admin";
 			runAsAdminToolStripMenuItem.Click += runAsAdminToolStripMenuItem_Click;
 			// 
 			// renameToolStripMenuItem
 			// 
 			renameToolStripMenuItem.Name = "renameToolStripMenuItem";
-			renameToolStripMenuItem.Size = new Size(148, 22);
+			renameToolStripMenuItem.Size = new Size(180, 22);
 			renameToolStripMenuItem.Text = "Rename...";
 			renameToolStripMenuItem.Click += renameToolStripMenuItem_Click;
 			// 
 			// removeToolStripMenuItem
 			// 
 			removeToolStripMenuItem.Name = "removeToolStripMenuItem";
-			removeToolStripMenuItem.Size = new Size(148, 22);
+			removeToolStripMenuItem.Size = new Size(180, 22);
 			removeToolStripMenuItem.Text = "Remove...";
 			removeToolStripMenuItem.Click += removeToolStripMenuItem_Click;
 			// 
 			// settingsToolStripMenuItem
 			// 
 			settingsToolStripMenuItem.Name = "settingsToolStripMenuItem";
-			settingsToolStripMenuItem.Size = new Size(148, 22);
+			settingsToolStripMenuItem.Size = new Size(180, 22);
 			settingsToolStripMenuItem.Text = "Settings...";
 			settingsToolStripMenuItem.Click += settingsToolStripMenuItem_Click;
 			// 
@@ -637,6 +639,18 @@ namespace VSLauncher
 			mainStatusLabel.Name = "mainStatusLabel";
 			mainStatusLabel.Size = new Size(193, 17);
 			mainStatusLabel.Text = "Lets do something incredible today";
+			// 
+			// favoriteToolStripMenuItem
+			// 
+			favoriteToolStripMenuItem.Name = "favoriteToolStripMenuItem";
+			favoriteToolStripMenuItem.Size = new Size(180, 22);
+			favoriteToolStripMenuItem.Text = "Favorite";
+			favoriteToolStripMenuItem.Click += favoriteToolStripMenuItem_Click;
+			// 
+			// toolStripMenuItem4
+			// 
+			toolStripMenuItem4.Name = "toolStripMenuItem4";
+			toolStripMenuItem4.Size = new Size(177, 6);
 			// 
 			// MainDialog
 			// 
@@ -704,6 +718,8 @@ namespace VSLauncher
 		private ToolStripMenuItem newGroupToolStripMenuItem;
 		private ToolStripMenuItem fromFolderToolStripMenuItem;
 		private ToolStripMenuItem solutionProjectToolStripMenuItem;
+		private ToolStripSeparator toolStripMenuItem4;
+		private ToolStripMenuItem favoriteToolStripMenuItem;
 	}
 }
 
