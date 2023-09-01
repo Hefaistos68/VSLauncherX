@@ -42,6 +42,15 @@ namespace VSLauncher
 		}
 
 		/// <summary>
+		/// Initializes a new instance of the <see cref="dlgImportFolder"/> class.
+		/// </summary>
+		/// <param name="folder">The folder</param>
+		public dlgImportFolder(string folder) : this()
+		{
+			Properties.Settings.Default.LastImportFolder = folder;
+		}
+
+		/// <summary>
 		/// Initializes the list.
 		/// </summary>
 		private void InitializeList()

@@ -191,7 +191,7 @@ namespace VSLauncher
 		/// Handles the load event.
 		/// </summary>
 		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
+		/// <param name="e">The event parameters</param>
 		private void MainDialog_Load(object sender, EventArgs e)
 		{
 			if (Properties.Settings.Default.AppState == "saved")
@@ -209,7 +209,7 @@ namespace VSLauncher
 		/// Handles the form closing, saves state
 		/// </summary>
 		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
+		/// <param name="e">The event parameters</param>
 		private void MainDialog_FormClosing(object sender, FormClosingEventArgs e)
 		{
 			Properties.Settings.Default.AppWindow = this.WindowState;
@@ -297,7 +297,7 @@ namespace VSLauncher
 		/// Handles adding a folder.
 		/// </summary>
 		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
+		/// <param name="e">The event parameters</param>
 		private void mainFolderAdd_Click(object sender, EventArgs e)
 		{
 			dlgAddFolder dlg = new dlgAddFolder();
@@ -330,7 +330,7 @@ namespace VSLauncher
 		/// Handles importing from a folder.
 		/// </summary>
 		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
+		/// <param name="e">The event parameters</param>
 		private void mainImportFolder_Click(object sender, EventArgs e)
 		{
 			dlgImportFolder dlg = new dlgImportFolder();
@@ -349,7 +349,7 @@ namespace VSLauncher
 		/// Handles importing from VS button.
 		/// </summary>
 		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
+		/// <param name="e">The event parameters</param>
 		private void mainImportVS_Click(object sender, EventArgs e)
 		{
 			dlgImportVisualStudio dlg = new dlgImportVisualStudio();
@@ -368,7 +368,7 @@ namespace VSLauncher
 		/// Handles the refresh button.
 		/// </summary>
 		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
+		/// <param name="e">The event parameters</param>
 		private void mainRefresh_Click(object sender, EventArgs e)
 		{
 			this.solutionGroups.Items.OnChanged -= SolutionData_OnChanged;
@@ -383,7 +383,7 @@ namespace VSLauncher
 		/// mains the settings_ click.
 		/// </summary>
 		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
+		/// <param name="e">The event parameters</param>
 		private void mainSettings_Click(object sender, EventArgs e)
 		{
 			dlgSettings dlg = new dlgSettings();
@@ -401,7 +401,7 @@ namespace VSLauncher
 		/// Handles ending label editing on the list view.
 		/// </summary>
 		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
+		/// <param name="e">The event parameters</param>
 		private void olvFiles_AfterLabelEdit(object sender, LabelEditEventArgs e)
 		{
 			// Method intentionally left empty.
@@ -411,7 +411,7 @@ namespace VSLauncher
 		/// Handles right click on items
 		/// </summary>
 		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
+		/// <param name="e">The event parameters</param>
 		private void olvFiles_CellRightClick(object sender, CellRightClickEventArgs e)
 		{
 			// System.Diagnostics.Trace.WriteLine(String.Format("right clicked {0}, {1}). model {2}", e.RowIndex,
@@ -425,7 +425,7 @@ namespace VSLauncher
 		/// Handles showing the tooltip contents.
 		/// </summary>
 		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
+		/// <param name="e">The event parameters</param>
 		private void olvFiles_CellToolTipShowing(object sender, ToolTipShowingEventArgs e)
 		{
 			if (e.ColumnIndex == this.olvColumnOptions.DisplayIndex)
@@ -443,7 +443,7 @@ namespace VSLauncher
 		/// Handles double click on items
 		/// </summary>
 		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
+		/// <param name="e">The event parameters</param>
 		private void olvFiles_DoubleClick(object sender, EventArgs e)
 		{
 			runToolStripMenuItem_Click(sender, e);
@@ -453,7 +453,7 @@ namespace VSLauncher
 		/// Clears the status text when changing items.
 		/// </summary>
 		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
+		/// <param name="e">The event parameters</param>
 		private void olvFiles_HotItemChanged(object sender, HotItemChangedEventArgs e)
 		{
 			if (sender == null)
@@ -465,7 +465,7 @@ namespace VSLauncher
 		/// Handles selected index changed in the list
 		/// </summary>
 		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
+		/// <param name="e">The event parameters</param>
 		private void olvFiles_SelectedIndexChanged(object? sender, EventArgs e)
 		{
 			// update status bar text with info on selected item
@@ -495,7 +495,7 @@ namespace VSLauncher
 		/// olvs the files_ key press.
 		/// </summary>
 		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
+		/// <param name="e">The event parameters</param>
 		private void olvFiles_KeyPress(object sender, KeyPressEventArgs e)
 		{
 			if (e.KeyChar == (char)Keys.Enter)
@@ -522,7 +522,7 @@ namespace VSLauncher
 		/// olvs the files_ key down.
 		/// </summary>
 		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
+		/// <param name="e">The event parameters</param>
 		private void olvFiles_KeyDown(object sender, KeyEventArgs e)
 		{
 			if (e.KeyValue == (char)Keys.Delete)
@@ -540,9 +540,10 @@ namespace VSLauncher
 		/// Handles files dropped from external source.
 		/// </summary>
 		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
+		/// <param name="e">The event parameters</param>
 		private void olvFiles_Dropped(object? sender, OlvDropEventArgs e)
 		{
+			// for some reason yet unknown, this event is fired twice, so we need to check if we already handled it
 			if (this.lastDroppedData is null)
 			{
 				this.lastDroppedData = (DataObject)e.DataObject;
@@ -554,6 +555,24 @@ namespace VSLauncher
 					if (item != null && item.ItemType != ItemTypeEnum.Other)
 					{
 						MergeNewItem(e.DropTargetItem, item);
+					}
+					else if(item?.ItemType == ItemTypeEnum.Other)
+					{
+						// check if the file is actually a folder, then invoke the import folder dialog
+						FileInfo fi = new FileInfo(file);
+						if (fi.Attributes.HasFlag(FileAttributes.Directory))
+						{
+							dlgImportFolder dlg = new dlgImportFolder(file);
+							if (dlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+							{
+								OLVListItem r = this.olvFiles.SelectedItem;
+								VsItemList source = dlg.Solution.Items;
+
+								MergeNewItems(r, source);
+
+								_ = SolutionData_OnChanged(true);
+							}
+						}
 					}
 				}
 
@@ -567,7 +586,7 @@ namespace VSLauncher
 		/// Handles the files can drop event from external sources
 		/// </summary>
 		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
+		/// <param name="e">The event parameters</param>
 		private void olvFiles_CanDrop(object? sender, OlvDropEventArgs e)
 		{
 			if (e.DataObject is not null)
@@ -605,7 +624,7 @@ namespace VSLauncher
 		/// Handles requests if a model can drop on another model.
 		/// </summary>
 		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
+		/// <param name="e">The event parameters</param>
 		private void olvFiles_ModelCanDropHandler(object sender, ModelDropEventArgs e)
 		{
 			e.Effect = DragDropEffects.None;
@@ -648,7 +667,7 @@ namespace VSLauncher
 		/// Handles model dropped on another model.
 		/// </summary>
 		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
+		/// <param name="e">The event parameters</param>
 		private void olvFiles_ModelDroppedHandler(object? sender, ModelDropEventArgs e)
 		{
 			if (e.SourceModels.Count == 1)
@@ -712,7 +731,7 @@ namespace VSLauncher
 		/// Handles the settings menu item.
 		/// </summary>
 		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
+		/// <param name="e">The event parameters</param>
 		private void settingsToolStripMenuItem_Click(object sender, EventArgs e)
 		{
 			object item = this.olvFiles.SelectedItem.RowObject;
@@ -728,7 +747,7 @@ namespace VSLauncher
 		/// Handles the rename menu item
 		/// </summary>
 		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
+		/// <param name="e">The event parameters</param>
 		private void renameToolStripMenuItem_Click(object sender, EventArgs e)
 		{
 			object item = this.olvFiles.SelectedItem.RowObject;
@@ -748,7 +767,7 @@ namespace VSLauncher
 		/// Handles removing an item through the context menu
 		/// </summary>
 		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
+		/// <param name="e">The event parameters</param>
 		private void removeToolStripMenuItem_Click(object sender, EventArgs e)
 		{
 			object item = this.olvFiles.SelectedItem.RowObject;
@@ -773,7 +792,7 @@ namespace VSLauncher
 		/// Handles the New Group context menu item
 		/// </summary>
 		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
+		/// <param name="e">The event parameters</param>
 		private void newGroupToolStripMenuItem_Click(object sender, EventArgs e)
 		{
 			// redirect to existing code
@@ -784,7 +803,7 @@ namespace VSLauncher
 		/// Handles the From Folder context menu item
 		/// </summary>
 		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
+		/// <param name="e">The event parameters</param>
 		private void fromFolderToolStripMenuItem_Click(object sender, EventArgs e)
 		{
 			// redirect to existing code
@@ -795,7 +814,7 @@ namespace VSLauncher
 		/// Handles the Solution or project context menu item
 		/// </summary>
 		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
+		/// <param name="e">The event parameters</param>
 		private void solutionProjectToolStripMenuItem_Click(object sender, EventArgs e)
 		{
 			OpenFileDialog dlg = new OpenFileDialog
@@ -821,7 +840,7 @@ namespace VSLauncher
 		/// Handles the run as admin menu item.
 		/// </summary>
 		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
+		/// <param name="e">The event parameters</param>
 		private void runAsAdminToolStripMenuItem_Click(object sender, EventArgs e)
 		{
 			object item = this.olvFiles.SelectedItem.RowObject;
@@ -841,7 +860,7 @@ namespace VSLauncher
 		/// Handles the runs menu item.
 		/// </summary>
 		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
+		/// <param name="e">The event parameters</param>
 		private void runToolStripMenuItem_Click(object sender, EventArgs e)
 		{
 			object item = this.olvFiles.SelectedItem.RowObject;
@@ -880,7 +899,7 @@ namespace VSLauncher
 		/// Handles visual studio version item drawing with icon.
 		/// </summary>
 		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
+		/// <param name="e">The event parameters</param>
 		private void selectVisualStudioVersion_DrawItem(object sender, DrawItemEventArgs e)
 		{
 			// draw the selected item with the Visual Studio Icon and the version as text
@@ -902,7 +921,7 @@ namespace VSLauncher
 		/// Handles visual studio version selected index changed.
 		/// </summary>
 		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
+		/// <param name="e">The event parameters</param>
 		private void selectVisualStudioVersion_SelectedIndexChanged(object sender, EventArgs e)
 		{
 			// update all buttons with icon from selected visual studio version
@@ -1063,7 +1082,7 @@ namespace VSLauncher
 		/// Handles click on the btnMainStartVisualStudio1 button (Start VS)
 		/// </summary>
 		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
+		/// <param name="e">The event parameters</param>
 		private void btnMainStartVisualStudio1_Click(object sender, EventArgs e)
 		{
 			this.Cursor = Cursors.WaitCursor;
@@ -1076,7 +1095,7 @@ namespace VSLauncher
 		/// Handles click on the btnMainStartVisualStudio2 button (Start VS as admin)
 		/// </summary>
 		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
+		/// <param name="e">The event parameters</param>
 		private void btnMainStartVisualStudio2_Click(object sender, EventArgs e)
 		{
 			this.Cursor = Cursors.WaitCursor;
@@ -1089,7 +1108,7 @@ namespace VSLauncher
 		/// Handles click on the btnMainStartVisualStudio3 button (Start VS with an instance)
 		/// </summary>
 		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
+		/// <param name="e">The event parameters</param>
 		private void btnMainStartVisualStudio3_Click(object sender, EventArgs e)
 		{
 			dlgNewInstance dlg = new dlgNewInstance();
@@ -1107,7 +1126,7 @@ namespace VSLauncher
 		/// Handles click on the btnMainStartVisualStudio4 button (Start VS with new project)
 		/// </summary>
 		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
+		/// <param name="e">The event parameters</param>
 		private void btnMainStartVisualStudio4_Click(object sender, EventArgs e)
 		{
 			this.Cursor = Cursors.WaitCursor;
@@ -1120,7 +1139,7 @@ namespace VSLauncher
 		/// Handles click on the btnMainStartVisualStudio5 button (Start VS with dialog)
 		/// </summary>
 		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
+		/// <param name="e">The event parameters</param>
 		private void btnMainStartVisualStudio5_Click(object sender, EventArgs e)
 		{
 			dlgExecuteVisualStudio dlg = new dlgExecuteVisualStudio(this.selectVisualStudioVersion.SelectedIndex);
@@ -1144,7 +1163,7 @@ namespace VSLauncher
 		/// Handles text changes in the filter field and updates the list
 		/// </summary>
 		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
+		/// <param name="e">The event parameters</param>
 		private void txtFilter_TextChanged(object sender, EventArgs e)
 		{
 			RebuildFilters();
@@ -1154,7 +1173,7 @@ namespace VSLauncher
 		/// Handles resize of the main panel, resizes the filter field to fit the panel
 		/// </summary>
 		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
+		/// <param name="e">The event parameters</param>
 		private void mainPanel_Resize(object sender, EventArgs e)
 		{
 			int w = this.txtFilter.Parent.Width;
@@ -1167,7 +1186,7 @@ namespace VSLauncher
 		/// Handles context menu opening, enables/disables menu items based on the selected list item
 		/// </summary>
 		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
+		/// <param name="e">The event parameters</param>
 		private void ctxMenu_Opening(object sender, System.ComponentModel.CancelEventArgs e)
 		{
 			// if the currently selected item is a group, enable the "Add..." menu item, otherwise remove it
@@ -1178,7 +1197,7 @@ namespace VSLauncher
 		/// Handles key press on the filter field, clears the filter if the user presses ESC
 		/// </summary>
 		/// <param name="sender">The sender.</param>
-		/// <param name="e">The e.</param>
+		/// <param name="e">The event parameters</param>
 		private void txtFilter_KeyPress(object sender, KeyPressEventArgs e)
 		{
 			if (e.KeyChar == (char)Keys.Escape)
