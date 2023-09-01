@@ -32,9 +32,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="client_secret.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
     <Content Include="Resources\AppLogo2.ico" />
     <Content Include="Resources\Images\AddFavorite.png" />
     <Content Include="Resources\Images\AddFolder.png" />
