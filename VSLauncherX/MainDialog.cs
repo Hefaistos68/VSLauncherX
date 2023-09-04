@@ -327,6 +327,12 @@ namespace VSLauncher
 		{
 			var il = new ItemLauncher(item, visualStudioInstances.GetByIdentifier(item.VsVersion));
 
+			// Note: to add items grouped by their category, create a custom category and add the items to that category.
+			// but, since the taskbar does not support hierarchies, we should think about a different way to do this
+			// the group/category must be added in the calling method, not here, then add the JumpListItem to the parent passed to this method.
+			// 
+			// 
+			// var cat = new JumpListCustomCategory(item.Parent.Name);
 			// Add a jump task to the jump list.
 			var jll = new JumpListLink(il.GetLauncherPath(), item.Name);
 			// need to find a way to pass admin requirement
@@ -334,7 +340,10 @@ namespace VSLauncher
 			jll.IconReference = new Microsoft.WindowsAPICodePack.Shell.IconReference(Assembly.GetExecutingAssembly().Location, 1);
 			jll.ShowCommand = Microsoft.WindowsAPICodePack.Shell.WindowShowCommand.Hide;
 
+			// cat.AddJumpListItems(jll);
+
 			this.TaskbarJumpList.AddUserTasks(jll);
+			// this.TaskbarJumpList.AddCustomCategories(cat);
 
 		}
 		private void RebuildTaskbarItems(VsFolder? folder = null)
