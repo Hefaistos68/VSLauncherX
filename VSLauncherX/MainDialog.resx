@@ -130,7 +130,7 @@
     <value>False</value>
   </metadata>
   <assembly alias="System.Drawing" name="System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
-  <data name="button1.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+  <data name="btnAddFolder.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAL
         DAAACwwBP0AiyAAAAXJJREFUSEvt1bFKA0EUheGIhuADBEyjBpuYwjaNgl1abdTSTnwCIQpBLAQLIaQS
@@ -145,7 +145,7 @@
   <metadata name="tooltipForButtons.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
     <value>578, 17</value>
   </metadata>
-  <data name="button2.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+  <data name="btnImportFolder.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAL
         DAAACwwBP0AiyAAAAXdJREFUSEvt1b1KA0EUhuGIBgkEvAMl2EQLO9FGtExjHTs7b0GIgoidhRBjGVAr
@@ -157,7 +157,23 @@
         uYxzb9gL7rznWtPP9mjFkAYucW903bDlv6hS6Qdod+r0aaVuEgAAAABJRU5ErkJggg==
 </value>
   </data>
-  <data name="button3.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+  <data name="btnImportSoP.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+    <value>
+        iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAO
+        wgAADsIBFShKgAAAAkhJREFUSEvtk8+LEmEYxz3U/zHqIfwBHSLqoBZGMYeygxeJig4LES2rkCExpN4K
+        giKQ8OBli6aWlZIkKARzqRgNTAliy6RDsBtF0I4/Bk8+vc+z804zOsQKdqoXPszzPr7v9zPzzujQNA3+
+        JiRoNBpQKBTmCmYaAmyEw+G5gpn/BX/EVrD1U50L/6Cg3+vT4sFgAD21b7vGjK1AFEVQt3pTi3l49e5r
+        eP/qI9VcNrmWMyWoVqvQ6XRgOBxaJDxcTpfgvHCFSB24BkqpSf3Nja/QbL6Fhw9WCKyxNyVA3q2tw7ry
+        CbShRhK7cM7jG8+g1WpBJBIBp9NpAXuBQADy+fxvwZqs0MYlb8ZyDHbhyK1Ld8Dn8xmh6XQaKpWK0fP7
+        /XQDOEiAd8Q3c4k5PLewDPf1+YJwGfbt3W+EZzIZGI/HFKYoCni9XuqHQiEYjUZWwcvVN3DBLRE4x+uT
+        2xV6H8XrT6l3UjhlCVdVFWRZhna7TYJ6vW5IyuWyVYBB96RHVCOlm8+NF84Fh4RjtDkWi1F4NBqFZDJJ
+        4XhEeC0Wi7Qmm83O/gQB4Qht9ng8EAwGqeaCyX4qlZr9HRwVpr8cs8BMLpfbFszyFZ0WLoLL5bIE2Qnc
+        bjd0u91tAWL8D/Q5Z1JyVliCMyfOWcISiQTUajVLT5Ik2u/AwYpFRl/nuN7bxVhlGJLFPVep3vi8CfF4
+        3Bz4g9EwzZcZuymcDxYkMA7qUxpmCR7jty/f+ZO9YBxmISJjhfFBB2tR376zwYIMCQ/Wf9rBcDh+AcwF
+        32g2d94MAAAAAElFTkSuQmCC
+</value>
+  </data>
+  <data name="btnImportVS.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAO
         vAAADrwBlbxySQAABHRJREFUSEvllF9MU1ccxwlZhg8zmcmWvZGQRZ8Wnva8ZAUZZCKldHFx0gHTOaxA
@@ -182,7 +198,7 @@
         VP3Zdb33B/JufVRExF99OK22o0LzCgAAAABJRU5ErkJggg==
 </value>
   </data>
-  <data name="button4.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+  <data name="btnRefresh.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAL
         DAAACwwBP0AiyAAAAORJREFUSEvtlEEKwjAQAAPiyR/4EwUvPkOfoScvetPP6Gt8iQcPguhO2IVQmtWk
@@ -192,7 +208,7 @@
         EN59v1Q01nTVXwAAAABJRU5ErkJggg==
 </value>
   </data>
-  <data name="button5.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+  <data name="btnSettings.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAL
         DAAACwwBP0AiyAAAAjZJREFUSEut1TuPTlEUxvHXJcKUohI0WvENRiPRk2i0aoWMSqIRUUmEQkNNJ74A
@@ -224,7 +240,7 @@
         AAEAAAD/////AQAAAAAAAAAMAgAAAEZTeXN0ZW0uV2luZG93cy5Gb3JtcywgQ3VsdHVyZT1uZXV0cmFs
         LCBQdWJsaWNLZXlUb2tlbj1iNzdhNWM1NjE5MzRlMDg5BQEAAAAmU3lzdGVtLldpbmRvd3MuRm9ybXMu
         SW1hZ2VMaXN0U3RyZWFtZXIBAAAABERhdGEHAgIAAAAJAwAAAA8DAAAATh4AAAJNU0Z0AUkBTAIBARwB
-        AAGYAQEBmAEBARABAAEQAQAE/wEJAQAI/wFCAU0BNgEEBgABNgEEAgABKAMAAUADAAGAAwABAQEAAQgG
+        AAGgAQEBoAEBARABAAEQAQAE/wEJAQAI/wFCAU0BNgEEBgABNgEEAgABKAMAAUADAAGAAwABAQEAAQgG
         AAEgGAABgAIAAYADAAKAAQABgAMAAYABAAGAAQACgAIAA8ABAAHAAdwBwAEAAfABygGmAQABMwUAATMB
         AAEzAQABMwEAAjMCAAMWAQADHAEAAyIBAAMpAQADVQEAA00BAANCAQADOQEAAYABfAH/AQACUAH/AQAB
         kwEAAdYBAAH/AewBzAEAAcYB1gHvAQAB1gLnAQABkAGpAa0CAAH/ATMDAAFmAwABmQMAAcwCAAEzAwAC
@@ -356,6 +372,9 @@
         /wHvA/8L
 </value>
   </data>
+  <metadata name="optionsRenderer.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+    <value>17, 17</value>
+  </metadata>
   <metadata name="label2.GenerateMember" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
     <value>False</value>
   </metadata>
@@ -627,7 +646,7 @@
         AAEAAAD/////AQAAAAAAAAAMAgAAAEZTeXN0ZW0uV2luZG93cy5Gb3JtcywgQ3VsdHVyZT1uZXV0cmFs
         LCBQdWJsaWNLZXlUb2tlbj1iNzdhNWM1NjE5MzRlMDg5BQEAAAAmU3lzdGVtLldpbmRvd3MuRm9ybXMu
         SW1hZ2VMaXN0U3RyZWFtZXIBAAAABERhdGEHAgIAAAAJAwAAAA8DAAAAHA8AAAJNU0Z0AUkBTAIBAQoB
-        AAGIAQEBiAEBARABAAEQAQAE/wEJAQAI/wFCAU0BNgEEBgABNgEEAgABKAMAAUADAAEwAwABAQEAAQgG
+        AAGQAQEBkAEBARABAAEQAQAE/wEJAQAI/wFCAU0BNgEEBgABNgEEAgABKAMAAUADAAEwAwABAQEAAQgG
         AAEMGAABgAIAAYADAAKAAQABgAMAAYABAAGAAQACgAIAA8ABAAHAAdwBwAEAAfABygGmAQABMwUAATMB
         AAEzAQABMwEAAjMCAAMWAQADHAEAAyIBAAMpAQADVQEAA00BAANCAQADOQEAAYABfAH/AQACUAH/AQAB
         kwEAAdYBAAH/AewBzAEAAcYB1gHvAQAB1gLnAQABkAGpAa0CAAH/ATMDAAFmAwABmQMAAcwCAAEzAwAC

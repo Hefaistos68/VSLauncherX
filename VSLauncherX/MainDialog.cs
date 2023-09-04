@@ -292,7 +292,7 @@ namespace VSLauncher
 			}
 		}
 
-#region Main button handling
+		#region Main button handling
 		/// <summary>
 		/// Handles adding a folder.
 		/// </summary>
@@ -364,6 +364,26 @@ namespace VSLauncher
 			}
 		}
 
+		private void mainImportSoP_Click(object sender, EventArgs e)
+		{
+			OpenFileDialog dlg = new OpenFileDialog
+			{
+				Filter = FileHelper.SolutionFilterString,
+				Title = "Select a solution or project file"
+			};
+
+			if (dlg.ShowDialog() == DialogResult.OK)
+			{
+				VsItem item = ImportHelper.GetItemFromExtension(Path.GetFileNameWithoutExtension(dlg.FileName), dlg.FileName);
+				dlgExecuteVisualStudio dlg2 = new dlgExecuteVisualStudio(item);
+				if (dlg2.ShowDialog() == DialogResult.OK)
+				{
+					// add the item to the list
+					MergeNewItem(this.olvFiles.SelectedItem, dlg2.Item!);
+					UpdateList();
+				}
+			}
+		}
 		/// <summary>
 		/// Handles the refresh button.
 		/// </summary>
@@ -393,9 +413,9 @@ namespace VSLauncher
 				_ = SolutionData_OnChanged(true);
 			}
 		}
-#endregion
+		#endregion
 
-#region ListView event handling
+		#region ListView event handling
 
 		/// <summary>
 		/// Handles ending label editing on the list view.
@@ -532,7 +552,7 @@ namespace VSLauncher
 			}
 		}
 
-#endregion
+		#endregion
 
 		#region Drag and Drop handling
 
@@ -556,7 +576,7 @@ namespace VSLauncher
 					{
 						MergeNewItem(e.DropTargetItem, item);
 					}
-					else if(item?.ItemType == ItemTypeEnum.Other)
+					else if (item?.ItemType == ItemTypeEnum.Other)
 					{
 						// check if the file is actually a folder, then invoke the import folder dialog
 						FileInfo fi = new FileInfo(file);
@@ -725,7 +745,7 @@ namespace VSLauncher
 
 		#endregion
 
-#region Context Menu item handling
+		#region Context Menu item handling
 
 		/// <summary>
 		/// Handles the settings menu item.
@@ -817,23 +837,7 @@ namespace VSLauncher
 		/// <param name="e">The event parameters</param>
 		private void solutionProjectToolStripMenuItem_Click(object sender, EventArgs e)
 		{
-			OpenFileDialog dlg = new OpenFileDialog
-			{
-				Filter = FileHelper.SolutionFilterString,
-				Title = "Select a solution or project file"
-			};
-
-			if (dlg.ShowDialog() == DialogResult.OK)
-			{
-				VsItem item = ImportHelper.GetItemFromExtension(Path.GetFileNameWithoutExtension(dlg.FileName), dlg.FileName);
-				dlgExecuteVisualStudio dlg2 = new dlgExecuteVisualStudio(item);
-				if (dlg2.ShowDialog() == DialogResult.OK)
-				{
-					// add the item to the list
-					MergeNewItem(this.olvFiles.SelectedItem, dlg2.Item!);
-					UpdateList();
-				}
-			}
+			mainImportSoP_Click(sender, e);
 		}
 
 		/// <summary>
@@ -872,11 +876,11 @@ namespace VSLauncher
 				if (!Properties.Settings.Default.DontShowMultiplesWarning)
 				{
 					var n = f.ContainedSolutionsCount()+f.ContainedProjectsCount();
-					if(n > 3)
+					if (n > 3)
 					{
 						var dlg = new dlgWarnMultiple(n);
 
-						if(dlg.ShowDialog() == DialogResult.Cancel)
+						if (dlg.ShowDialog() == DialogResult.Cancel)
 						{
 							return;
 						}
@@ -907,7 +911,7 @@ namespace VSLauncher
 				}
 			}
 		}
-#endregion
+		#endregion
 
 		/// <summary>
 		/// Handles visual studio version item drawing with icon.
@@ -974,7 +978,7 @@ namespace VSLauncher
 			}
 		}
 
-#region Solution Data Handling
+		#region Solution Data Handling
 		/// <summary>
 		/// Handles changes to Solution data
 		/// </summary>
@@ -1035,18 +1039,18 @@ namespace VSLauncher
 		/// </summary>
 		private void SaveSolutionData()
 		{
-// 			if (true)
-// 			{
-// 				JsonSerializerSettings settings = new JsonSerializerSettings()
-// 				{
-// 					Formatting = Formatting.Indented,
-// 					TypeNameHandling = TypeNameHandling.All
-// 				};
-// 
-// 				string json = JsonConvert.SerializeObject(this.solutionGroups, settings);
-// 				// testing out storing the file in the google drive
-// 				new GoogleDriveStorage().Upload(json);
-// 			}
+			// 			if (true)
+			// 			{
+			// 				JsonSerializerSettings settings = new JsonSerializerSettings()
+			// 				{
+			// 					Formatting = Formatting.Indented,
+			// 					TypeNameHandling = TypeNameHandling.All
+			// 				};
+			// 
+			// 				string json = JsonConvert.SerializeObject(this.solutionGroups, settings);
+			// 				// testing out storing the file in the google drive
+			// 				new GoogleDriveStorage().Upload(json);
+			// 			}
 
 			// save this.solutionGroups data to a JSON file in the users data folder
 			string fileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "VSLauncher", "VSLauncher.json");
@@ -1101,9 +1105,9 @@ namespace VSLauncher
 			this.olvFiles.SetObjects(this.solutionGroups.Items);
 			// this.olvFiles.ExpandAll();
 		}
-#endregion
+		#endregion
 
-#region Main VS Execution Buttons handling
+		#region Main VS Execution Buttons handling
 
 		/// <summary>
 		/// Handles click on the btnMainStartVisualStudio1 button (Start VS)
@@ -1184,7 +1188,7 @@ namespace VSLauncher
 				this.Cursor = Cursors.Default;
 			}
 		}
-#endregion
+		#endregion
 
 		/// <summary>
 		/// Handles text changes in the filter field and updates the list
@@ -1204,7 +1208,7 @@ namespace VSLauncher
 		private void mainPanel_Resize(object sender, EventArgs e)
 		{
 			int w = this.txtFilter.Parent.Width;
-			w -= (34 * 5) + 12; // 5 buttons + spacer
+			w -= (34 * 6) + 12; // 6 buttons + spacer
 			w -= this.txtFilter.Location.X;
 			this.txtFilter.Width = w;
 		}

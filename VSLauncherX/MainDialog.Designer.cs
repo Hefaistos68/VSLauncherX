@@ -42,12 +42,12 @@ namespace VSLauncher
 			Label titleLabel;
 			Label label2;
 			txtFilter = new TextBoxEx();
-			button1 = new Button();
-			button2 = new Button();
-			button3 = new Button();
-			button4 = new Button();
+			btnAddFolder = new Button();
+			btnImportFolder = new Button();
+			btnImportVS = new Button();
+			btnRefresh = new Button();
 			spacer = new Label();
-			button5 = new Button();
+			btnSettings = new Button();
 			olvFiles = new TreeListView();
 			olvColumnFilename = new OLVColumn();
 			olvColumnDate = new OLVColumn();
@@ -78,6 +78,7 @@ namespace VSLauncher
 			settingsToolStripMenuItem = new ToolStripMenuItem();
 			statusStrip1 = new StatusStrip();
 			mainStatusLabel = new ToolStripStatusLabel();
+			btnImportSoP = new Button();
 			toolStripMenuItem1 = new ToolStripSeparator();
 			toolStripMenuItem2 = new ToolStripSeparator();
 			flowLayoutPanel2 = new FlowLayoutPanel();
@@ -109,12 +110,13 @@ namespace VSLauncher
 			flowLayoutPanel2.BackColor = SystemColors.ScrollBar;
 			flowLayoutPanel2.Controls.Add(label3);
 			flowLayoutPanel2.Controls.Add(txtFilter);
-			flowLayoutPanel2.Controls.Add(button1);
-			flowLayoutPanel2.Controls.Add(button2);
-			flowLayoutPanel2.Controls.Add(button3);
-			flowLayoutPanel2.Controls.Add(button4);
+			flowLayoutPanel2.Controls.Add(btnAddFolder);
+			flowLayoutPanel2.Controls.Add(btnImportFolder);
+			flowLayoutPanel2.Controls.Add(btnImportSoP);
+			flowLayoutPanel2.Controls.Add(btnImportVS);
+			flowLayoutPanel2.Controls.Add(btnRefresh);
 			flowLayoutPanel2.Controls.Add(spacer);
-			flowLayoutPanel2.Controls.Add(button5);
+			flowLayoutPanel2.Controls.Add(btnSettings);
 			flowLayoutPanel2.Dock = DockStyle.Fill;
 			flowLayoutPanel2.Location = new Point(0, 40);
 			flowLayoutPanel2.Margin = new Padding(0);
@@ -145,75 +147,75 @@ namespace VSLauncher
 			txtFilter.TextChanged += txtFilter_TextChanged;
 			txtFilter.KeyPress += txtFilter_KeyPress;
 			// 
-			// button1
+			// btnAddFolder
 			// 
-			button1.Image = (Image)resources.GetObject("button1.Image");
-			button1.Location = new Point(510, 1);
-			button1.Margin = new Padding(1);
-			button1.Name = "button1";
-			button1.Size = new Size(32, 32);
-			button1.TabIndex = 2;
-			tooltipForButtons.SetToolTip(button1, "Add new Group");
-			button1.UseVisualStyleBackColor = true;
-			button1.Click += mainFolderAdd_Click;
+			btnAddFolder.Image = (Image)resources.GetObject("btnAddFolder.Image");
+			btnAddFolder.Location = new Point(510, 1);
+			btnAddFolder.Margin = new Padding(1);
+			btnAddFolder.Name = "btnAddFolder";
+			btnAddFolder.Size = new Size(32, 32);
+			btnAddFolder.TabIndex = 2;
+			tooltipForButtons.SetToolTip(btnAddFolder, "Add new Group");
+			btnAddFolder.UseVisualStyleBackColor = true;
+			btnAddFolder.Click += mainFolderAdd_Click;
 			// 
-			// button2
+			// btnImportFolder
 			// 
-			button2.Image = (Image)resources.GetObject("button2.Image");
-			button2.Location = new Point(544, 1);
-			button2.Margin = new Padding(1);
-			button2.Name = "button2";
-			button2.Size = new Size(32, 32);
-			button2.TabIndex = 2;
-			tooltipForButtons.SetToolTip(button2, "Import from Folder");
-			button2.UseVisualStyleBackColor = true;
-			button2.Click += mainImportFolder_Click;
+			btnImportFolder.Image = (Image)resources.GetObject("btnImportFolder.Image");
+			btnImportFolder.Location = new Point(544, 1);
+			btnImportFolder.Margin = new Padding(1);
+			btnImportFolder.Name = "btnImportFolder";
+			btnImportFolder.Size = new Size(32, 32);
+			btnImportFolder.TabIndex = 2;
+			tooltipForButtons.SetToolTip(btnImportFolder, "Import from Folder");
+			btnImportFolder.UseVisualStyleBackColor = true;
+			btnImportFolder.Click += mainImportFolder_Click;
 			// 
-			// button3
+			// btnImportVS
 			// 
-			button3.Image = (Image)resources.GetObject("button3.Image");
-			button3.Location = new Point(578, 1);
-			button3.Margin = new Padding(1);
-			button3.Name = "button3";
-			button3.Size = new Size(32, 32);
-			button3.TabIndex = 2;
-			tooltipForButtons.SetToolTip(button3, "Import Visual Studio Recents");
-			button3.UseVisualStyleBackColor = true;
-			button3.Click += mainImportVS_Click;
+			btnImportVS.Image = (Image)resources.GetObject("btnImportVS.Image");
+			btnImportVS.Location = new Point(612, 1);
+			btnImportVS.Margin = new Padding(1);
+			btnImportVS.Name = "btnImportVS";
+			btnImportVS.Size = new Size(32, 32);
+			btnImportVS.TabIndex = 2;
+			tooltipForButtons.SetToolTip(btnImportVS, "Import Visual Studio Recents");
+			btnImportVS.UseVisualStyleBackColor = true;
+			btnImportVS.Click += mainImportVS_Click;
 			// 
-			// button4
+			// btnRefresh
 			// 
-			button4.Image = (Image)resources.GetObject("button4.Image");
-			button4.Location = new Point(612, 1);
-			button4.Margin = new Padding(1);
-			button4.Name = "button4";
-			button4.Size = new Size(32, 32);
-			button4.TabIndex = 2;
-			tooltipForButtons.SetToolTip(button4, "Refresh & Sync");
-			button4.UseVisualStyleBackColor = true;
-			button4.Click += mainRefresh_Click;
+			btnRefresh.Image = (Image)resources.GetObject("btnRefresh.Image");
+			btnRefresh.Location = new Point(646, 1);
+			btnRefresh.Margin = new Padding(1);
+			btnRefresh.Name = "btnRefresh";
+			btnRefresh.Size = new Size(32, 32);
+			btnRefresh.TabIndex = 2;
+			tooltipForButtons.SetToolTip(btnRefresh, "Refresh & Sync");
+			btnRefresh.UseVisualStyleBackColor = true;
+			btnRefresh.Click += mainRefresh_Click;
 			// 
 			// spacer
 			// 
 			spacer.Anchor = AnchorStyles.Top | AnchorStyles.Bottom;
-			spacer.Location = new Point(648, 0);
+			spacer.Location = new Point(682, 0);
 			spacer.Name = "spacer";
 			spacer.Size = new Size(4, 35);
 			spacer.TabIndex = 0;
 			spacer.Text = " ";
 			spacer.TextAlign = ContentAlignment.MiddleRight;
 			// 
-			// button5
+			// btnSettings
 			// 
-			button5.Image = (Image)resources.GetObject("button5.Image");
-			button5.Location = new Point(656, 1);
-			button5.Margin = new Padding(1);
-			button5.Name = "button5";
-			button5.Size = new Size(32, 32);
-			button5.TabIndex = 2;
-			tooltipForButtons.SetToolTip(button5, "Application Settings");
-			button5.UseVisualStyleBackColor = true;
-			button5.Click += mainSettings_Click;
+			btnSettings.Image = (Image)resources.GetObject("btnSettings.Image");
+			btnSettings.Location = new Point(690, 1);
+			btnSettings.Margin = new Padding(1);
+			btnSettings.Name = "btnSettings";
+			btnSettings.Size = new Size(32, 32);
+			btnSettings.TabIndex = 2;
+			tooltipForButtons.SetToolTip(btnSettings, "Application Settings");
+			btnSettings.UseVisualStyleBackColor = true;
+			btnSettings.Click += mainSettings_Click;
 			// 
 			// leftSubPanel
 			// 
@@ -638,6 +640,17 @@ namespace VSLauncher
 			mainStatusLabel.Size = new Size(193, 17);
 			mainStatusLabel.Text = "Lets do something incredible today";
 			// 
+			// btnImportSoP
+			// 
+			btnImportSoP.Image = (Image)resources.GetObject("btnImportSoP.Image");
+			btnImportSoP.Location = new Point(578, 1);
+			btnImportSoP.Margin = new Padding(1);
+			btnImportSoP.Name = "btnImportSoP";
+			btnImportSoP.Size = new Size(32, 32);
+			btnImportSoP.TabIndex = 2;
+			btnImportSoP.UseVisualStyleBackColor = true;
+			btnImportSoP.Click += mainImportSoP_Click;
+			// 
 			// MainDialog
 			// 
 			this.AutoScaleDimensions = new SizeF(7F, 15F);
@@ -693,17 +706,18 @@ namespace VSLauncher
 		private ToolStripStatusLabel mainStatusLabel;
 		private ToolStripMenuItem removeToolStripMenuItem;
 		private TextBoxEx txtFilter;
-		private Button button1;
-		private Button button2;
-		private Button button3;
-		private Button button4;
-		private Button button5;
+		private Button btnAddFolder;
+		private Button btnImportFolder;
+		private Button btnImportVS;
+		private Button btnRefresh;
+		private Button btnSettings;
 		private Label spacer;
 		private ToolStripSeparator toolStripMenuItem3;
 		private ToolStripMenuItem addToolStripMenuItem;
 		private ToolStripMenuItem newGroupToolStripMenuItem;
 		private ToolStripMenuItem fromFolderToolStripMenuItem;
 		private ToolStripMenuItem solutionProjectToolStripMenuItem;
+		private Button btnImportSoP;
 	}
 }
 
