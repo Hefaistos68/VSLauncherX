@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using Microsoft.WindowsAPICodePack.Taskbar;
 
 using BrightIdeasSoftware;
 
@@ -9,6 +10,8 @@ using VSLauncher.Forms;
 using VSLauncher.Helpers;
 
 using VSLXshared.Helpers;
+using System.Globalization;
+using System.Reflection;
 
 namespace VSLauncher
 {
@@ -26,6 +29,8 @@ namespace VSLauncher
 		private DescribedTaskRenderer? itemRenderer;
 		private VsFolder solutionGroups = new VsFolder();
 		private DataObject? lastDroppedData;
+
+		public JumpList TaskbarJumpList { get; private set; }
 
 		/// <summary>
 		/// Returns if the control key is pressed.
@@ -200,7 +205,15 @@ namespace VSLauncher
 				this.WindowState = Properties.Settings.Default.AppWindow == FormWindowState.Minimized ? FormWindowState.Normal : Properties.Settings.Default.AppWindow;
 				this.Location = Properties.Settings.Default.AppLocation;
 				this.Size = Properties.Settings.Default.AppSize;
+
+				// now set the columns
+				this.olvColumnDate.IsVisible = Properties.Settings.Default.ColumnDateVisible;
+				this.olvColumnOptions.IsVisible = Properties.Settings.Default.ColumnOptionsVisible;
+
+				this.olvFiles.RebuildColumns();
 			}
+
+			SetupTaskbarTasks();
 
 			_ = this.txtFilter.Focus();
 		}
@@ -225,6 +238,9 @@ namespace VSLauncher
 				Properties.Settings.Default.AppLocation = this.RestoreBounds.Location;
 				Properties.Settings.Default.AppSize = this.RestoreBounds.Size;
 			}
+
+			Properties.Settings.Default.ColumnDateVisible = this.olvColumnDate.IsVisible;
+			Properties.Settings.Default.ColumnOptionsVisible = this.olvColumnOptions.IsVisible;
 
 			Properties.Settings.Default.AppState = "saved";
 
@@ -291,6 +307,62 @@ namespace VSLauncher
 				}
 			}
 		}
+
+		#region Taskbar handling
+
+		private void SetupTaskbarTasks()
+		{
+			var cat = new JumpListCustomCategory ( "Test" );
+			// Create a jump list.
+			this.TaskbarJumpList = JumpList.CreateJumpList();
+
+			RebuildTaskbarItems();
+		}
+
+		/// <summary>
+		/// Adds the item to taskbar.
+		/// </summary>
+		/// <param name="item">The item.</param>
+		private void AddItemToTaskbar(VsItem item)
+		{
+			var il = new ItemLauncher(item, visualStudioInstances.GetByIdentifier(item.VsVersion));
+
+			// Add a jump task to the jump list.
+			var jll = new JumpListLink(il.GetLauncherPath(), item.Name);
+			// need to find a way to pass admin requirement
+			jll.Arguments = il.CreateLaunchInfoString();
+			jll.IconReference = new Microsoft.WindowsAPICodePack.Shell.IconReference(Assembly.GetExecutingAssembly().Location, 1);
+			jll.ShowCommand = Microsoft.WindowsAPICodePack.Shell.WindowShowCommand.Hide;
+
+			this.TaskbarJumpList.AddUserTasks(jll);
+
+		}
+		private void RebuildTaskbarItems(VsFolder? folder = null)
+		{
+			if (folder is null)
+			{
+				folder = this.solutionGroups;
+			}
+
+			// iterate through all items in SolutionItems and add the favorite items to the taskbar
+			foreach (VsItem item in folder.Items)
+			{
+				if (item.IsFavorite)
+				{
+					AddItemToTaskbar(item);
+				}
+				if(item is VsFolder f)
+				{
+					RebuildTaskbarItems(f);
+				}
+			}
+
+			if(folder is null || folder == this.solutionGroups)
+			{
+				this.TaskbarJumpList.Refresh();
+			}
+		}
+		#endregion
 
 		#region Main button handling
 		/// <summary>
@@ -911,6 +983,18 @@ namespace VSLauncher
 				}
 			}
 		}
+		private void favoriteToolStripMenuItem_Click(object sender, EventArgs e)
+		{
+			// make the selected item a favorite and add to the taskbar
+			if (this.olvFiles.SelectedObject is VsItem i)
+			{
+				i.IsFavorite = !i.IsFavorite;
+
+				SetupTaskbarTasks();
+				//RebuildTaskbarItems();
+			}
+		}
+
 		#endregion
 
 		/// <summary>
@@ -1221,7 +1305,11 @@ namespace VSLauncher
 		private void ctxMenu_Opening(object sender, System.ComponentModel.CancelEventArgs e)
 		{
 			// if the currently selected item is a group, enable the "Add..." menu item, otherwise remove it
-			this.ctxMenu.Items[0].Enabled = this.olvFiles.SelectedObject is VsFolder;
+			this.ctxMenu.Items[0].Enabled = this.olvFiles.SelectedObject is VsFolder || this.olvFiles.SelectedObject is null;
+			if(this.olvFiles.SelectedObject is VsItem i)
+			{
+				this.favoriteToolStripMenuItem.Checked = i.IsFavorite;
+			}
 		}
 
 		/// <summary>

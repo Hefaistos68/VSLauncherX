@@ -130,5 +130,29 @@ namespace VSLauncher.Properties {
                 this["DontShowMultiplesWarning"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool ColumnDateVisible {
+            get {
+                return ((bool)(this["ColumnDateVisible"]));
+            }
+            set {
+                this["ColumnDateVisible"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool ColumnOptionsVisible {
+            get {
+                return ((bool)(this["ColumnOptionsVisible"]));
+            }
+            set {
+                this["ColumnOptionsVisible"] = value;
+            }
+        }
     }
 }

@@ -21,6 +21,7 @@ Note: will use SoP as abbreviation for "Solutions and/or Projects"
 - Automatically synchronize the list(s) with Visual Studios recent list
 - No limit on "recent files" list, can add an almost unlimited amount of SoPs
 - Grouping with subgroups
+- Favorites that can be invoked directly from the taskbar context menu
 
 ## The Why
 
@@ -58,6 +59,7 @@ After you have at least one SoP in the list, you can start it by pressing enter 
 As expected, you can use drag and drop to order items, alt+enter to open the items settings, del to delete an item, etc. Remember that the settings of a folder/group item are applied before all items. This means that when you set a folder to execute as admin, all the contained SoPs will run as admin too. 
 You can set for each SoP which (installed) version of Visual Studio you want to open it with. Recomended version is shown for each as it is defined in the solution file.
 There are also context menus that you can invoke with right clicking on an item.
+When you "Favorite" an item, it is added to the Tasks context menue in the Taskbar app icon.
 
 
 ![SoP Settings](https://github.com/Hefaistos68/VSLauncherX/blob/master/docs/Settings-sample.jpg)
