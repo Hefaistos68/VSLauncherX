@@ -138,7 +138,7 @@ namespace VSLauncher
 
 			// setup the Options column
 			this.olvColumnOptions.AspectGetter = ColumnHelper.GetAspectForOptions;
-			this.olvColumnOptions.ToolTipText = "*******";
+			this.olvColumnOptions.ToolTipText = "";
 
 			// Show the attributes for this object A FlagRenderer masks off various values and draws zero or more images
 			// based on the presence of individual bits.

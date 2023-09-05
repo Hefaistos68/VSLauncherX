@@ -69,6 +69,9 @@ namespace VSLauncher.DataModel
 				sb.Append("\r\n");
 			}
 
+			if (sb.Length == 0)
+				return "None";
+
 			return sb.ToString();
 		}
 	}
