@@ -102,6 +102,9 @@ namespace VSLauncher.DataModel
 		[JsonIgnore]
 		public bool Warning { get; set; }
 
+		/// <summary>
+		/// Gets or sets a value indicating whether is favorite.
+		/// </summary>
 		public bool IsFavorite { get; set; }
 
 		/// <summary>

@@ -360,13 +360,13 @@ namespace VSLauncher
 				{
 					AddItemToTaskbar(item);
 				}
-				if(item is VsFolder f)
+				if (item is VsFolder f)
 				{
 					RebuildTaskbarItems(f);
 				}
 			}
 
-			if(folder is null || folder == this.solutionGroups)
+			if (folder is null || folder == this.solutionGroups)
 			{
 				this.TaskbarJumpList.Refresh();
 			}
@@ -1314,11 +1314,25 @@ namespace VSLauncher
 		private void ctxMenu_Opening(object sender, System.ComponentModel.CancelEventArgs e)
 		{
 			// if the currently selected item is a group, enable the "Add..." menu item, otherwise remove it
-			this.ctxMenu.Items[0].Enabled = this.olvFiles.SelectedObject is VsFolder || this.olvFiles.SelectedObject is null;
-			if(this.olvFiles.SelectedObject is VsItem i)
+			this.addToolStripMenuItem.Enabled = this.olvFiles.SelectedObject is VsFolder || this.olvFiles.SelectedObject is null;
+			bool bOther = true;
+			
+			if (this.olvFiles.SelectedObject is VsItem i)
 			{
 				this.favoriteToolStripMenuItem.Checked = i.IsFavorite;
 			}
+			if(this.olvFiles.SelectedObject is null)
+			{
+				// disable all other menu items
+				bOther = false;
+			}
+
+			this.runToolStripMenuItem.Enabled = bOther;
+			this.runAsAdminToolStripMenuItem.Enabled = bOther;
+			this.renameToolStripMenuItem.Enabled = bOther;
+			this.removeToolStripMenuItem.Enabled = bOther;
+			this.settingsToolStripMenuItem.Enabled = bOther;
+			this.favoriteToolStripMenuItem.Enabled = bOther;
 		}
 
 		/// <summary>
