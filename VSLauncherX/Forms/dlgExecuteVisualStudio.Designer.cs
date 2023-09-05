@@ -152,6 +152,7 @@
 			this.cbxVisualStudioVersion.Size = new Size(387, 32);
 			this.cbxVisualStudioVersion.TabIndex = 3;
 			this.cbxVisualStudioVersion.SelectedIndexChanged += this.cbxVisualStudioVersion_SelectedIndexChanged;
+			this.cbxVisualStudioVersion.ShowDefault = true;
 			// 
 			// cbxInstance
 			// 

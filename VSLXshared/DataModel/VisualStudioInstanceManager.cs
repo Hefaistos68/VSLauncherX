@@ -239,20 +239,22 @@ namespace VSLauncher.DataModel
 		}
 
 		/// <summary>
-		/// Gets the by version.
+		/// Gets the visual studio instance by identifier
 		/// </summary>
 		/// <param name="identifier">The VS identifer</param>
 		/// <returns>A VisualStudioInstance.</returns>
-		public VisualStudioInstance? GetByIdentifier(string identifier)
+		public VisualStudioInstance GetByIdentifier(string identifier)
 		{
 			if (string.IsNullOrEmpty(identifier))
 				return HighestVersion();
 
-			return this.allInstances.Where(x => x.Identifier == identifier).FirstOrDefault();
+			var vsi = this.allInstances.Where(x => x.Identifier == identifier).FirstOrDefault();
+
+			return vsi is null ? HighestVersion() : vsi;
 		}
 
 		/// <summary>
-		/// Gets the by name.
+		/// Gets the visual studio instance by name.
 		/// </summary>
 		/// <param name="name">The name.</param>
 		/// <returns>A VisualStudioInstance.</returns>
@@ -265,7 +267,7 @@ namespace VSLauncher.DataModel
 		}
 
 		/// <summary>
-		/// Gets the by version.
+		/// Gets the visual studio instance by version.
 		/// </summary>
 		/// <param name="version">The version.</param>
 		/// <returns>A VisualStudioInstance.</returns>

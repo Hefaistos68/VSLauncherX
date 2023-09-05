@@ -14,7 +14,9 @@ namespace BackgroundLaunch
 	/// </summary>
 	public class Runner
 	{
+		private readonly VisualStudioInstanceManager visualStudioInstances = new VisualStudioInstanceManager();
 		private readonly LaunchInfo launchInfo;
+
 		/// <summary>
 		/// Sets the window pos.
 		/// </summary>
@@ -58,6 +60,7 @@ namespace BackgroundLaunch
 			ProcessStartInfo startInfo = new ProcessStartInfo();
 			string? workingPath = Path.GetDirectoryName(item.Path);
 			
+			// setup the working path
 			if(!string.IsNullOrWhiteSpace(workingPath))
 			{
 				if (!PathHelper.PathIsValid(workingPath))
@@ -75,9 +78,10 @@ namespace BackgroundLaunch
 			startInfo.Verb = item.RunAsAdmin ? "runas" : "run";
 			startInfo.ErrorDialog = true;
 
+			// depending on item type, prepare executable and arguments
 			if ((item.ItemType == ItemTypeEnum.Solution) || (item.ItemType == ItemTypeEnum.Project))
 			{
-				startInfo.FileName = this.launchInfo.Target;
+				startInfo.FileName = GetTargetFilename(item);
 				startInfo.Arguments = "\"" + item.Path + "\"";
 				if (!string.IsNullOrEmpty(item.Commands))
 				{
@@ -124,6 +128,21 @@ namespace BackgroundLaunch
 			}
 
 			return process?.HasExited == true ? null : process;
+		}
+
+		/// <summary>
+		/// Gets the target filename, either the default VS instance, or the file specific one
+		/// </summary>
+		/// <param name="item">The item.</param>
+		/// <returns>A string.</returns>
+		private string GetTargetFilename(VsItem item)
+		{
+			if(item.VsVersion is null)
+			{
+				return this.launchInfo.Target;
+			}
+
+			return this.visualStudioInstances.GetByIdentifier(item.VsVersion).Location;
 		}
 
 		/// <summary>

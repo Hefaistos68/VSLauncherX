@@ -113,12 +113,21 @@ namespace VSLauncher
 		/// <param name="e">The e.</param>
 		private void cbxVisualStudioVersion_SelectedIndexChanged(object sender, EventArgs e)
 		{
-			var s = this.cbxVisualStudioVersion.Versions[cbxVisualStudioVersion.SelectedIndex].GetInstances();
-			this.cbxInstance.Items.Clear();
-			this.cbxInstance.Items.AddRange(s.ToArray());
-			this.cbxInstance.SelectedIndex = 0;
+			if(cbxVisualStudioVersion.SelectedIndex != -1)
+			{
+				var s = this.cbxVisualStudioVersion.SelectedItem!.GetInstances();
+				this.cbxInstance.Enabled = true;
+				this.cbxInstance.Items.Clear();
+				this.cbxInstance.Items.AddRange(s.ToArray());
+				this.cbxInstance.SelectedIndex = 0;
 
-			this.VsVersion = cbxVisualStudioVersion.SelectedItem;
+				this.VsVersion = cbxVisualStudioVersion.SelectedItem;
+			}
+			else
+			{
+				this.VsVersion = null;
+				this.cbxInstance.Enabled = false;
+			}
 		}
 
 		/// <summary>
@@ -137,15 +146,27 @@ namespace VSLauncher
 				this.Item.Instance = (cbxInstance.Text == "<default>") || string.IsNullOrWhiteSpace(cbxInstance.Text) ? null : cbxInstance.Text;
 				this.Item.Commands = txtCommand.Text;
 				this.Item.PreferredMonitor = cbxMonitors.SelectedIndex > 0 ? cbxMonitors.SelectedIndex - 1 : null;
-				this.Item.VsVersion = cbxVisualStudioVersion.SelectedItem.Identifier;
+
+				string? vsVersionIdentifier = null;
+
+				if (!cbxVisualStudioVersion.IsDefaultSelected)
+				{
+					vsVersionIdentifier = cbxVisualStudioVersion.SelectedItem.Identifier;
+				}
+				else
+				{
+					vsVersionIdentifier = "";
+				}
+
+				this.Item.VsVersion = vsVersionIdentifier;
 
 				if (this.Item is VsProject p)
 				{
-					p.VsVersion = this.cbxVisualStudioVersion.SelectedItem.Identifier;
+					p.VsVersion = vsVersionIdentifier;
 				}
 				else if (this.Item is VsSolution s)
 				{
-					s.RequiredVersion = this.cbxVisualStudioVersion.SelectedItem.Identifier;
+					s.RequiredVersion = vsVersionIdentifier;
 				}
 			}
 		}
@@ -244,7 +265,7 @@ namespace VSLauncher
 		/// <param name="e">The e.</param>
 		private void dlgExecuteVisualStudio_Load(object sender, EventArgs e)
 		{
-			string? version ="";
+			string? version = null;
 
 			// make this a change dialog and add Save
 			if (this.Item != null)
@@ -254,17 +275,32 @@ namespace VSLauncher
 
 			if (this.Item is VsProject p)
 			{
-				version = p.GetRequiredVersion();
-				this.cbxVisualStudioVersion.SelectFromVersion(version);
+				if (p.VsVersion == null)
+				{
+					version = p.GetRequiredVersion();
+					this.cbxVisualStudioVersion.SelectFromVersion(version);
+				}
+				else
+				{
+					this.cbxVisualStudioVersion.SelectDefault();
+				}
 			}
 			else if (this.Item is VsSolution s)
 			{
-				version = s.GetRequiredVersion();
-				this.cbxVisualStudioVersion.SelectFromVersion(version);
+				if(s.RequiredVersion == null)
+				{
+					version = s.GetRequiredVersion();
+					this.cbxVisualStudioVersion.SelectFromVersion(version);
+				}
+				// the required version can also be "", then it was set to be default instead of specific
+				else
+				{
+					this.cbxVisualStudioVersion.SelectDefault();
+				}
 			}
 			else if (this.Item is VsFolder f)
 			{
-				this.cbxVisualStudioVersion.Enabled = false;
+				// this.cbxVisualStudioVersion.Enabled = false;
 				this.cbxInstance.Enabled = false;
 				this.txtFoldername.Focus();
 			}
