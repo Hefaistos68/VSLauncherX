@@ -345,11 +345,11 @@ namespace VSLauncher.Helpers
 				}
 				if (s.Status == "*")
 				{
-					return Resources.GitDirty;
+					return Resources.GitDirty2;
 				}
 				else if (s.Status == "!")
 				{
-					return Resources.GitClean;
+					return Resources.GitClean2;
 				}
 			}
 

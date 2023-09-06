@@ -242,8 +242,6 @@ namespace VSLauncher
 
 			SetupTaskbarTasks();
 
-			FetchGitStatus(this.solutionGroups);
-
 			_ = this.txtFilter.Focus();
 		}
 
@@ -270,8 +268,21 @@ namespace VSLauncher
 					}
 					catch (RepositoryNotFoundException ex)
 					{
-						// this is not a GIT repository
-						item.Status = "?";
+						// retry with the parent folder
+						try
+						{
+							using (var repo = new Repository(Path.GetDirectoryName(Path.GetDirectoryName(item.Path))))
+							{
+								var stat = repo.RetrieveStatus();
+								item.Status = stat.IsDirty ? "*" : "!";
+							}
+						}
+						catch (RepositoryNotFoundException ex2)
+						{
+							// this is not a GIT repository
+							item.Status = "?";
+
+						}
 					}
 				}
 				else
@@ -548,6 +559,7 @@ namespace VSLauncher
 			this.solutionGroups.Items.OnChanged += SolutionData_OnChanged;
 
 			UpdateList();
+			FetchGitStatus(this.solutionGroups);
 		}
 
 		/// <summary>
@@ -1285,7 +1297,7 @@ namespace VSLauncher
 			this.olvFiles.SetObjects(this.solutionGroups.Items);
 
 			IterateAndExpandItems();
-			// this.olvFiles.ExpandAll();
+			FetchGitStatus(this.solutionGroups);
 		}
 
 		private void IterateAndExpandItems()
