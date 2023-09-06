@@ -52,6 +52,7 @@ namespace VSLauncher
 			olvFiles = new TreeListView();
 			olvColumnFilename = new OLVColumn();
 			olvColumnDate = new OLVColumn();
+			olvColumnVersion = new OLVColumn();
 			olvColumnOptions = new OLVColumn();
 			optionsRenderer = new MultiImageRenderer();
 			imageList3 = new ImageList(this.components);
@@ -269,11 +270,12 @@ namespace VSLauncher
 			// 
 			olvFiles.AllColumns.Add(olvColumnFilename);
 			olvFiles.AllColumns.Add(olvColumnDate);
+			olvFiles.AllColumns.Add(olvColumnVersion);
 			olvFiles.AllColumns.Add(olvColumnOptions);
 			olvFiles.AllowDrop = true;
 			olvFiles.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
 			olvFiles.CellEditUseWholeCell = false;
-			olvFiles.Columns.AddRange(new ColumnHeader[] { olvColumnFilename, olvColumnDate, olvColumnOptions });
+			olvFiles.Columns.AddRange(new ColumnHeader[] { olvColumnFilename, olvColumnDate, olvColumnVersion, olvColumnOptions });
 			olvFiles.EmptyListMsg = "Add a group, import a folder or import recent items";
 			olvFiles.EmptyListMsgFont = new Font("Segoe UI", 11.25F, FontStyle.Regular, GraphicsUnit.Point);
 			olvFiles.FullRowSelect = true;
@@ -325,8 +327,21 @@ namespace VSLauncher
 			olvColumnDate.Searchable = false;
 			olvColumnDate.Sortable = false;
 			olvColumnDate.Text = "Last Modified";
-			olvColumnDate.ToolTipText = "Blah ";
+			olvColumnDate.ToolTipText = "Time and date last modified ";
 			olvColumnDate.Width = 140;
+			// 
+			// olvColumnVersion
+			// 
+			olvColumnVersion.AspectName = "Version";
+			olvColumnVersion.Groupable = false;
+			olvColumnVersion.IsEditable = false;
+			olvColumnVersion.MaximumWidth = 200;
+			olvColumnVersion.MinimumWidth = 75;
+			olvColumnVersion.Searchable = false;
+			olvColumnVersion.Sortable = false;
+			olvColumnVersion.Text = "Version";
+			olvColumnVersion.ToolTipText = "Visual Studio Version ";
+			olvColumnVersion.Width = 75;
 			// 
 			// olvColumnOptions
 			// 
@@ -335,14 +350,14 @@ namespace VSLauncher
 			olvColumnOptions.Hideable = false;
 			olvColumnOptions.IsEditable = false;
 			olvColumnOptions.MaximumWidth = 100;
-			olvColumnOptions.MinimumWidth = 100;
+			olvColumnOptions.MinimumWidth = 80;
 			olvColumnOptions.Renderer = optionsRenderer;
 			olvColumnOptions.Searchable = false;
 			olvColumnOptions.Sortable = false;
 			olvColumnOptions.Text = "Run Options";
 			olvColumnOptions.ToolTipText = "Blah ";
 			olvColumnOptions.UseFiltering = false;
-			olvColumnOptions.Width = 100;
+			olvColumnOptions.Width = 80;
 			// 
 			// optionsRenderer
 			// 
@@ -698,6 +713,7 @@ namespace VSLauncher
 		private OLVColumn olvColumnFilename;
 		private OLVColumn olvColumnOptions;
 		private OLVColumn olvColumnDate;
+		private OLVColumn olvColumnVersion;
 
 		private ToolStripStatusLabel toolStripStatusLabel3;
 		private TableLayoutPanel mainPanel;

@@ -136,6 +136,24 @@ namespace VSLauncher
 			// setup the Date column
 			this.olvColumnDate.AspectGetter = ColumnHelper.GetAspectForDate;
 
+			// setup the Version column
+			this.olvColumnVersion.AspectGetter = delegate (object rowObject)
+			{
+				if (rowObject is VsItem item)
+				{																
+					if(item.VsVersion is null)
+					{
+						return "<default>";
+					}
+
+					var vs = visualStudioInstances.GetByVersion(item.VsVersion);
+					string s = $"{vs.Year} ({vs.ShortVersion})";
+					return s;
+				}
+
+				return null;
+			};
+
 			// setup the Options column
 			this.olvColumnOptions.AspectGetter = ColumnHelper.GetAspectForOptions;
 			this.olvColumnOptions.ToolTipText = "";
@@ -166,9 +184,6 @@ namespace VSLauncher
 		/// </summary>
 		public MainDialog()
 		{
-			LoadSolutionData();
-
-			this.solutionGroups.Items.OnChanged += SolutionData_OnChanged;
 
 			InitializeComponent();
 			InitializeListview();
@@ -190,6 +205,9 @@ namespace VSLauncher
 
 			this.bInUpdate = false;
 
+			LoadSolutionData();
+
+			this.solutionGroups.Items.OnChanged += SolutionData_OnChanged;
 			UpdateList();
 		}
 		/// <summary>
@@ -246,6 +264,8 @@ namespace VSLauncher
 
 			// don't forget to save the settings
 			Properties.Settings.Default.Save();
+
+			SaveSolutionData();
 		}
 
 		/// <summary>
@@ -1196,7 +1216,27 @@ namespace VSLauncher
 		{
 			// TODO: must verify items before loading, indicate missing items through warning icon
 			this.olvFiles.SetObjects(this.solutionGroups.Items);
+
+			IterateAndExpandItems();
 			// this.olvFiles.ExpandAll();
+		}
+
+		private void IterateAndExpandItems()
+		{
+			foreach (var item in this.olvFiles.Objects)
+			{
+				if (item is VsFolder folder)
+				{
+					if (folder.Expanded)
+					{
+						this.olvFiles.Expand(item);
+					}
+					else
+					{
+						this.olvFiles.Collapse(item);
+					}
+				}
+			}
 		}
 		#endregion
 

@@ -263,7 +263,9 @@ namespace VSLauncher.DataModel
 			if (string.IsNullOrEmpty(name))
 				return HighestVersion();
 
-			return this.allInstances.Where(x => x.ShortName.Equals(name, StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault();
+			var vsi =  this.allInstances.Where(x => x.ShortName.Equals(name, StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault();
+
+			return vsi is null ? HighestVersion() : vsi;
 		}
 
 		/// <summary>
@@ -276,7 +278,9 @@ namespace VSLauncher.DataModel
 			if (string.IsNullOrEmpty(version))
 				return HighestVersion();
 
-			return this.allInstances.Where(x => x.Version.StartsWith(version, StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault();
+			var vsi =  this.allInstances.Where(x => x.Version.StartsWith(version, StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault();
+
+			return vsi is null ? HighestVersion() : vsi;
 		}
 
 		/// <summary>

@@ -55,6 +55,11 @@ namespace VSLauncher.DataModel
 		public string Version { get; }
 
 		/// <summary>
+		/// Gets the short version number, only major and minor version
+		/// </summary>
+		public string ShortVersion { get { return String.Join('.', this.Version.Split('.').Take(2)); } }
+
+		/// <summary>
 		/// Gets the release year/version
 		/// </summary>
 		public string Year { get; }
