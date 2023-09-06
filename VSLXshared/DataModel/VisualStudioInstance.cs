@@ -99,6 +99,11 @@ namespace VSLauncher.DataModel
 			return $"{Name} ({Version})";
 		}
 
+		/// <summary>
+		/// Executes the the processstartinfo
+		/// </summary>
+		/// <param name="psi">The ProcessStartInfo</param>
+		/// <returns>A bool.</returns>
 		private bool Execute(ProcessStartInfo psi)
 		{
 			try

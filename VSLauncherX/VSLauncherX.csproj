@@ -62,9 +62,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Update="Forms\dlgImportVisualStudio.cs">
-      <SubType>Form</SubType>
-    </Compile>
+    <Compile Update="Forms\dlgImportVisualStudio.cs" />
     <Compile Update="Forms\dlgImportFolder.cs">
       <SubType>Form</SubType>
     </Compile>

@@ -76,6 +76,37 @@ namespace VSLauncher.Helpers
 		}
 
 		/// <summary>
+		/// Gets the aspect for the git column
+		/// </summary>
+		/// <param name="rowObject">The row object.</param>
+		/// <returns>An object.</returns>
+		internal static object GetAspectForGit(object rowObject)
+		{
+			if (rowObject is VsFolder)
+			{
+				return string.Empty;
+			}
+
+			if (rowObject is VsItem s)
+			{
+				if (s.Status is null || s.Status == "?")
+				{
+					return string.Empty;
+				}
+				if(s.Status == "*")
+				{
+					return "Modified";
+				}
+				else if(s.Status == "!")
+				{
+					return "Clean";
+				}
+			}
+
+			return string.Empty;
+		}
+
+		/// <summary>
 		/// Gets the image name for file.
 		/// </summary>
 		/// <param name="row">The row.</param>
@@ -148,32 +179,6 @@ namespace VSLauncher.Helpers
 			return string.Empty;
 		}
 
-		internal static object GetAspectForGit(object rowObject)
-		{
-			if (rowObject is VsFolder)
-			{
-				return string.Empty;
-			}
-
-			if (rowObject is VsItem s)
-			{
-				if(s.Status is null)
-				{
-					return string.Empty;
-				}
-				if(s.Status == "?")
-				{
-					return "Dirty";
-				}
-				else if(s.Status == "!")
-				{
-					return "Clean";
-				}
-			}
-
-			return string.Empty;
-		}
-
 		/// <summary>
 		/// Gets the check state.
 		/// </summary>
@@ -194,6 +199,27 @@ namespace VSLauncher.Helpers
 			return ((VsItem)rowObject).Checked ? CheckState.Checked : CheckState.Unchecked;
 		}
 
+		/// <summary>
+		/// Sets the check state.
+		/// </summary>
+		/// <param name="rowObject">The row object.</param>
+		/// <param name="newValue">The new value.</param>
+		/// <returns>A CheckState.</returns>
+		internal static CheckState SetCheckState(object rowObject, CheckState newValue)
+		{
+			bool b = newValue == CheckState.Checked;
+
+			if (rowObject is VsFolder f)
+			{
+				f.Checked = b;
+			}
+			else
+			{
+				((VsItem)rowObject).Checked = b;
+			}
+
+			return newValue;
+		}
 		/// <summary>
 		/// Gets the description.
 		/// </summary>
@@ -299,6 +325,11 @@ namespace VSLauncher.Helpers
 			return desc;
 		}
 
+		/// <summary>
+		/// Gets the image for git status
+		/// </summary>
+		/// <param name="rowObject">The row object.</param>
+		/// <returns>An object? .</returns>
 		internal static object? GetImageForGit(object rowObject)
 		{
 			if (rowObject is VsFolder)
@@ -308,11 +339,11 @@ namespace VSLauncher.Helpers
 
 			if (rowObject is VsItem s)
 			{
-				if (s.Status is null)
+				if (s.Status is null || s.Status == "?")
 				{
 					return null;
 				}
-				if (s.Status == "?")
+				if (s.Status == "*")
 				{
 					return Resources.GitDirty;
 				}
@@ -325,26 +356,5 @@ namespace VSLauncher.Helpers
 			return null;
 		}
 
-		/// <summary>
-		/// Sets the check state.
-		/// </summary>
-		/// <param name="rowObject">The row object.</param>
-		/// <param name="newValue">The new value.</param>
-		/// <returns>A CheckState.</returns>
-		internal static CheckState SetCheckState(object rowObject, CheckState newValue)
-		{
-			bool b = newValue == CheckState.Checked;
-
-			if (rowObject is VsFolder f)
-			{
-				f.Checked = b;
-			}
-			else
-			{
-				((VsItem)rowObject).Checked = b;
-			}
-
-			return newValue;
-		}
 	}
 }

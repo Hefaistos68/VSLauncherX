@@ -257,6 +257,9 @@ namespace VSLauncher
 			{
 				if(item is not VsFolder)
 				{
+					// find out if this is a git repo by looking for the ".git" folder
+					// if it is, then we can get the status
+
 					try
 					{
 						using (var repo = new Repository(Path.GetDirectoryName(item.Path)))
@@ -265,8 +268,9 @@ namespace VSLauncher
 							item.Status = stat.IsDirty ? "*" : "!";
 						}
 					}
-					catch (Exception ex)
+					catch (RepositoryNotFoundException ex)
 					{
+						// this is not a GIT repository
 						item.Status = "?";
 					}
 				}

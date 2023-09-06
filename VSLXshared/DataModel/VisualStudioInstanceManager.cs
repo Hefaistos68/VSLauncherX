@@ -224,6 +224,10 @@ namespace VSLauncher.DataModel
 				catch (DirectoryNotFoundException)
 				{
 				}
+				catch(NullReferenceException)
+				{
+					// possibly invalid file
+				}
 			}
 
 			return solutionList.Items;
@@ -258,7 +262,7 @@ namespace VSLauncher.DataModel
 		/// </summary>
 		/// <param name="name">The name.</param>
 		/// <returns>A VisualStudioInstance.</returns>
-		public VisualStudioInstance? GetByName(string name)
+		public VisualStudioInstance GetByName(string name)
 		{
 			if (string.IsNullOrEmpty(name))
 				return HighestVersion();
@@ -273,7 +277,7 @@ namespace VSLauncher.DataModel
 		/// </summary>
 		/// <param name="version">The version.</param>
 		/// <returns>A VisualStudioInstance.</returns>
-		public VisualStudioInstance? GetByVersion(string? version)
+		public VisualStudioInstance GetByVersion(string? version)
 		{
 			if (string.IsNullOrEmpty(version))
 				return HighestVersion();
