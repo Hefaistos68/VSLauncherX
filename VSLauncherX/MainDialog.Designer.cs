@@ -51,6 +51,7 @@ namespace VSLauncher
 			btnSettings = new Button();
 			olvFiles = new TreeListView();
 			olvColumnFilename = new OLVColumn();
+			olvColumnGit = new OLVColumn();
 			olvColumnDate = new OLVColumn();
 			olvColumnVersion = new OLVColumn();
 			olvColumnOptions = new OLVColumn();
@@ -101,12 +102,12 @@ namespace VSLauncher
 			// toolStripMenuItem1
 			// 
 			toolStripMenuItem1.Name = "toolStripMenuItem1";
-			toolStripMenuItem1.Size = new Size(145, 6);
+			toolStripMenuItem1.Size = new Size(196, 6);
 			// 
 			// toolStripMenuItem2
 			// 
 			toolStripMenuItem2.Name = "toolStripMenuItem2";
-			toolStripMenuItem2.Size = new Size(145, 6);
+			toolStripMenuItem2.Size = new Size(196, 6);
 			// 
 			// flowLayoutPanel2
 			// 
@@ -269,13 +270,14 @@ namespace VSLauncher
 			// olvFiles
 			// 
 			olvFiles.AllColumns.Add(olvColumnFilename);
+			olvFiles.AllColumns.Add(olvColumnGit);
 			olvFiles.AllColumns.Add(olvColumnDate);
 			olvFiles.AllColumns.Add(olvColumnVersion);
 			olvFiles.AllColumns.Add(olvColumnOptions);
 			olvFiles.AllowDrop = true;
 			olvFiles.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
 			olvFiles.CellEditUseWholeCell = false;
-			olvFiles.Columns.AddRange(new ColumnHeader[] { olvColumnFilename, olvColumnDate, olvColumnVersion, olvColumnOptions });
+			olvFiles.Columns.AddRange(new ColumnHeader[] { olvColumnFilename, olvColumnGit, olvColumnDate, olvColumnVersion, olvColumnOptions });
 			olvFiles.EmptyListMsg = "Add a group, import a folder or import recent items";
 			olvFiles.EmptyListMsgFont = new Font("Segoe UI", 11.25F, FontStyle.Regular, GraphicsUnit.Point);
 			olvFiles.FullRowSelect = true;
@@ -316,6 +318,19 @@ namespace VSLauncher
 			olvColumnFilename.Text = "Name";
 			olvColumnFilename.ToolTipText = "";
 			olvColumnFilename.Width = 140;
+			// 
+			// olvColumnGit
+			// 
+			olvColumnGit.AspectName = "Git";
+			olvColumnGit.Groupable = false;
+			olvColumnGit.IsEditable = false;
+			olvColumnGit.MaximumWidth = 30;
+			olvColumnGit.MinimumWidth = 30;
+			olvColumnGit.Searchable = false;
+			olvColumnGit.Sortable = false;
+			olvColumnGit.Text = "Git";
+			olvColumnGit.ToolTipText = "Git status ";
+			olvColumnGit.Width = 30;
 			// 
 			// olvColumnDate
 			// 
@@ -454,6 +469,7 @@ namespace VSLauncher
 			this.selectVisualStudioVersion.Margin = new Padding(0, 0, 0, 6);
 			this.selectVisualStudioVersion.Name = "selectVisualStudioVersion";
 			this.selectVisualStudioVersion.SelectedItem = null;
+			this.selectVisualStudioVersion.ShowDefault = false;
 			this.selectVisualStudioVersion.Size = new Size(232, 34);
 			this.selectVisualStudioVersion.TabIndex = 0;
 			tooltipForButtons.SetToolTip(this.selectVisualStudioVersion, "Visual Studio versions currently instlled");
@@ -581,88 +597,92 @@ namespace VSLauncher
 			// 
 			// ctxMenu
 			// 
-			ctxMenu.Items.AddRange(new ToolStripItem[] { addToolStripMenuItem, toolStripMenuItem3, runToolStripMenuItem, runAsAdminToolStripMenuItem, renameToolStripMenuItem, toolStripMenuItem1, removeToolStripMenuItem, toolStripMenuItem2, settingsToolStripMenuItem, toolStripMenuItem4, favoriteToolStripMenuItem });
+			ctxMenu.Items.AddRange(new ToolStripItem[] { addToolStripMenuItem, toolStripMenuItem3, runToolStripMenuItem, runAsAdminToolStripMenuItem, renameToolStripMenuItem, toolStripMenuItem1, settingsToolStripMenuItem, toolStripMenuItem2, removeToolStripMenuItem, toolStripMenuItem4, favoriteToolStripMenuItem });
 			ctxMenu.Name = "ctxMenu";
-			ctxMenu.Size = new Size(149, 182);
+			ctxMenu.Size = new Size(200, 204);
 			ctxMenu.Opening += ctxMenu_Opening;
 			// 
 			// addToolStripMenuItem
 			// 
 			addToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { newGroupToolStripMenuItem, fromFolderToolStripMenuItem, solutionProjectToolStripMenuItem });
 			addToolStripMenuItem.Name = "addToolStripMenuItem";
-			addToolStripMenuItem.Size = new Size(148, 22);
+			addToolStripMenuItem.Size = new Size(199, 22);
 			addToolStripMenuItem.Text = "Add...";
 			// 
 			// newGroupToolStripMenuItem
 			// 
 			newGroupToolStripMenuItem.Name = "newGroupToolStripMenuItem";
-			newGroupToolStripMenuItem.Size = new Size(169, 22);
+			newGroupToolStripMenuItem.Size = new Size(180, 22);
 			newGroupToolStripMenuItem.Text = "New Group...";
 			newGroupToolStripMenuItem.Click += newGroupToolStripMenuItem_Click;
 			// 
 			// fromFolderToolStripMenuItem
 			// 
 			fromFolderToolStripMenuItem.Name = "fromFolderToolStripMenuItem";
-			fromFolderToolStripMenuItem.Size = new Size(169, 22);
+			fromFolderToolStripMenuItem.Size = new Size(180, 22);
 			fromFolderToolStripMenuItem.Text = "From Folder...";
 			fromFolderToolStripMenuItem.Click += fromFolderToolStripMenuItem_Click;
 			// 
 			// solutionProjectToolStripMenuItem
 			// 
 			solutionProjectToolStripMenuItem.Name = "solutionProjectToolStripMenuItem";
-			solutionProjectToolStripMenuItem.Size = new Size(169, 22);
+			solutionProjectToolStripMenuItem.Size = new Size(180, 22);
 			solutionProjectToolStripMenuItem.Text = "Solution/Project...";
 			solutionProjectToolStripMenuItem.Click += solutionProjectToolStripMenuItem_Click;
 			// 
 			// toolStripMenuItem3
 			// 
 			toolStripMenuItem3.Name = "toolStripMenuItem3";
-			toolStripMenuItem3.Size = new Size(145, 6);
+			toolStripMenuItem3.Size = new Size(196, 6);
 			// 
 			// runToolStripMenuItem
 			// 
 			runToolStripMenuItem.Name = "runToolStripMenuItem";
-			runToolStripMenuItem.Size = new Size(148, 22);
+			runToolStripMenuItem.ShortcutKeys = Keys.F5;
+			runToolStripMenuItem.Size = new Size(199, 22);
 			runToolStripMenuItem.Text = "Run";
 			runToolStripMenuItem.Click += runToolStripMenuItem_Click;
 			// 
 			// runAsAdminToolStripMenuItem
 			// 
 			runAsAdminToolStripMenuItem.Name = "runAsAdminToolStripMenuItem";
-			runAsAdminToolStripMenuItem.Size = new Size(148, 22);
+			runAsAdminToolStripMenuItem.ShortcutKeys = Keys.F5 | Keys.Control;
+			runAsAdminToolStripMenuItem.Size = new Size(199, 22);
 			runAsAdminToolStripMenuItem.Text = "Run as Admin";
 			runAsAdminToolStripMenuItem.Click += runAsAdminToolStripMenuItem_Click;
 			// 
 			// renameToolStripMenuItem
 			// 
 			renameToolStripMenuItem.Name = "renameToolStripMenuItem";
-			renameToolStripMenuItem.Size = new Size(148, 22);
+			renameToolStripMenuItem.Size = new Size(199, 22);
 			renameToolStripMenuItem.Text = "Rename...";
 			renameToolStripMenuItem.Click += renameToolStripMenuItem_Click;
 			// 
 			// removeToolStripMenuItem
 			// 
 			removeToolStripMenuItem.Name = "removeToolStripMenuItem";
-			removeToolStripMenuItem.Size = new Size(148, 22);
+			removeToolStripMenuItem.ShortcutKeys = Keys.Shift | Keys.Delete;
+			removeToolStripMenuItem.Size = new Size(199, 22);
 			removeToolStripMenuItem.Text = "Remove...";
 			removeToolStripMenuItem.Click += removeToolStripMenuItem_Click;
 			// 
 			// settingsToolStripMenuItem
 			// 
 			settingsToolStripMenuItem.Name = "settingsToolStripMenuItem";
-			settingsToolStripMenuItem.Size = new Size(148, 22);
+			settingsToolStripMenuItem.ShortcutKeys = Keys.Alt | Keys.Enter;
+			settingsToolStripMenuItem.Size = new Size(199, 22);
 			settingsToolStripMenuItem.Text = "Settings...";
 			settingsToolStripMenuItem.Click += settingsToolStripMenuItem_Click;
 			// 
 			// toolStripMenuItem4
 			// 
 			toolStripMenuItem4.Name = "toolStripMenuItem4";
-			toolStripMenuItem4.Size = new Size(145, 6);
+			toolStripMenuItem4.Size = new Size(196, 6);
 			// 
 			// favoriteToolStripMenuItem
 			// 
 			favoriteToolStripMenuItem.Name = "favoriteToolStripMenuItem";
-			favoriteToolStripMenuItem.Size = new Size(148, 22);
+			favoriteToolStripMenuItem.Size = new Size(199, 22);
 			favoriteToolStripMenuItem.Text = "Favorite";
 			favoriteToolStripMenuItem.Click += favoriteToolStripMenuItem_Click;
 			// 
@@ -711,9 +731,10 @@ namespace VSLauncher
 		#endregion
 		private TreeListView olvFiles;
 		private OLVColumn olvColumnFilename;
-		private OLVColumn olvColumnOptions;
+		private OLVColumn olvColumnGit;
 		private OLVColumn olvColumnDate;
 		private OLVColumn olvColumnVersion;
+		private OLVColumn olvColumnOptions;
 
 		private ToolStripStatusLabel toolStripStatusLabel3;
 		private TableLayoutPanel mainPanel;

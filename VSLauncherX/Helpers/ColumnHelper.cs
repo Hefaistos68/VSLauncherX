@@ -147,6 +147,33 @@ namespace VSLauncher.Helpers
 
 			return string.Empty;
 		}
+
+		internal static object GetAspectForGit(object rowObject)
+		{
+			if (rowObject is VsFolder)
+			{
+				return string.Empty;
+			}
+
+			if (rowObject is VsItem s)
+			{
+				if(s.Status is null)
+				{
+					return string.Empty;
+				}
+				if(s.Status == "?")
+				{
+					return "Dirty";
+				}
+				else if(s.Status == "!")
+				{
+					return "Clean";
+				}
+			}
+
+			return string.Empty;
+		}
+
 		/// <summary>
 		/// Gets the check state.
 		/// </summary>
@@ -270,6 +297,32 @@ namespace VSLauncher.Helpers
 			}
 
 			return desc;
+		}
+
+		internal static object? GetImageForGit(object rowObject)
+		{
+			if (rowObject is VsFolder)
+			{
+				return null;
+			}
+
+			if (rowObject is VsItem s)
+			{
+				if (s.Status is null)
+				{
+					return null;
+				}
+				if (s.Status == "?")
+				{
+					return Resources.GitDirty;
+				}
+				else if (s.Status == "!")
+				{
+					return Resources.GitClean;
+				}
+			}
+
+			return null;
 		}
 
 		/// <summary>

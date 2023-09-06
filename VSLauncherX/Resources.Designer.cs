@@ -273,6 +273,26 @@ namespace VSLauncher {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap GitClean {
+            get {
+                object obj = ResourceManager.GetObject("GitClean", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap GitDirty {
+            get {
+                object obj = ResourceManager.GetObject("GitDirty", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap ImportVS {
             get {
                 object obj = ResourceManager.GetObject("ImportVS", resourceCulture);

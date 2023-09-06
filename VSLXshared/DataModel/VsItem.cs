@@ -108,6 +108,12 @@ namespace VSLauncher.DataModel
 		public bool IsFavorite { get; set; }
 
 		/// <summary>
+		/// Gets or sets the GIT status.
+		/// </summary>
+		[JsonIgnore]
+		public string? Status { get; set; }
+
+		/// <summary>
 		/// Refreshes the item
 		/// </summary>
 		public virtual void Refresh()

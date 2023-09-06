@@ -12,6 +12,9 @@ using VSLauncher.Helpers;
 using VSLXshared.Helpers;
 using System.Globalization;
 using System.Reflection;
+using LibGit2Sharp;
+using Windows.Devices.Geolocation;
+using static System.Windows.Forms.AxHost;
 
 namespace VSLauncher
 {
@@ -133,6 +136,12 @@ namespace VSLauncher
 			// // // setup the Path column // this.olvColumnPath.AspectGetter = ColumnHelper.GetAspectForPath;
 			// this.olvColumnPath.Hideable = false; this.olvColumnPath.UseFiltering = false;
 
+			// setup the Git column
+			ImageRenderer ir = new ImageRenderer();
+			this.olvColumnGit.Renderer = ir;
+			this.olvColumnGit.AspectGetter = ColumnHelper.GetAspectForGit;
+			this.olvColumnGit.ImageGetter = ColumnHelper.GetImageForGit;
+
 			// setup the Date column
 			this.olvColumnDate.AspectGetter = ColumnHelper.GetAspectForDate;
 
@@ -140,8 +149,8 @@ namespace VSLauncher
 			this.olvColumnVersion.AspectGetter = delegate (object rowObject)
 			{
 				if (rowObject is VsItem item)
-				{																
-					if(item.VsVersion is null)
+				{
+					if (item.VsVersion is null)
 					{
 						return "<default>";
 					}
@@ -233,7 +242,39 @@ namespace VSLauncher
 
 			SetupTaskbarTasks();
 
+			FetchGitStatus(this.solutionGroups);
+
 			_ = this.txtFilter.Focus();
+		}
+
+		/// <summary>
+		/// Fetches the git status for all items in the tree
+		/// </summary>
+		/// <param name="folder">The folder.</param>
+		private void FetchGitStatus(VsFolder folder)
+		{
+			foreach (var item in folder.Items)
+			{
+				if(item is not VsFolder)
+				{
+					try
+					{
+						using (var repo = new Repository(Path.GetDirectoryName(item.Path)))
+						{
+							var stat = repo.RetrieveStatus();
+							item.Status = stat.IsDirty ? "*" : "!";
+						}
+					}
+					catch (Exception ex)
+					{
+						item.Status = "?";
+					}
+				}
+				else
+				{
+					FetchGitStatus(item as VsFolder);
+				}
+			}
 		}
 
 		/// <summary>
@@ -366,6 +407,11 @@ namespace VSLauncher
 			// this.TaskbarJumpList.AddCustomCategories(cat);
 
 		}
+
+		/// <summary>
+		/// Experimental method to rebuild the taskbar items
+		/// </summary>
+		/// <param name="folder"></param>
 		private void RebuildTaskbarItems(VsFolder? folder = null)
 		{
 			if (folder is null)
@@ -646,9 +692,26 @@ namespace VSLauncher
 		/// <param name="e">The event parameters</param>
 		private void olvFiles_KeyDown(object sender, KeyEventArgs e)
 		{
-			if (e.KeyValue == (char)Keys.Delete)
+			if ((e.KeyValue == (char)Keys.Delete) && ((Control.ModifierKeys & Keys.Shift) == Keys.Shift))
 			{
 				removeToolStripMenuItem_Click(sender, e);
+				e.Handled = true;
+			}
+			else if ((e.KeyValue == (char)Keys.Enter) || (e.KeyValue == (char)Keys.F5))
+			{
+				if ((Control.ModifierKeys & Keys.Alt) == Keys.Alt)
+				{
+					settingsToolStripMenuItem_Click(sender, e);
+				}
+				else if ((Control.ModifierKeys & Keys.Control) == Keys.Control)
+				{
+					runAsAdminToolStripMenuItem_Click(sender, e);
+				}
+				else
+				{
+					runToolStripMenuItem_Click(sender, e);
+				}
+
 				e.Handled = true;
 			}
 		}
@@ -1356,12 +1419,12 @@ namespace VSLauncher
 			// if the currently selected item is a group, enable the "Add..." menu item, otherwise remove it
 			this.addToolStripMenuItem.Enabled = this.olvFiles.SelectedObject is VsFolder || this.olvFiles.SelectedObject is null;
 			bool bOther = true;
-			
+
 			if (this.olvFiles.SelectedObject is VsItem i)
 			{
 				this.favoriteToolStripMenuItem.Checked = i.IsFavorite;
 			}
-			if(this.olvFiles.SelectedObject is null)
+			if (this.olvFiles.SelectedObject is null)
 			{
 				// disable all other menu items
 				bOther = false;

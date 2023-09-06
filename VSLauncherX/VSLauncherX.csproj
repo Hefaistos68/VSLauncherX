@@ -50,6 +50,7 @@
 
   <ItemGroup>
     <PackageReference Include="Google.Apis.Drive.v3" Version="1.61.0.3155" />
+    <PackageReference Include="LibGit2Sharp" Version="0.27.2" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="System.Management" Version="7.0.2" />
     <PackageReference Include="WindowsAPICodePack" Version="7.0.4" />
