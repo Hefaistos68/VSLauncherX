@@ -155,7 +155,7 @@ namespace VSLauncher
 						return "<default>";
 					}
 
-					var vs = visualStudioInstances.GetByVersion(item.VsVersion);
+					var vs = visualStudioInstances.GetByIdentifier(item.VsVersion);
 					string s = $"{vs.Year} ({vs.ShortVersion})";
 					return s;
 				}
