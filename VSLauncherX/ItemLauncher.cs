@@ -24,9 +24,8 @@ namespace VSLauncher
 		/// <param name="target">The target.</param>
 		public ItemLauncher(VsItem item, VisualStudioInstance target)
 		{
-			this.Solution = new VsFolder();
-			this.Solution.Items.Add(item);
 			this.Target = target;
+			this.SingleItem = item;
 		}
 
 		/// <summary>
@@ -43,7 +42,12 @@ namespace VSLauncher
 		/// <summary>
 		/// Gets the launch item.
 		/// </summary>
-		public VsFolder Solution { get; }
+		public VsFolder? Solution { get; }
+
+		/// <summary>
+		/// Gets the single item.
+		/// </summary>
+		public VsItem? SingleItem { get; }
 
 		/// <summary>
 		/// Gets the target.
@@ -67,8 +71,12 @@ namespace VSLauncher
 				string s = CreateLaunchInfoString();
 
 				Debug.WriteLine(s);
+				if(this.Solution is null && this.SingleItem is null)
+				{
+					throw new NullReferenceException();
+				}
 
-				bool bRequireAdmin = (bForceAdmin | this.Solution.RunAsAdmin);
+				bool bRequireAdmin = bForceAdmin | (this.Solution is null ? this.SingleItem!.RunAsAdmin : this.Solution.RunAsAdmin);
 				var psi = new System.Diagnostics.ProcessStartInfo
 				{
 					FileName = this.GetLauncherPath(),
@@ -91,6 +99,10 @@ namespace VSLauncher
 			});
 		}
 
+		/// <summary>
+		/// Gets the launcher path.
+		/// </summary>
+		/// <returns>A string.</returns>
 		public string GetLauncherPath()
 		{
 			string env = Environment.CurrentDirectory;
@@ -100,9 +112,18 @@ namespace VSLauncher
 
 			return Path.Combine(current, "BackgroundLaunch.exe");
 		}
+
+		/// <summary>
+		/// Creates the launch info string.
+		/// </summary>
+		/// <returns>A string.</returns>
 		public string CreateLaunchInfoString()
 		{
-			var li = new LaunchInfo() { Solution = this.Solution, Target = this.Target.Location };
+			var li = new LaunchInfo() 
+				{ 
+					Solution = this.Solution ?? new VsFolder(this.SingleItem ?? throw new NullReferenceException()), 
+					Target = this.Target.Location 
+				};
 
 			JsonSerializerSettings settings = new JsonSerializerSettings()
 			{

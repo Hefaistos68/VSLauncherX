@@ -1055,7 +1055,7 @@ namespace VSLauncher
 			{
 				if (!Properties.Settings.Default.DontShowMultiplesWarning)
 				{
-					var n = f.ContainedSolutionsCount()+f.ContainedProjectsCount();
+					var n = f.ContainedSolutionsCount() + f.ContainedProjectsCount();
 					if (n > 3)
 					{
 						var dlg = new dlgWarnMultiple(n);
@@ -1083,14 +1083,23 @@ namespace VSLauncher
 
 			if (il != null)
 			{
+				var vsi = item as VsItem;
+				this.mainStatusLabel.Text = $"Launching '{vsi.Name}'";
 				il.Launch().Wait();
 
 				if (il.LastException != null)
 				{
 					_ = MessageBox.Show(il.LastException.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
 				}
+				this.mainStatusLabel.Text = "";
 			}
 		}
+
+		/// <summary>
+		/// Handles the favorites menu item
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
 		private void favoriteToolStripMenuItem_Click(object sender, EventArgs e)
 		{
 			// make the selected item a favorite and add to the taskbar

@@ -30,6 +30,19 @@ namespace VSLauncher.DataModel
 		}
 
 		/// <summary>
+		/// Initializes a new instance of the <see cref="VsFolder"/> class.
+		/// </summary>
+		/// <param name="singleItem">The single item.</param>
+		public VsFolder(VsItem singleItem)
+		{
+			this.Items = new VsItemList(this)
+			{
+				singleItem
+			};
+			this.ItemType = ItemTypeEnum.Folder;
+		}
+
+		/// <summary>
 		/// Gets or sets a value indicating whether checked.
 		/// </summary>
 		[JsonIgnore]

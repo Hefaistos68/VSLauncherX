@@ -74,13 +74,21 @@ namespace BackgroundLaunch
 				}
 			}
 
-			startInfo.WorkingDirectory = workingPath;
 			startInfo.Verb = item.RunAsAdmin ? "runas" : "run";
-			startInfo.ErrorDialog = true;
 
 			// depending on item type, prepare executable and arguments
 			if ((item.ItemType == ItemTypeEnum.Solution) || (item.ItemType == ItemTypeEnum.Project))
 			{
+				if (item.RunAsAdmin)
+				{
+					startInfo.UseShellExecute = true;
+					startInfo.ErrorDialog = true;
+				}
+				else
+				{
+					startInfo.WorkingDirectory = workingPath;
+				}
+
 				startInfo.FileName = GetTargetFilename(item);
 				startInfo.Arguments = "\"" + item.Path + "\"";
 				if (!string.IsNullOrEmpty(item.Commands))
