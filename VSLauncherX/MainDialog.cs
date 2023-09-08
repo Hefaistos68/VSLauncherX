@@ -15,6 +15,7 @@ using System.Reflection;
 using LibGit2Sharp;
 using Windows.Devices.Geolocation;
 using static System.Windows.Forms.AxHost;
+using System.Runtime.InteropServices;
 
 namespace VSLauncher
 {
@@ -188,6 +189,10 @@ namespace VSLauncher
 			// this.olvFiles.SetObjects(list);
 		}
 
+		[DllImport("shell32.dll", SetLastError = true)]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		static extern bool IsUserAnAdmin();
+
 		/// <summary>
 		/// Initializes a new instance of the <see cref="MainDialog"/> class.
 		/// </summary>
@@ -198,7 +203,16 @@ namespace VSLauncher
 			InitializeListview();
 			SetupDragAndDrop();
 
-			// BuildTestData();
+			// if(IsUserAnAdmin())
+			if(AdminInfo.IsCurrentUserAdmin())
+			{
+				this.Text += " (Administrator)";
+			}
+
+			if(AdminInfo.IsElevated())
+			{
+				this.Text += " *";
+			}
 
 			this.bInUpdate = true;
 
@@ -573,6 +587,15 @@ namespace VSLauncher
 
 			if (dlg.ShowDialog() == DialogResult.OK)
 			{
+				if(Properties.Settings.Default.AlwaysAdmin || Properties.Settings.Default.AutoStart) 
+				{
+					Program.UpdateTaskScheduler();
+				}
+				else
+				{
+					Program.RemoveTaskScheduler();
+				}
+
 				_ = SolutionData_OnChanged(true);
 			}
 		}

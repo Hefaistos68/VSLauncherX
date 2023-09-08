@@ -1,5 +1,9 @@
+using System.Diagnostics;
+
 using VSLauncher;
 using VSLauncher.DataModel;
+using VSLauncher.Helpers;
+using VSLauncher.Properties;
 
 namespace VSLauncher
 {
@@ -24,14 +28,44 @@ namespace VSLauncher
 			VisualStudioFileIcons16.GetIcon("Solution");
 			VisualStudioFileIcons32.GetIcon("Solution");
 
-			Application.Run(new MainDialog());
+			// add logic to start either normal, or as part of autostart, with or without elevation
+			var args = Environment.GetCommandLineArgs();
+			
+			if((args.Length > 1 && args[1] == "autostart") || Debugger.IsAttached)
+			{
+				// we have command line arguments, so we are started as part of autostart
+				Application.Run(new MainDialog());
+			}
+			else
+			{
+				if (!Settings.Default.AlwaysAdmin)
+				{
+					Application.Run(new MainDialog());
+				}
+				else
+				{
+					// we are started normally
+					AutoRun.Run();
+				}
+			}
 		}
 
-		/// <summary>
-		/// Tests the.
-		/// </summary>
-		private static void Test()
+		internal static void UpdateTaskScheduler()
 		{
+			if(Settings.Default.AlwaysAdmin && !UACHelper.UACHelper.IsAdministrator)
+			{
+				// restart ourselves with elevation
+				ProcessStartInfo psi = new ProcessStartInfo()
+				{
+
+				};
+			}
+			AutoRun.SetupLauncherTask(Settings.Default.AlwaysAdmin, Settings.Default.AutoStart);
+		}
+
+		internal static void RemoveTaskScheduler()
+		{
+			AutoRun.RemoveLauncherTask();
 		}
 	}
 }
