@@ -34,6 +34,7 @@
 			chkAlwaysAdmin = new CheckBox();
 			chkSync = new CheckBox();
 			chkShowPath = new CheckBox();
+			chkAutostart = new CheckBox();
 			SuspendLayout();
 			// 
 			// btnCancel
@@ -44,7 +45,7 @@
 			btnCancel.Location = new Point(334, 261);
 			btnCancel.Name = "btnCancel";
 			btnCancel.Size = new Size(100, 40);
-			btnCancel.TabIndex = 5;
+			btnCancel.TabIndex = 4;
 			btnCancel.Text = " Cancel";
 			btnCancel.TextImageRelation = TextImageRelation.ImageBeforeText;
 			btnCancel.UseVisualStyleBackColor = true;
@@ -57,7 +58,7 @@
 			btnOk.Location = new Point(440, 261);
 			btnOk.Name = "btnOk";
 			btnOk.Size = new Size(100, 40);
-			btnOk.TabIndex = 6;
+			btnOk.TabIndex = 5;
 			btnOk.Text = " Ok";
 			btnOk.TextImageRelation = TextImageRelation.ImageBeforeText;
 			btnOk.UseVisualStyleBackColor = true;
@@ -69,29 +70,39 @@
 			chkAlwaysAdmin.Location = new Point(12, 12);
 			chkAlwaysAdmin.Name = "chkAlwaysAdmin";
 			chkAlwaysAdmin.Size = new Size(142, 19);
-			chkAlwaysAdmin.TabIndex = 7;
+			chkAlwaysAdmin.TabIndex = 0;
 			chkAlwaysAdmin.Text = "Always start as Admin";
 			chkAlwaysAdmin.UseVisualStyleBackColor = true;
 			// 
 			// chkSync
 			// 
 			chkSync.AutoSize = true;
-			chkSync.Location = new Point(12, 37);
+			chkSync.Location = new Point(12, 62);
 			chkSync.Name = "chkSync";
 			chkSync.Size = new Size(192, 19);
-			chkSync.TabIndex = 7;
+			chkSync.TabIndex = 2;
 			chkSync.Text = "Synchronize with VS Recent List";
 			chkSync.UseVisualStyleBackColor = true;
 			// 
 			// chkShowPath
 			// 
 			chkShowPath.AutoSize = true;
-			chkShowPath.Location = new Point(12, 62);
+			chkShowPath.Location = new Point(12, 87);
 			chkShowPath.Name = "chkShowPath";
 			chkShowPath.Size = new Size(219, 19);
-			chkShowPath.TabIndex = 7;
+			chkShowPath.TabIndex = 3;
 			chkShowPath.Text = "Show path for solutions and projects";
 			chkShowPath.UseVisualStyleBackColor = true;
+			// 
+			// chkAutostart
+			// 
+			chkAutostart.AutoSize = true;
+			chkAutostart.Location = new Point(12, 37);
+			chkAutostart.Name = "chkAutostart";
+			chkAutostart.Size = new Size(126, 19);
+			chkAutostart.TabIndex = 1;
+			chkAutostart.Text = "Autostart on logon";
+			chkAutostart.UseVisualStyleBackColor = true;
 			// 
 			// dlgSettings
 			// 
@@ -103,6 +114,7 @@
 			this.ControlBox = false;
 			this.Controls.Add(chkShowPath);
 			this.Controls.Add(chkSync);
+			this.Controls.Add(chkAutostart);
 			this.Controls.Add(chkAlwaysAdmin);
 			this.Controls.Add(btnCancel);
 			this.Controls.Add(btnOk);
@@ -126,5 +138,6 @@
 		private CheckBox chkAlwaysAdmin;
 		private CheckBox chkSync;
 		private CheckBox chkShowPath;
+		private CheckBox chkAutostart;
 	}
 }

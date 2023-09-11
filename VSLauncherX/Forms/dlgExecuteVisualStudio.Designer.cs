@@ -1,6 +1,8 @@
-﻿namespace VSLauncher
+﻿using VSLauncher.Controls;
+
+namespace VSLauncher
 {
-	partial class dlgExecuteVisualStudio
+    partial class dlgExecuteVisualStudio
 	{
 		/// <summary>
 		/// Required designer variable.

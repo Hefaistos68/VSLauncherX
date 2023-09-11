@@ -19,10 +19,10 @@ using System.Runtime.InteropServices;
 
 namespace VSLauncher
 {
-	/// <summary>
-	/// The main dialog.
-	/// </summary>
-	public partial class MainDialog : Form
+    /// <summary>
+    /// The main dialog.
+    /// </summary>
+    public partial class MainDialog : Form
 	{
 		/// <summary>
 		/// used to indicate that some internal update is going on
@@ -198,20 +198,21 @@ namespace VSLauncher
 		/// </summary>
 		public MainDialog()
 		{
-
 			InitializeComponent();
 			InitializeListview();
 			SetupDragAndDrop();
 
-			// if(IsUserAnAdmin())
-			if(AdminInfo.IsCurrentUserAdmin())
-			{
-				this.Text += " (Administrator)";
-			}
+			bool bAdmin = AdminInfo.IsCurrentUserAdmin();
+			bool bElevated = AdminInfo.IsElevated();
 
-			if(AdminInfo.IsElevated())
+			if(bAdmin || bElevated)
 			{
-				this.Text += " *";
+				if(bAdmin && bElevated)
+					this.Text += $" (Administrator, Elevated)";
+				else if(bAdmin)
+					this.Text += $" (Administrator)";
+				else
+					this.Text += $" (Elevated)";
 			}
 
 			this.bInUpdate = true;
@@ -587,9 +588,17 @@ namespace VSLauncher
 
 			if (dlg.ShowDialog() == DialogResult.OK)
 			{
-				if(Properties.Settings.Default.AlwaysAdmin || Properties.Settings.Default.AutoStart) 
+				if(Properties.Settings.Default.AlwaysAdmin || Properties.Settings.Default.AutoStart)
 				{
-					Program.UpdateTaskScheduler();
+					if (Properties.Settings.Default.AlwaysAdmin)
+					{
+						RestartOurselves();
+						Application.Exit();
+					}
+					else
+					{
+						Program.UpdateTaskScheduler();
+					}
 				}
 				else
 				{
@@ -599,6 +608,23 @@ namespace VSLauncher
 				_ = SolutionData_OnChanged(true);
 			}
 		}
+
+		/// <summary>
+		/// Restarts the application to register it with admin rights.
+		/// </summary>
+		private void RestartOurselves()
+		{
+			ProcessStartInfo startInfo = new ProcessStartInfo
+			{
+				FileName = Assembly.GetExecutingAssembly().Location.Replace(".dll", ".exe"),
+				Arguments = "register",
+				Verb = "runas",
+				UseShellExecute = true
+			};
+
+			Process.Start(startInfo);
+		}
+
 		#endregion
 
 		#region ListView event handling

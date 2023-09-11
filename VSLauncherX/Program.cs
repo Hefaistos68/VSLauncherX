@@ -38,6 +38,12 @@ namespace VSLauncher
 			}
 			else
 			{
+				if(args.Length > 1 && args[1] == "register")
+				{
+					// at this point the app was started with admin privs, so we can register the task
+					UpdateTaskScheduler();
+				}
+
 				if (!Settings.Default.AlwaysAdmin)
 				{
 					Application.Run(new MainDialog());
@@ -52,14 +58,6 @@ namespace VSLauncher
 
 		internal static void UpdateTaskScheduler()
 		{
-			if(Settings.Default.AlwaysAdmin && !UACHelper.UACHelper.IsAdministrator)
-			{
-				// restart ourselves with elevation
-				ProcessStartInfo psi = new ProcessStartInfo()
-				{
-
-				};
-			}
 			AutoRun.SetupLauncherTask(Settings.Default.AlwaysAdmin, Settings.Default.AutoStart);
 		}
 
