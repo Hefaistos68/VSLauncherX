@@ -4,7 +4,7 @@ using VSLauncher.Controls;
 
 namespace VSLauncher
 {
-	partial class MainDialog
+    partial class MainDialog
 	{
 		/// <summary>
 		/// Required designer variable.

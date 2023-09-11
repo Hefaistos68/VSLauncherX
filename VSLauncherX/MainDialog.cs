@@ -15,13 +15,14 @@ using System.Reflection;
 using LibGit2Sharp;
 using Windows.Devices.Geolocation;
 using static System.Windows.Forms.AxHost;
+using System.Runtime.InteropServices;
 
 namespace VSLauncher
 {
-	/// <summary>
-	/// The main dialog.
-	/// </summary>
-	public partial class MainDialog : Form
+    /// <summary>
+    /// The main dialog.
+    /// </summary>
+    public partial class MainDialog : Form
 	{
 		/// <summary>
 		/// used to indicate that some internal update is going on
@@ -188,17 +189,31 @@ namespace VSLauncher
 			// this.olvFiles.SetObjects(list);
 		}
 
+		[DllImport("shell32.dll", SetLastError = true)]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		static extern bool IsUserAnAdmin();
+
 		/// <summary>
 		/// Initializes a new instance of the <see cref="MainDialog"/> class.
 		/// </summary>
 		public MainDialog()
 		{
-
 			InitializeComponent();
 			InitializeListview();
 			SetupDragAndDrop();
 
-			// BuildTestData();
+			bool bAdmin = AdminInfo.IsCurrentUserAdmin();
+			bool bElevated = AdminInfo.IsElevated();
+
+			if(bAdmin || bElevated)
+			{
+				if(bAdmin && bElevated)
+					this.Text += $" (Administrator, Elevated)";
+				else if(bAdmin)
+					this.Text += $" (Administrator)";
+				else
+					this.Text += $" (Elevated)";
+			}
 
 			this.bInUpdate = true;
 
@@ -573,9 +588,43 @@ namespace VSLauncher
 
 			if (dlg.ShowDialog() == DialogResult.OK)
 			{
+				if(Properties.Settings.Default.AlwaysAdmin || Properties.Settings.Default.AutoStart)
+				{
+					if (Properties.Settings.Default.AlwaysAdmin)
+					{
+						RestartOurselves();
+						Application.Exit();
+					}
+					else
+					{
+						Program.UpdateTaskScheduler();
+					}
+				}
+				else
+				{
+					Program.RemoveTaskScheduler();
+				}
+
 				_ = SolutionData_OnChanged(true);
 			}
 		}
+
+		/// <summary>
+		/// Restarts the application to register it with admin rights.
+		/// </summary>
+		private void RestartOurselves()
+		{
+			ProcessStartInfo startInfo = new ProcessStartInfo
+			{
+				FileName = Assembly.GetExecutingAssembly().Location.Replace(".dll", ".exe"),
+				Arguments = "register",
+				Verb = "runas",
+				UseShellExecute = true
+			};
+
+			Process.Start(startInfo);
+		}
+
 		#endregion
 
 		#region ListView event handling
