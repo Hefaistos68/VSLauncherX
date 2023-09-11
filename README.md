@@ -22,6 +22,9 @@ Note: will use SoP as abbreviation for "Solutions and/or Projects"
 - No limit on "recent files" list, can add an almost unlimited amount of SoPs
 - Grouping with subgroups
 - Favorites that can be invoked directly from the taskbar context menu
+- Show git status of solutions/projects (Clean/Modified)
+- Show admin privileges and elevation status of application
+- Autostart and always run as Admin
 
 ## The Why
 
