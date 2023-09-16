@@ -23,7 +23,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{7BBE1A8C-C
 		docs\Settings-sample.jpg = docs\Settings-sample.jpg
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VSLXshared", "VSLXshared\VSLXshared.csproj", "{18C514D3-21C9-4F12-90DE-B2E0D3D1B770}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VSLXshared", "VSLXshared\VSLXshared.csproj", "{18C514D3-21C9-4F12-90DE-B2E0D3D1B770}"
+EndProject
+Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "Setup", "Setup\Setup.vdproj", "{F56EF28A-2C5A-4F03-8C76-2E77232157FB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -47,6 +49,8 @@ Global
 		{18C514D3-21C9-4F12-90DE-B2E0D3D1B770}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{18C514D3-21C9-4F12-90DE-B2E0D3D1B770}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{18C514D3-21C9-4F12-90DE-B2E0D3D1B770}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F56EF28A-2C5A-4F03-8C76-2E77232157FB}.Debug|Any CPU.ActiveCfg = Debug
+		{F56EF28A-2C5A-4F03-8C76-2E77232157FB}.Release|Any CPU.ActiveCfg = Release
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
