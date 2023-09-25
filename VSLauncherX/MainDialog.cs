@@ -19,10 +19,10 @@ using System.Runtime.InteropServices;
 
 namespace VSLauncher
 {
-    /// <summary>
-    /// The main dialog.
-    /// </summary>
-    public partial class MainDialog : Form
+	/// <summary>
+	/// The main dialog.
+	/// </summary>
+	public partial class MainDialog : Form
 	{
 		/// <summary>
 		/// used to indicate that some internal update is going on
@@ -205,11 +205,11 @@ namespace VSLauncher
 			bool bAdmin = AdminInfo.IsCurrentUserAdmin();
 			bool bElevated = AdminInfo.IsElevated();
 
-			if(bAdmin || bElevated)
+			if (bAdmin || bElevated)
 			{
-				if(bAdmin && bElevated)
+				if (bAdmin && bElevated)
 					this.Text += $" (Administrator, Elevated)";
-				else if(bAdmin)
+				else if (bAdmin)
 					this.Text += $" (Administrator)";
 				else
 					this.Text += $" (Elevated)";
@@ -255,9 +255,35 @@ namespace VSLauncher
 				this.olvFiles.RebuildColumns();
 			}
 
+			FindVisualStudioInstaller();
+
 			SetupTaskbarTasks();
 
 			_ = this.txtFilter.Focus();
+		}
+
+		/// <summary>
+		/// Finds the visual studio installer and sets up the button.
+		/// </summary>
+		private void FindVisualStudioInstaller()
+		{
+			string vsi = VisualStudioInstanceManager.InstallerPath;
+
+			btnVsInstaller.Tag = vsi;
+			
+			if(vsi.StartsWith("http"))
+			{
+				btnVsInstaller.Text = "Download Visual Studio";
+				btnVsInstaller.Image = Resources.Download;
+			}
+			else
+			{
+				btnVsInstaller.Tag = vsi;
+				btnVsInstaller.Text = "Visual Studio Installer";
+				// get icon from installer and set as image into the button
+				Icon? ico = Icon.ExtractAssociatedIcon(vsi);
+				btnVsInstaller.Image = ico is null ? Resources.Installer : ico.ToBitmap();
+			}
 		}
 
 		/// <summary>
@@ -268,7 +294,7 @@ namespace VSLauncher
 		{
 			foreach (var item in folder.Items)
 			{
-				if(item is not VsFolder)
+				if (item is not VsFolder)
 				{
 					// find out if this is a git repo by looking for the ".git" folder
 					// if it is, then we can get the status
@@ -588,7 +614,7 @@ namespace VSLauncher
 
 			if (dlg.ShowDialog() == DialogResult.OK)
 			{
-				if(Properties.Settings.Default.AlwaysAdmin || Properties.Settings.Default.AutoStart)
+				if (Properties.Settings.Default.AlwaysAdmin || Properties.Settings.Default.AutoStart)
 				{
 					if (Properties.Settings.Default.AlwaysAdmin)
 					{
@@ -1457,6 +1483,43 @@ namespace VSLauncher
 
 				this.Cursor = Cursors.Default;
 			}
+		}
+
+		/// <summary>
+		/// Handles click on the btnVsInstaller button
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The event parameters</param>
+		private void btnVsInstaller_Click(object sender, EventArgs e)
+		{
+			string vsi = (string)btnVsInstaller.Tag;
+
+			if (vsi.StartsWith("http"))
+			{
+				_ = Process.Start("explorer.exe", vsi);
+			}
+			else
+			{
+				// ask user if installer should be started with elevated privileges
+				bool bIsElevated = AdminInfo.IsCurrentUserAdmin() || AdminInfo.IsElevated();
+				
+				if (!bIsElevated && MessageBox.Show("The Visual Studio Installer may required elevated privileges, do you want to run it as administrator?", "Start installer", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+				{
+					ProcessStartInfo psi = new ProcessStartInfo
+					{
+						Verb = "runas",
+						UseShellExecute = true,
+						FileName = vsi
+					};
+
+					_ = Process.Start(psi);
+				}
+				else
+				{
+					_ = Process.Start(vsi);
+				}
+			}
+
 		}
 		#endregion
 

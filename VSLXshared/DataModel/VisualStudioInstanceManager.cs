@@ -61,6 +61,35 @@ namespace VSLauncher.DataModel
 		}
 
 		/// <summary>
+		/// Gets the installer path.
+		/// </summary>
+		public static string InstallerPath
+		{ 
+			get
+			{
+				string location = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Microsoft Visual Studio", "Installer");
+				string location86 = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Microsoft Visual Studio", "Installer");
+				string installerPath = Path.Combine(location, "vs_installer.exe");
+				string installerPath86 = Path.Combine(location86, "vs_installer.exe");
+
+				if(Directory.Exists(location) || Directory.Exists(location86))
+				{
+					if (File.Exists(installerPath))
+					{
+						return installerPath;
+					}
+					if (File.Exists(installerPath86))
+					{
+						return installerPath86;
+					}
+				}
+
+				// not found, return the microsoft download site for Visual Studio
+				return "https://visualstudio.microsoft.com/downloads/";
+			}
+		}
+
+		/// <summary>
 		/// Access an instance by index
 		/// </summary>
 		public VisualStudioInstance this[int index]
