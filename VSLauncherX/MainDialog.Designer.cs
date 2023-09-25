@@ -4,7 +4,7 @@ using VSLauncher.Controls;
 
 namespace VSLauncher
 {
-    partial class MainDialog
+	partial class MainDialog
 	{
 		/// <summary>
 		/// Required designer variable.
@@ -59,7 +59,7 @@ namespace VSLauncher
 			imageList3 = new ImageList(this.components);
 			mainPanel = new TableLayoutPanel();
 			flowLayoutPanel1 = new FlowLayoutPanel();
-			this.selectVisualStudioVersion = new VisualStudioCombobox();
+			selectVisualStudioVersion = new VisualStudioCombobox();
 			btnMainStartVisualStudio1 = new Button();
 			btnMainStartVisualStudio2 = new Button();
 			btnMainStartVisualStudio3 = new Button();
@@ -77,12 +77,13 @@ namespace VSLauncher
 			runToolStripMenuItem = new ToolStripMenuItem();
 			runAsAdminToolStripMenuItem = new ToolStripMenuItem();
 			renameToolStripMenuItem = new ToolStripMenuItem();
-			removeToolStripMenuItem = new ToolStripMenuItem();
 			settingsToolStripMenuItem = new ToolStripMenuItem();
+			removeToolStripMenuItem = new ToolStripMenuItem();
 			toolStripMenuItem4 = new ToolStripSeparator();
 			favoriteToolStripMenuItem = new ToolStripMenuItem();
 			statusStrip1 = new StatusStrip();
 			mainStatusLabel = new ToolStripStatusLabel();
+			btnVsInstaller = new Button();
 			toolStripMenuItem1 = new ToolStripSeparator();
 			toolStripMenuItem2 = new ToolStripSeparator();
 			flowLayoutPanel2 = new FlowLayoutPanel();
@@ -102,12 +103,12 @@ namespace VSLauncher
 			// toolStripMenuItem1
 			// 
 			toolStripMenuItem1.Name = "toolStripMenuItem1";
-			toolStripMenuItem1.Size = new Size(196, 6);
+			toolStripMenuItem1.Size = new Size(191, 6);
 			// 
 			// toolStripMenuItem2
 			// 
 			toolStripMenuItem2.Name = "toolStripMenuItem2";
-			toolStripMenuItem2.Size = new Size(196, 6);
+			toolStripMenuItem2.Size = new Size(191, 6);
 			// 
 			// flowLayoutPanel2
 			// 
@@ -246,6 +247,7 @@ namespace VSLauncher
 			leftSubPanel.Margin = new Padding(0, 0, 4, 0);
 			leftSubPanel.Name = "leftSubPanel";
 			leftSubPanel.RowCount = 3;
+			mainPanel.SetRowSpan(leftSubPanel, 2);
 			leftSubPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 40F));
 			leftSubPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 35F));
 			leftSubPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
@@ -432,49 +434,51 @@ namespace VSLauncher
 			mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 234F));
 			mainPanel.Controls.Add(leftSubPanel, 0, 0);
 			mainPanel.Controls.Add(flowLayoutPanel1, 1, 0);
+			mainPanel.Controls.Add(btnVsInstaller, 1, 1);
 			mainPanel.Location = new Point(0, 0);
 			mainPanel.Margin = new Padding(4, 3, 3, 3);
 			mainPanel.Name = "mainPanel";
-			mainPanel.RowCount = 1;
+			mainPanel.RowCount = 2;
 			mainPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+			mainPanel.RowStyles.Add(new RowStyle());
 			mainPanel.Size = new Size(933, 497);
 			mainPanel.TabIndex = 0;
 			mainPanel.Resize += mainPanel_Resize;
 			// 
 			// flowLayoutPanel1
 			// 
+			flowLayoutPanel1.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
 			flowLayoutPanel1.Controls.Add(label2);
-			flowLayoutPanel1.Controls.Add(this.selectVisualStudioVersion);
+			flowLayoutPanel1.Controls.Add(selectVisualStudioVersion);
 			flowLayoutPanel1.Controls.Add(btnMainStartVisualStudio1);
 			flowLayoutPanel1.Controls.Add(btnMainStartVisualStudio2);
 			flowLayoutPanel1.Controls.Add(btnMainStartVisualStudio3);
 			flowLayoutPanel1.Controls.Add(btnMainStartVisualStudio4);
 			flowLayoutPanel1.Controls.Add(btnMainStartVisualStudio5);
-			flowLayoutPanel1.Dock = DockStyle.Fill;
 			flowLayoutPanel1.FlowDirection = FlowDirection.TopDown;
 			flowLayoutPanel1.Location = new Point(699, 0);
 			flowLayoutPanel1.Margin = new Padding(0);
 			flowLayoutPanel1.Name = "flowLayoutPanel1";
-			flowLayoutPanel1.Size = new Size(234, 497);
+			flowLayoutPanel1.Size = new Size(234, 449);
 			flowLayoutPanel1.TabIndex = 1;
 			// 
 			// selectVisualStudioVersion
 			// 
-			this.selectVisualStudioVersion.DrawMode = DrawMode.OwnerDrawFixed;
-			this.selectVisualStudioVersion.DropDownHeight = 300;
-			this.selectVisualStudioVersion.DropDownStyle = ComboBoxStyle.DropDownList;
-			this.selectVisualStudioVersion.IntegralHeight = false;
-			this.selectVisualStudioVersion.ItemHeight = 28;
-			this.selectVisualStudioVersion.Location = new Point(0, 40);
-			this.selectVisualStudioVersion.Margin = new Padding(0, 0, 0, 6);
-			this.selectVisualStudioVersion.Name = "selectVisualStudioVersion";
-			this.selectVisualStudioVersion.SelectedItem = null;
-			this.selectVisualStudioVersion.ShowDefault = false;
-			this.selectVisualStudioVersion.Size = new Size(232, 34);
-			this.selectVisualStudioVersion.TabIndex = 0;
-			tooltipForButtons.SetToolTip(this.selectVisualStudioVersion, "Visual Studio versions currently instlled");
-			this.selectVisualStudioVersion.DrawItem += selectVisualStudioVersion_DrawItem;
-			this.selectVisualStudioVersion.SelectedIndexChanged += selectVisualStudioVersion_SelectedIndexChanged;
+			selectVisualStudioVersion.DrawMode = DrawMode.OwnerDrawFixed;
+			selectVisualStudioVersion.DropDownHeight = 300;
+			selectVisualStudioVersion.DropDownStyle = ComboBoxStyle.DropDownList;
+			selectVisualStudioVersion.IntegralHeight = false;
+			selectVisualStudioVersion.ItemHeight = 28;
+			selectVisualStudioVersion.Location = new Point(0, 40);
+			selectVisualStudioVersion.Margin = new Padding(0, 0, 0, 6);
+			selectVisualStudioVersion.Name = "selectVisualStudioVersion";
+			selectVisualStudioVersion.SelectedItem = null;
+			selectVisualStudioVersion.ShowDefault = false;
+			selectVisualStudioVersion.Size = new Size(232, 34);
+			selectVisualStudioVersion.TabIndex = 0;
+			tooltipForButtons.SetToolTip(selectVisualStudioVersion, "Visual Studio versions currently instlled");
+			selectVisualStudioVersion.DrawItem += selectVisualStudioVersion_DrawItem;
+			selectVisualStudioVersion.SelectedIndexChanged += selectVisualStudioVersion_SelectedIndexChanged;
 			// 
 			// btnMainStartVisualStudio1
 			// 
@@ -599,90 +603,90 @@ namespace VSLauncher
 			// 
 			ctxMenu.Items.AddRange(new ToolStripItem[] { addToolStripMenuItem, toolStripMenuItem3, runToolStripMenuItem, runAsAdminToolStripMenuItem, renameToolStripMenuItem, toolStripMenuItem1, settingsToolStripMenuItem, toolStripMenuItem2, removeToolStripMenuItem, toolStripMenuItem4, favoriteToolStripMenuItem });
 			ctxMenu.Name = "ctxMenu";
-			ctxMenu.Size = new Size(200, 204);
+			ctxMenu.Size = new Size(195, 182);
 			ctxMenu.Opening += ctxMenu_Opening;
 			// 
 			// addToolStripMenuItem
 			// 
 			addToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { newGroupToolStripMenuItem, fromFolderToolStripMenuItem, solutionProjectToolStripMenuItem });
 			addToolStripMenuItem.Name = "addToolStripMenuItem";
-			addToolStripMenuItem.Size = new Size(199, 22);
+			addToolStripMenuItem.Size = new Size(194, 22);
 			addToolStripMenuItem.Text = "Add...";
 			// 
 			// newGroupToolStripMenuItem
 			// 
 			newGroupToolStripMenuItem.Name = "newGroupToolStripMenuItem";
-			newGroupToolStripMenuItem.Size = new Size(180, 22);
+			newGroupToolStripMenuItem.Size = new Size(169, 22);
 			newGroupToolStripMenuItem.Text = "New Group...";
 			newGroupToolStripMenuItem.Click += newGroupToolStripMenuItem_Click;
 			// 
 			// fromFolderToolStripMenuItem
 			// 
 			fromFolderToolStripMenuItem.Name = "fromFolderToolStripMenuItem";
-			fromFolderToolStripMenuItem.Size = new Size(180, 22);
+			fromFolderToolStripMenuItem.Size = new Size(169, 22);
 			fromFolderToolStripMenuItem.Text = "From Folder...";
 			fromFolderToolStripMenuItem.Click += fromFolderToolStripMenuItem_Click;
 			// 
 			// solutionProjectToolStripMenuItem
 			// 
 			solutionProjectToolStripMenuItem.Name = "solutionProjectToolStripMenuItem";
-			solutionProjectToolStripMenuItem.Size = new Size(180, 22);
+			solutionProjectToolStripMenuItem.Size = new Size(169, 22);
 			solutionProjectToolStripMenuItem.Text = "Solution/Project...";
 			solutionProjectToolStripMenuItem.Click += solutionProjectToolStripMenuItem_Click;
 			// 
 			// toolStripMenuItem3
 			// 
 			toolStripMenuItem3.Name = "toolStripMenuItem3";
-			toolStripMenuItem3.Size = new Size(196, 6);
+			toolStripMenuItem3.Size = new Size(191, 6);
 			// 
 			// runToolStripMenuItem
 			// 
 			runToolStripMenuItem.Name = "runToolStripMenuItem";
 			runToolStripMenuItem.ShortcutKeys = Keys.F5;
-			runToolStripMenuItem.Size = new Size(199, 22);
+			runToolStripMenuItem.Size = new Size(194, 22);
 			runToolStripMenuItem.Text = "Run";
 			runToolStripMenuItem.Click += runToolStripMenuItem_Click;
 			// 
 			// runAsAdminToolStripMenuItem
 			// 
 			runAsAdminToolStripMenuItem.Name = "runAsAdminToolStripMenuItem";
-			runAsAdminToolStripMenuItem.ShortcutKeys = Keys.F5 | Keys.Control;
-			runAsAdminToolStripMenuItem.Size = new Size(199, 22);
+			runAsAdminToolStripMenuItem.ShortcutKeys = Keys.Control | Keys.F5;
+			runAsAdminToolStripMenuItem.Size = new Size(194, 22);
 			runAsAdminToolStripMenuItem.Text = "Run as Admin";
 			runAsAdminToolStripMenuItem.Click += runAsAdminToolStripMenuItem_Click;
 			// 
 			// renameToolStripMenuItem
 			// 
 			renameToolStripMenuItem.Name = "renameToolStripMenuItem";
-			renameToolStripMenuItem.Size = new Size(199, 22);
+			renameToolStripMenuItem.Size = new Size(194, 22);
 			renameToolStripMenuItem.Text = "Rename...";
 			renameToolStripMenuItem.Click += renameToolStripMenuItem_Click;
+			// 
+			// settingsToolStripMenuItem
+			// 
+			settingsToolStripMenuItem.Name = "settingsToolStripMenuItem";
+			settingsToolStripMenuItem.ShortcutKeys = Keys.Alt | Keys.Return;
+			settingsToolStripMenuItem.Size = new Size(194, 22);
+			settingsToolStripMenuItem.Text = "Settings...";
+			settingsToolStripMenuItem.Click += settingsToolStripMenuItem_Click;
 			// 
 			// removeToolStripMenuItem
 			// 
 			removeToolStripMenuItem.Name = "removeToolStripMenuItem";
 			removeToolStripMenuItem.ShortcutKeys = Keys.Shift | Keys.Delete;
-			removeToolStripMenuItem.Size = new Size(199, 22);
+			removeToolStripMenuItem.Size = new Size(194, 22);
 			removeToolStripMenuItem.Text = "Remove...";
 			removeToolStripMenuItem.Click += removeToolStripMenuItem_Click;
-			// 
-			// settingsToolStripMenuItem
-			// 
-			settingsToolStripMenuItem.Name = "settingsToolStripMenuItem";
-			settingsToolStripMenuItem.ShortcutKeys = Keys.Alt | Keys.Enter;
-			settingsToolStripMenuItem.Size = new Size(199, 22);
-			settingsToolStripMenuItem.Text = "Settings...";
-			settingsToolStripMenuItem.Click += settingsToolStripMenuItem_Click;
 			// 
 			// toolStripMenuItem4
 			// 
 			toolStripMenuItem4.Name = "toolStripMenuItem4";
-			toolStripMenuItem4.Size = new Size(196, 6);
+			toolStripMenuItem4.Size = new Size(191, 6);
 			// 
 			// favoriteToolStripMenuItem
 			// 
 			favoriteToolStripMenuItem.Name = "favoriteToolStripMenuItem";
-			favoriteToolStripMenuItem.Size = new Size(199, 22);
+			favoriteToolStripMenuItem.Size = new Size(194, 22);
 			favoriteToolStripMenuItem.Text = "Favorite";
 			favoriteToolStripMenuItem.Click += favoriteToolStripMenuItem_Click;
 			// 
@@ -700,6 +704,24 @@ namespace VSLauncher
 			mainStatusLabel.Name = "mainStatusLabel";
 			mainStatusLabel.Size = new Size(193, 17);
 			mainStatusLabel.Text = "Lets do something incredible today";
+			// 
+			// btnVsInstaller
+			// 
+			btnVsInstaller.Font = new Font("Segoe UI", 10F, FontStyle.Bold, GraphicsUnit.Point);
+			btnVsInstaller.Image = Resources.ImportVS1;
+			btnVsInstaller.ImageAlign = ContentAlignment.MiddleLeft;
+			btnVsInstaller.Location = new Point(699, 449);
+			btnVsInstaller.Margin = new Padding(0);
+			btnVsInstaller.Name = "btnVsInstaller";
+			btnVsInstaller.Padding = new Padding(4, 0, 4, 0);
+			btnVsInstaller.Size = new Size(232, 48);
+			btnVsInstaller.TabIndex = 5;
+			btnVsInstaller.Tag = "";
+			btnVsInstaller.Text = "Visual Studio Installer";
+			btnVsInstaller.TextAlign = ContentAlignment.MiddleLeft;
+			btnVsInstaller.TextImageRelation = TextImageRelation.ImageBeforeText;
+			btnVsInstaller.UseVisualStyleBackColor = true;
+			btnVsInstaller.Click += btnVsInstaller_Click;
 			// 
 			// MainDialog
 			// 
@@ -772,6 +794,7 @@ namespace VSLauncher
 		private ToolStripSeparator toolStripMenuItem4;
 		private ToolStripMenuItem favoriteToolStripMenuItem;
 		private Button btnImportSoP;
+		private Button btnVsInstaller;
 	}
 }
 
