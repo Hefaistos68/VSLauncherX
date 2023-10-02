@@ -216,7 +216,8 @@ namespace VSLauncher.DataModel
 			else
 				si.UseShellExecute = false;
 
-			BuildVisualStudioCommandline(bShowSplash, instance, command, projectOrSolution).ForEach(x => si.ArgumentList.Add(x));
+			var args = BuildVisualStudioCommandline(bShowSplash, instance, command, projectOrSolution); //.ForEach(x => si.ArgumentList.Add(x));
+			si.Arguments = string.Join(' ', args);
 			
 			return si;
 		}
@@ -233,9 +234,9 @@ namespace VSLauncher.DataModel
 		{
 			List<string> list = new();
 
-			if(!string.IsNullOrEmpty(projectOrSolution))
+			if (!string.IsNullOrEmpty(instance))
 			{
-				list.Add(projectOrSolution);
+				list.Add($"/rootSuffix {instance}");
 			}
 
 			if (bShowSplash == false)
@@ -249,9 +250,9 @@ namespace VSLauncher.DataModel
 				list.Add(command);
 			}
 
-			if (!string.IsNullOrEmpty(instance))
+			if (!string.IsNullOrEmpty(projectOrSolution))
 			{
-				list.Add($"/rootSuffix {instance}");
+				list.Add($"\"{projectOrSolution}\"");
 			}
 
 			return list;
