@@ -29,8 +29,11 @@ namespace VSLauncher
 		public dlgExecuteVisualStudio(int index)
 		{
 			InitializeComponent();
-			this.cbxVisualStudioVersion.SelectedIndex = index; // that is always the same as in the main dialog
+			
+			this.cbxVisualStudioVersion.SelectedIndex = 1 + index; // that is always the same as in the main dialog, but main has no default item
+			
 			this.Item = new VsItem();
+			this.bIsListItem = false;
 		}
 
 		/// <summary>
@@ -41,8 +44,7 @@ namespace VSLauncher
 			InitializeComponent();
 
 			this.Item = (VsItem)item;
-
-			SetupMultiMonitor();
+			this.bIsListItem = true;
 		}
 
 		/// <summary>
@@ -59,6 +61,7 @@ namespace VSLauncher
 			this.cbxMonitors.SelectedIndex = 0;
 
 			this.cbxMonitors.Enabled = monitors.Length > 1;
+			this.btnPingMonitor.Enabled = monitors.Length > 1;
 		}
 
 		/// <summary>
@@ -66,7 +69,7 @@ namespace VSLauncher
 		/// </summary>
 		private void UpdateControlsFromData()
 		{
-			if (this.Item is not null)
+			if (this.bIsListItem && this.Item is not null)
 			{
 				this.txtName.Text = this.Item.Name;
 				this.cbxVisualStudioVersion.SelectFromVersion(this.Item.VsVersion);
@@ -84,6 +87,9 @@ namespace VSLauncher
 		/// </summary>
 		public VisualStudioInstance VsVersion { get; private set; }
 
+		/// <summary>
+		/// Gets or sets the item.
+		/// </summary>
 		public VsItem? Item
 		{
 			get
@@ -96,6 +102,11 @@ namespace VSLauncher
 				this.currentItem = value;
 			}
 		}
+
+		/// <summary>
+		/// Used internally to indicate that no list item is being executed, rather an arbitrary VS command is executed
+		/// </summary>
+		private readonly bool bIsListItem;
 
 		/// <summary>
 		/// Handles text changes
@@ -244,7 +255,7 @@ namespace VSLauncher
 
 			if (dlg.ShowDialog() == DialogResult.OK)
 			{
-
+				// the item is already updated
 			}
 		}
 
@@ -255,7 +266,7 @@ namespace VSLauncher
 		/// <param name="e">The e.</param>
 		private void txtFoldername_TextChanged(object sender, EventArgs e)
 		{
-			btnBeforeAfter.Enabled = !string.IsNullOrWhiteSpace(txtFoldername.Text);
+			btnBeforeAfter.Enabled = this.bIsListItem ? !string.IsNullOrWhiteSpace(txtFoldername.Text) : false;
 		}
 
 		/// <summary>
@@ -273,40 +284,53 @@ namespace VSLauncher
 				this.btnOk.Text = this.btnOk.Tag as string;
 			}
 
-			if (this.Item is VsProject p)
+			if (this.bIsListItem)
 			{
-				if (p.VsVersion == null)
+				if (this.Item is VsProject p)
 				{
-					version = p.GetRequiredVersion();
-					this.cbxVisualStudioVersion.SelectFromVersion(version);
+					if (p.VsVersion == null)
+					{
+						version = p.GetRequiredVersion();
+						this.cbxVisualStudioVersion.SelectFromVersion(version);
+					}
+					else
+					{
+						this.cbxVisualStudioVersion.SelectDefault();
+					}
+				}
+				else if (this.Item is VsSolution s)
+				{
+					if (s.RequiredVersion == null)
+					{
+						version = s.GetRequiredVersion();
+						this.cbxVisualStudioVersion.SelectFromVersion(version);
+					}
+					// the required version can also be "", then it was set to be default instead of specific
+					else
+					{
+						this.cbxVisualStudioVersion.SelectDefault();
+					}
+				}
+				else if (this.Item is VsFolder f)
+				{
+					// this.cbxVisualStudioVersion.Enabled = false;
+					this.cbxInstance.Enabled = false;
+					this.txtFoldername.Focus();
+				}
+				else if (this.Item is VsItem vsi && vsi.ItemType == ItemTypeEnum.Other)
+				{
 				}
 				else
 				{
-					this.cbxVisualStudioVersion.SelectDefault();
+					throw new ArgumentException("Unknown type of item");
 				}
-			}
-			else if (this.Item is VsSolution s)
-			{
-				if(s.RequiredVersion == null)
-				{
-					version = s.GetRequiredVersion();
-					this.cbxVisualStudioVersion.SelectFromVersion(version);
-				}
-				// the required version can also be "", then it was set to be default instead of specific
-				else
-				{
-					this.cbxVisualStudioVersion.SelectDefault();
-				}
-			}
-			else if (this.Item is VsFolder f)
-			{
-				// this.cbxVisualStudioVersion.Enabled = false;
-				this.cbxInstance.Enabled = false;
-				this.txtFoldername.Focus();
 			}
 			else
 			{
-				throw new ArgumentException("Unknown type of item");
+				txtName.Enabled = false;
+				btnOk.Text = "&Start";
+				txtFoldername.Focus();
+				txtFoldername.Select();
 			}
 
 			if (this.cbxVisualStudioVersion.SelectedIndex == -1)
@@ -320,11 +344,8 @@ namespace VSLauncher
 					this.txtInfo.Text = $"VS {version} not found";
 				}
 			}
-			else
-			{
 
-			}
-
+			SetupMultiMonitor();
 			UpdateControlsFromData();
 		}
 
@@ -337,7 +358,7 @@ namespace VSLauncher
 		static extern IntPtr GetDC(IntPtr hwnd);
 
 		/// <summary>
-		/// Releases the d c.
+		/// Releases a DC
 		/// </summary>
 		/// <param name="hwnd">The hwnd.</param>
 		/// <param name="dc">The dc.</param>
@@ -346,7 +367,7 @@ namespace VSLauncher
 		static extern int ReleaseDC(IntPtr hwnd, IntPtr dc);
 
 		/// <summary>
-		/// btns the ping monitor_ click.
+		/// Handles the btnPingMonitor button click
 		/// </summary>
 		/// <param name="sender">The sender.</param>
 		/// <param name="e">The e.</param>
