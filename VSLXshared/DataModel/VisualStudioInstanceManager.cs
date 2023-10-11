@@ -5,8 +5,11 @@ using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
 using Newtonsoft.Json;
+using Microsoft.VisualStudio.Setup.Configuration;
 
 using VSLauncher.Helpers;
+using System.Runtime.InteropServices;
+using System.Collections.Generic;
 
 namespace VSLauncher.DataModel
 {
@@ -121,44 +124,118 @@ namespace VSLauncher.DataModel
 			// read all data from WMI using CimInstance MSFT_VSInstance
 			// https://docs.microsoft.com/en-us/windows/win32/wmisdk/msft-vsinstance
 
-			ManagementObjectSearcher searcher = new ManagementObjectSearcher
+			try
 			{
-				Query = new SelectQuery("MSFT_VSInstance ", "", new[] { "Name", "Version", "ProductLocation", "IdentifyingNumber" })
-			};
-			ManagementObjectCollection collection = searcher.Get();
-			ManagementObjectCollection.ManagementObjectEnumerator em = collection.GetEnumerator();
-
-			while (em.MoveNext())
-			{
-				ManagementBaseObject baseObj = em.Current;
-				if (baseObj.Properties["Version"].Value != null)
+				ManagementObjectSearcher searcher = new ManagementObjectSearcher
 				{
-					try
+					Query = new SelectQuery("MSFT_VSInstance ", "", new[] { "Name", "Version", "ProductLocation", "IdentifyingNumber" })
+				};
+				ManagementObjectCollection collection = searcher.Get();
+				ManagementObjectCollection.ManagementObjectEnumerator em = collection.GetEnumerator();
+	
+				while (em.MoveNext())
+				{
+					ManagementBaseObject baseObj = em.Current;
+					if (baseObj.Properties["Version"].Value != null)
 					{
-						string? name = baseObj.Properties["Name"].Value.ToString();
-						string? version = baseObj.Properties["Version"].Value.ToString();
-						string? location = baseObj.Properties["ProductLocation"].Value.ToString();
-						string? identifier = baseObj.Properties["IdentifyingNumber"].Value.ToString();
-
-						if (name != null && version != null && location != null && identifier != null)
+						try
 						{
-							list.Add(new VisualStudioInstance(name, version, location, identifier, VisualStudioInstanceManager.YearFromVersion(version[..2])));
+							string? name = baseObj.Properties["Name"].Value.ToString();
+							string? version = baseObj.Properties["Version"].Value.ToString();
+							string? location = baseObj.Properties["ProductLocation"].Value.ToString();
+							string? identifier = baseObj.Properties["IdentifyingNumber"].Value.ToString();
+	
+							if (name != null && version != null && location != null && identifier != null)
+							{
+								list.Add(new VisualStudioInstance(name, version, location, identifier, VisualStudioInstanceManager.YearFromVersion(version[..2])));
+							}
+						}
+						catch (Exception ex)
+						{
+							Debug.WriteLine(ex.ToString());
 						}
 					}
-					catch (Exception ex)
-					{
-						Debug.WriteLine(ex.ToString());
-					}
 				}
+	
+				em?.Dispose();
+				collection?.Dispose();
+				searcher?.Dispose();
+	
 			}
-
-			em?.Dispose();
-			collection?.Dispose();
-			searcher?.Dispose();
-
+			catch 
+			{
+				// something went wrong, try the alternative way using the Setup API
+				list = ReadAllInstancesFromSetupApi();
+			}
+			
 			list.Sort((x, y) => x.Version.CompareTo(y.Version));
 
 			return list;
+		}
+
+		private const int REGDB_E_CLASSNOTREG = unchecked((int)0x80040154);
+
+		/// <summary>
+		/// Reads the all instances from VS setup api.
+		/// </summary>
+		/// <returns>A list of VisualStudioInstances.</returns>
+		private static List<VisualStudioInstance> ReadAllInstancesFromSetupApi()
+		{
+			List<VisualStudioInstance> list = new();
+
+			try
+			{
+				var query = new SetupConfiguration();
+				var query2 = (ISetupConfiguration2)query;
+				var e = query2.EnumAllInstances();
+
+				var helper = (ISetupHelper)query;
+
+				int fetched;
+				var instances = new ISetupInstance[1];
+				do
+				{
+					e.Next(1, instances, out fetched);
+					if (fetched > 0)
+					{
+						var instance = instances[0];
+
+						var instance2 = (ISetupInstance2)instance;
+						var state = instance2.GetState();
+
+						string? name = ((state & InstanceState.Registered) == InstanceState.Registered) ? instance2.GetProduct().GetId() : null;
+						string? version = instance.GetInstallationVersion();
+						string? location = ((state & InstanceState.Local) == InstanceState.Local) ? instance2.GetInstallationPath() : null;
+						string? identifier = instance2.GetInstanceId();
+
+						if (name != null && version != null && location != null && identifier != null)
+						{
+							location = Path.Combine(location, "Common7", "IDE", "devenv.exe");
+							var year = VisualStudioInstanceManager.YearFromVersion(version[..2]);
+							name = NormalizeName(name, year);
+							list.Add(new VisualStudioInstance(name, version, location, identifier, year));
+						}
+
+					}
+				}
+				while (fetched > 0);
+
+			}
+			catch (COMException ex) when (ex.HResult == REGDB_E_CLASSNOTREG)
+			{
+				Debug.WriteLine("The query API is not registered. Assuming no instances are installed.");
+			}
+			catch (Exception ex)
+			{
+				Debug.WriteLine($"Error 0x{ex.HResult:x8}: {ex.Message}");
+			}
+
+			return list;
+		}
+
+		private static string NormalizeName(string name, string year)
+		{
+			return name.Replace("Microsoft.Visual", "Visual ").Replace(".Product.", " ") + " " + year;
 		}
 
 		/// <summary>
