@@ -61,6 +61,17 @@
         "PrivateKeyFile" = "8:"
         "TimeStampServer" = "8:"
         "InstallerBootstrapper" = "3:2"
+            "BootstrapperCfg:{63ACBE69-63AA-4F98-B2B6-99F9E24495F2}"
+            {
+            "Enabled" = "11:FALSE"
+            "PromptEnabled" = "11:TRUE"
+            "PrerequisitesLocation" = "2:1"
+            "Url" = "8:"
+            "ComponentsUrl" = "8:"
+                "Items"
+                {
+                }
+            }
         }
         "Release"
         {
@@ -77,6 +88,22 @@
         "PrivateKeyFile" = "8:"
         "TimeStampServer" = "8:"
         "InstallerBootstrapper" = "3:2"
+            "BootstrapperCfg:{63ACBE69-63AA-4F98-B2B6-99F9E24495F2}"
+            {
+            "Enabled" = "11:FALSE"
+            "PromptEnabled" = "11:TRUE"
+            "PrerequisitesLocation" = "2:1"
+            "Url" = "8:"
+            "ComponentsUrl" = "8:"
+                "Items"
+                {
+                    "{EDC2488A-8267-493A-A98E-7D9C3B36CDF3}:.NETFramework,Version=v4.7.2"
+                    {
+                    "Name" = "8:Microsoft .NET Framework 4.7.2 (x86 and x64)"
+                    "ProductCode" = "8:.NETFramework,Version=v4.7.2"
+                    }
+                }
+            }
         }
     }
     "Deployable"
@@ -185,7 +212,7 @@
         "Name" = "8:Microsoft Visual Studio"
         "ProductName" = "8:VSLauncherX"
         "ProductCode" = "8:{3A90C8C0-EBEE-46D0-9888-52B2C90A6468}"
-        "PackageCode" = "8:{4A9D8B79-64A2-426B-8237-55736C6881E1}"
+        "PackageCode" = "8:{9D13746C-CB27-409C-8ECD-1139B997A3B6}"
         "UpgradeCode" = "8:{93953DFF-12DC-4A3A-86F5-F6D73ECD8345}"
         "AspNetVersion" = "8:2.0.50727.0"
         "RestartWWWService" = "11:FALSE"
@@ -734,7 +761,7 @@
         {
             "{5259A561-127C-4D43-A0A1-72F10C7B3BF8}:_2EACBA931B004306B24E843EC366F980"
             {
-            "SourcePath" = "8:..\\VSLauncherX\\obj\\Release\\net6.0-windows10.0.17763.0\\VSLauncherX.dll"
+            "SourcePath" = "8:..\\VSLauncherX\\obj\\Debug\\net6.0-windows10.0.17763.0\\VSLauncherX.dll"
             "TargetName" = "8:"
             "Tag" = "8:"
             "Folder" = "8:_F49FDC12E56B4817B29BA1092F5D26F3"
@@ -762,7 +789,7 @@
             }
             "{5259A561-127C-4D43-A0A1-72F10C7B3BF8}:_9DB2616C3EC84E878DA5815551FA2B70"
             {
-            "SourcePath" = "8:..\\BackgroundLaunch\\obj\\Release\\net6.0-windows10.0.17763.0\\BackgroundLaunch.dll"
+            "SourcePath" = "8:..\\BackgroundLaunch\\obj\\Debug\\net6.0-windows10.0.17763.0\\BackgroundLaunch.dll"
             "TargetName" = "8:"
             "Tag" = "8:"
             "Folder" = "8:_F49FDC12E56B4817B29BA1092F5D26F3"
@@ -790,7 +817,7 @@
             }
             "{5259A561-127C-4D43-A0A1-72F10C7B3BF8}:_C0707A61314247139BC6A33B737DEF9F"
             {
-            "SourcePath" = "8:..\\VSLXshared\\obj\\Release\\net6.0-windows\\VSLXshared.dll"
+            "SourcePath" = "8:..\\VSLXshared\\obj\\Debug\\net6.0-windows\\VSLXshared.dll"
             "TargetName" = "8:"
             "Tag" = "8:"
             "Folder" = "8:_F49FDC12E56B4817B29BA1092F5D26F3"
@@ -818,7 +845,7 @@
             }
             "{5259A561-127C-4D43-A0A1-72F10C7B3BF8}:_F395CA818C7E45CEB8F78D3B79829268"
             {
-            "SourcePath" = "8:..\\ObjectListView\\obj\\Release\\net6.0-windows7.0\\ObjectListView.dll"
+            "SourcePath" = "8:..\\ObjectListView\\obj\\Debug\\net6.0-windows7.0\\ObjectListView.dll"
             "TargetName" = "8:"
             "Tag" = "8:"
             "Folder" = "8:_F49FDC12E56B4817B29BA1092F5D26F3"
