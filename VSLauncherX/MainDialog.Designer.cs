@@ -32,7 +32,7 @@ namespace VSLauncher
 		/// </summary>
 		private void InitializeComponent()
 		{
-			this.components = new System.ComponentModel.Container();
+			components = new System.ComponentModel.Container();
 			ToolStripSeparator toolStripMenuItem1;
 			ToolStripSeparator toolStripMenuItem2;
 			FlowLayoutPanel flowLayoutPanel2;
@@ -56,7 +56,7 @@ namespace VSLauncher
 			olvColumnVersion = new OLVColumn();
 			olvColumnOptions = new OLVColumn();
 			optionsRenderer = new MultiImageRenderer();
-			imageList3 = new ImageList(this.components);
+			imageList3 = new ImageList(components);
 			mainPanel = new TableLayoutPanel();
 			flowLayoutPanel1 = new FlowLayoutPanel();
 			selectVisualStudioVersion = new VisualStudioCombobox();
@@ -65,10 +65,12 @@ namespace VSLauncher
 			btnMainStartVisualStudio3 = new Button();
 			btnMainStartVisualStudio4 = new Button();
 			btnMainStartVisualStudio5 = new Button();
-			imageListMainIcons = new ImageList(this.components);
+			btnMainOpenActivityLog = new Button();
+			btnVsInstaller = new Button();
+			imageListMainIcons = new ImageList(components);
 			toolStripStatusLabel3 = new ToolStripStatusLabel();
-			tooltipForButtons = new ToolTip(this.components);
-			ctxMenu = new ContextMenuStrip(this.components);
+			tooltipForButtons = new ToolTip(components);
+			ctxMenu = new ContextMenuStrip(components);
 			addToolStripMenuItem = new ToolStripMenuItem();
 			newGroupToolStripMenuItem = new ToolStripMenuItem();
 			fromFolderToolStripMenuItem = new ToolStripMenuItem();
@@ -83,7 +85,8 @@ namespace VSLauncher
 			favoriteToolStripMenuItem = new ToolStripMenuItem();
 			statusStrip1 = new StatusStrip();
 			mainStatusLabel = new ToolStripStatusLabel();
-			btnVsInstaller = new Button();
+			gitTimer = new System.Windows.Forms.Timer(components);
+			toolStripStatusGit = new ToolStripStatusLabel();
 			toolStripMenuItem1 = new ToolStripSeparator();
 			toolStripMenuItem2 = new ToolStripSeparator();
 			flowLayoutPanel2 = new FlowLayoutPanel();
@@ -455,6 +458,7 @@ namespace VSLauncher
 			flowLayoutPanel1.Controls.Add(btnMainStartVisualStudio3);
 			flowLayoutPanel1.Controls.Add(btnMainStartVisualStudio4);
 			flowLayoutPanel1.Controls.Add(btnMainStartVisualStudio5);
+			flowLayoutPanel1.Controls.Add(btnMainOpenActivityLog);
 			flowLayoutPanel1.FlowDirection = FlowDirection.TopDown;
 			flowLayoutPanel1.Location = new Point(699, 0);
 			flowLayoutPanel1.Margin = new Padding(0);
@@ -575,6 +579,42 @@ namespace VSLauncher
 			btnMainStartVisualStudio5.UseVisualStyleBackColor = true;
 			btnMainStartVisualStudio5.Click += btnMainStartVisualStudio5_Click;
 			// 
+			// btnMainOpenActivityLog
+			// 
+			btnMainOpenActivityLog.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point);
+			btnMainOpenActivityLog.ImageAlign = ContentAlignment.MiddleLeft;
+			btnMainOpenActivityLog.Location = new Point(0, 400);
+			btnMainOpenActivityLog.Margin = new Padding(0);
+			btnMainOpenActivityLog.Name = "btnMainOpenActivityLog";
+			btnMainOpenActivityLog.Padding = new Padding(4);
+			btnMainOpenActivityLog.Size = new Size(232, 32);
+			btnMainOpenActivityLog.TabIndex = 6;
+			btnMainOpenActivityLog.Tag = "Open {0} ActivityLog";
+			btnMainOpenActivityLog.Text = "Open ActivityLog";
+			btnMainOpenActivityLog.TextImageRelation = TextImageRelation.ImageBeforeText;
+			tooltipForButtons.SetToolTip(btnMainOpenActivityLog, "Opens the activity log file of Visual Studio");
+			btnMainOpenActivityLog.UseMnemonic = false;
+			btnMainOpenActivityLog.UseVisualStyleBackColor = true;
+			btnMainOpenActivityLog.Click += btnMainOpenActivityLog_Click;
+			// 
+			// btnVsInstaller
+			// 
+			btnVsInstaller.Font = new Font("Segoe UI", 10F, FontStyle.Bold, GraphicsUnit.Point);
+			btnVsInstaller.Image = Resources.ImportVS1;
+			btnVsInstaller.ImageAlign = ContentAlignment.MiddleLeft;
+			btnVsInstaller.Location = new Point(699, 449);
+			btnVsInstaller.Margin = new Padding(0);
+			btnVsInstaller.Name = "btnVsInstaller";
+			btnVsInstaller.Padding = new Padding(4, 0, 4, 0);
+			btnVsInstaller.Size = new Size(232, 48);
+			btnVsInstaller.TabIndex = 5;
+			btnVsInstaller.Tag = "";
+			btnVsInstaller.Text = "Visual Studio Installer";
+			btnVsInstaller.TextAlign = ContentAlignment.MiddleLeft;
+			btnVsInstaller.TextImageRelation = TextImageRelation.ImageBeforeText;
+			btnVsInstaller.UseVisualStyleBackColor = true;
+			btnVsInstaller.Click += btnVsInstaller_Click;
+			// 
 			// imageListMainIcons
 			// 
 			imageListMainIcons.ColorDepth = ColorDepth.Depth8Bit;
@@ -692,7 +732,7 @@ namespace VSLauncher
 			// 
 			// statusStrip1
 			// 
-			statusStrip1.Items.AddRange(new ToolStripItem[] { mainStatusLabel });
+			statusStrip1.Items.AddRange(new ToolStripItem[] { mainStatusLabel, toolStripStatusGit });
 			statusStrip1.Location = new Point(0, 497);
 			statusStrip1.Name = "statusStrip1";
 			statusStrip1.Size = new Size(933, 22);
@@ -702,38 +742,32 @@ namespace VSLauncher
 			// mainStatusLabel
 			// 
 			mainStatusLabel.Name = "mainStatusLabel";
-			mainStatusLabel.Size = new Size(193, 17);
+			mainStatusLabel.Size = new Size(896, 17);
+			mainStatusLabel.Spring = true;
 			mainStatusLabel.Text = "Lets do something incredible today";
+			mainStatusLabel.TextAlign = ContentAlignment.MiddleLeft;
 			// 
-			// btnVsInstaller
+			// gitTimer
 			// 
-			btnVsInstaller.Font = new Font("Segoe UI", 10F, FontStyle.Bold, GraphicsUnit.Point);
-			btnVsInstaller.Image = Resources.ImportVS1;
-			btnVsInstaller.ImageAlign = ContentAlignment.MiddleLeft;
-			btnVsInstaller.Location = new Point(699, 449);
-			btnVsInstaller.Margin = new Padding(0);
-			btnVsInstaller.Name = "btnVsInstaller";
-			btnVsInstaller.Padding = new Padding(4, 0, 4, 0);
-			btnVsInstaller.Size = new Size(232, 48);
-			btnVsInstaller.TabIndex = 5;
-			btnVsInstaller.Tag = "";
-			btnVsInstaller.Text = "Visual Studio Installer";
-			btnVsInstaller.TextAlign = ContentAlignment.MiddleLeft;
-			btnVsInstaller.TextImageRelation = TextImageRelation.ImageBeforeText;
-			btnVsInstaller.UseVisualStyleBackColor = true;
-			btnVsInstaller.Click += btnVsInstaller_Click;
+			gitTimer.Interval = 1000;
+			// 
+			// toolStripStatusGit
+			// 
+			toolStripStatusGit.Name = "toolStripStatusGit";
+			toolStripStatusGit.Size = new Size(22, 17);
+			toolStripStatusGit.Text = "Git";
 			// 
 			// MainDialog
 			// 
-			this.AutoScaleDimensions = new SizeF(7F, 15F);
-			this.AutoScaleMode = AutoScaleMode.Font;
-			this.ClientSize = new Size(933, 519);
-			this.Controls.Add(statusStrip1);
-			this.Controls.Add(mainPanel);
-			this.Icon = (Icon)resources.GetObject("$this.Icon");
-			this.Margin = new Padding(4, 3, 4, 3);
-			this.Name = "MainDialog";
-			this.Text = "Visual Studio Launcher";
+			AutoScaleDimensions = new SizeF(7F, 15F);
+			AutoScaleMode = AutoScaleMode.Font;
+			ClientSize = new Size(933, 519);
+			Controls.Add(statusStrip1);
+			Controls.Add(mainPanel);
+			Icon = (Icon)resources.GetObject("$this.Icon");
+			Margin = new Padding(4, 3, 4, 3);
+			Name = "MainDialog";
+			Text = "Visual Studio Launcher";
 			FormClosing += MainDialog_FormClosing;
 			Load += MainDialog_Load;
 			flowLayoutPanel2.ResumeLayout(false);
@@ -795,6 +829,9 @@ namespace VSLauncher
 		private ToolStripMenuItem favoriteToolStripMenuItem;
 		private Button btnImportSoP;
 		private Button btnVsInstaller;
+		private System.Windows.Forms.Timer gitTimer;
+		private Button btnMainOpenActivityLog;
+		private ToolStripStatusLabel toolStripStatusGit;
 	}
 }
 

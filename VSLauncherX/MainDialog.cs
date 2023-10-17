@@ -259,7 +259,25 @@ namespace VSLauncher
 
 			SetupTaskbarTasks();
 
+			gitTimer.Tick += GitTimer_Tick;
+			gitTimer.Interval = 5000;
+			gitTimer.Start();
+
 			_ = this.txtFilter.Focus();
+		}
+
+		/// <summary>
+		/// Handles timer ticks to update Git status every 5 seconds
+		/// </summary>
+		/// <param name="sender"></param>
+		/// <param name="e"></param>
+		private void GitTimer_Tick(object? sender, EventArgs e)
+		{
+			toolStripStatusGit.Visible = true;
+			FetchGitStatus(this.solutionGroups);
+			this.olvFiles.Invalidate();
+			this.olvFiles.Update();
+			toolStripStatusGit.Visible = false;
 		}
 
 		/// <summary>
@@ -270,8 +288,8 @@ namespace VSLauncher
 			string vsi = VisualStudioInstanceManager.InstallerPath;
 
 			btnVsInstaller.Tag = vsi;
-			
-			if(vsi.StartsWith("http"))
+
+			if (vsi.StartsWith("http"))
 			{
 				btnVsInstaller.Text = "Download Visual Studio";
 				btnVsInstaller.Image = Resources.Download;
@@ -429,7 +447,7 @@ namespace VSLauncher
 
 		private void SetupTaskbarTasks()
 		{
-			var cat = new JumpListCustomCategory ( "Test" );
+			var cat = new JumpListCustomCategory("Test");
 			// Create a jump list.
 			this.TaskbarJumpList = JumpList.CreateJumpList();
 
@@ -1486,6 +1504,25 @@ namespace VSLauncher
 		}
 
 		/// <summary>
+		/// Handles click on the btnMainOpenActivityLog button
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The event parameters</param>
+		private void btnMainOpenActivityLog_Click(object sender, EventArgs e)
+		{
+			VisualStudioInstance vs = this.visualStudioInstances[this.selectVisualStudioVersion.SelectedIndex];
+			string version = $"{vs.MainVersion}.0_{vs.Identifier}";
+			string s = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+			ProcessStartInfo psi = new ProcessStartInfo
+			{
+				FileName = $"{s}\\Microsoft\\VisualStudio\\{version}\\ActivityLog.xml",
+				Verb = "open",
+				UseShellExecute = true
+			};
+			Process.Start(psi);
+		}
+
+		/// <summary>
 		/// Handles click on the btnVsInstaller button
 		/// </summary>
 		/// <param name="sender">The sender.</param>
@@ -1502,7 +1539,7 @@ namespace VSLauncher
 			{
 				// ask user if installer should be started with elevated privileges
 				bool bIsElevated = AdminInfo.IsCurrentUserAdmin() || AdminInfo.IsElevated();
-				
+
 				if (!bIsElevated && MessageBox.Show("The Visual Studio Installer may required elevated privileges, do you want to run it as administrator?", "Start installer", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
 				{
 					ProcessStartInfo psi = new ProcessStartInfo
