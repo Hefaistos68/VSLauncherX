@@ -108,7 +108,7 @@ namespace VSLauncher.Helpers
 		/// <summary>
 		/// Runs the.
 		/// </summary>
-		internal static void Run()
+		internal static bool Run()
 		{
 			// Get the service on the local machine
 			using (TaskService ts = new TaskService())
@@ -129,8 +129,11 @@ namespace VSLauncher.Helpers
 				if (folder.AllTasks.Any(t => t.Name == taskName))
 				{
 					folder.Tasks[taskName].Run();
+					return true;
 				}
 			}
+
+			return false;
 		}
 
 		/// <summary>

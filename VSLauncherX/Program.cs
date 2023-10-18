@@ -44,14 +44,21 @@ namespace VSLauncher
 					UpdateTaskScheduler();
 				}
 
-				if (!Settings.Default.AlwaysAdmin)
+				bool bAdmin = AdminInfo.IsCurrentUserAdmin();
+				bool bElevated = AdminInfo.IsElevated();
+
+				if (!Settings.Default.AlwaysAdmin || bAdmin || bElevated)
 				{
 					Application.Run(new MainDialog());
 				}
 				else
 				{
 					// we are started normally
-					AutoRun.Run();
+					if(!AutoRun.Run())
+					{
+						Application.Run(new MainDialog());
+					}
+
 				}
 			}
 		}
