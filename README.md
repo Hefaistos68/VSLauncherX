@@ -1,5 +1,7 @@
 ![Build status](https://github.com/Hefaistos68/VSLauncherX/actions/workflows/dotnet.yml/badge.svg)
 
+Note: for some yet unknown reason, the Visual Studio WMI classes may be removed from the WMi catalog after installing VS 2022 17.7.5
+
 # VSLauncherX
 
 This application is a helper application for developers who use Visual Studio as their main tool for building applications.
