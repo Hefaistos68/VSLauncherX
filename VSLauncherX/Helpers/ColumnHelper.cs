@@ -1,4 +1,6 @@
-﻿using VSLauncher.DataModel;
+﻿using LibGit2Sharp;
+
+using VSLauncher.DataModel;
 
 namespace VSLauncher.Helpers
 {
@@ -105,7 +107,33 @@ namespace VSLauncher.Helpers
 
 			return string.Empty;
 		}
+		
+		/// <summary>
+		/// Gets the aspect for the git branch name.
+		/// </summary>
+		/// <param name="rowObject">The row object.</param>
+		/// <returns>An object.</returns>
+		public static object GetAspectForGitName(object rowObject)
+		{
+			if (rowObject is VsFolder)
+			{
+				return string.Empty;
+			}
 
+			if (rowObject is VsItem s)
+			{
+				try
+				{
+					return s.BranchName;
+				}
+				catch (RepositoryNotFoundException)
+				{
+					return string.Empty;
+				}
+			}
+
+			return string.Empty;
+		}
 		/// <summary>
 		/// Gets the image name for file.
 		/// </summary>
