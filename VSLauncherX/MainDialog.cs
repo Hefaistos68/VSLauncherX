@@ -449,7 +449,14 @@ namespace VSLauncher
 		{
 			var cat = new JumpListCustomCategory("Test");
 			// Create a jump list.
-			this.TaskbarJumpList = JumpList.CreateJumpList();
+			try
+			{
+				this.TaskbarJumpList = JumpList.CreateJumpList();
+			}
+			catch (System.Exception ex)
+			{
+				
+			}
 
 			RebuildTaskbarItems();
 		}
@@ -488,10 +495,12 @@ namespace VSLauncher
 		/// <param name="folder"></param>
 		private void RebuildTaskbarItems(VsFolder? folder = null)
 		{
-			if (folder is null)
+			if (this.TaskbarJumpList is null)
 			{
-				folder = this.solutionGroups;
+				return;
 			}
+
+			folder ??= this.solutionGroups;
 
 			// iterate through all items in SolutionItems and add the favorite items to the taskbar
 			foreach (VsItem item in folder.Items)
