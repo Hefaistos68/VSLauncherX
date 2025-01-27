@@ -60,6 +60,11 @@ namespace VSLauncher.DataModel
 		public string ShortVersion { get { return String.Join('.', this.Version.Split('.').Take(2)); } }
 
 		/// <summary>
+		/// Gets the main version number, only major version
+		/// </summary>
+		public string MainVersion { get { return this.Version.Split('.').First(); } }
+
+		/// <summary>
 		/// Gets the release year/version
 		/// </summary>
 		public string Year { get; }

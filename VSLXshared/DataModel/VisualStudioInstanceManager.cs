@@ -41,7 +41,7 @@ namespace VSLauncher.DataModel
 		/// </summary>
 		public VisualStudioInstanceManager()
 		{
-			allInstances = ReadAllInstances();
+			allInstances = ReadAllInstances() ?? new List<VisualStudioInstance>(); // just to not crash if no instances are found
 		}
 
 		/// <summary>
@@ -67,7 +67,7 @@ namespace VSLauncher.DataModel
 		/// Gets the installer path.
 		/// </summary>
 		public static string InstallerPath
-		{ 
+		{
 			get
 			{
 				string location = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Microsoft Visual Studio", "Installer");
@@ -75,7 +75,7 @@ namespace VSLauncher.DataModel
 				string installerPath = Path.Combine(location, "vs_installer.exe");
 				string installerPath86 = Path.Combine(location86, "vs_installer.exe");
 
-				if(Directory.Exists(location) || Directory.Exists(location86))
+				if (Directory.Exists(location) || Directory.Exists(location86))
 				{
 					if (File.Exists(installerPath))
 					{
@@ -115,59 +115,142 @@ namespace VSLauncher.DataModel
 		}
 
 		/// <summary>
+		/// Reads the all installed Visual Studio instances, using either the original WMI class, the the WMI class in the new namespace, or finally the VS Setup API
+		/// </summary>
+		/// <returns>A list of VisualStudioInstances.</returns>
+		public static List<VisualStudioInstance>? ReadAllInstances()
+		{
+			List<VisualStudioInstance>? list = null;
+
+			try
+			{
+				list = ReadAllInstancesFromWMI1();
+			}
+			catch (System.Exception ex)
+			{
+				Debug.WriteLine($"Original MSFT_VSInstance WMi class not found or not able to read. ({ex.Message})");
+			}
+
+			if (list is null)
+			{
+				try
+				{
+					list = ReadAllInstancesFromWMI2();
+				}
+				catch (System.Exception ex)
+				{
+					Debug.WriteLine($"New MSFT_VSInstance WMi class not found or not able to read. ({ex.Message})");
+				}
+			}
+
+			if (list is null)
+			{
+				try
+				{
+					list = ReadAllInstancesFromSetupApi();
+				}
+				catch (System.Exception ex)
+				{
+					Debug.WriteLine($"failed to read from VS Setup API, no Visual Studio installation information available. ({ex.Message})");
+				}
+			}
+
+			return list;
+		}
+
+		/// <summary>
 		/// Reads the all installed Visual Studio instances from WMI
 		/// </summary>
 		/// <returns>A list of VisualStudioInstances.</returns>
-		public static List<VisualStudioInstance> ReadAllInstances()
+		public static List<VisualStudioInstance> ReadAllInstancesFromWMI1()
 		{
 			var list = new List<VisualStudioInstance>();
 			// read all data from WMI using CimInstance MSFT_VSInstance
 			// https://docs.microsoft.com/en-us/windows/win32/wmisdk/msft-vsinstance
 
-			try
+			ManagementObjectSearcher searcher = new ManagementObjectSearcher
 			{
-				ManagementObjectSearcher searcher = new ManagementObjectSearcher
+				Query = new SelectQuery("MSFT_VSInstance ", "", new[] { "Name", "Version", "ProductLocation", "IdentifyingNumber" })
+			};
+			ManagementObjectCollection collection = searcher.Get();
+			ManagementObjectCollection.ManagementObjectEnumerator em = collection.GetEnumerator();
+
+			while (em.MoveNext())
+			{
+				ManagementBaseObject baseObj = em.Current;
+				if (baseObj.Properties["Version"].Value != null)
 				{
-					Query = new SelectQuery("MSFT_VSInstance ", "", new[] { "Name", "Version", "ProductLocation", "IdentifyingNumber" })
-				};
-				ManagementObjectCollection collection = searcher.Get();
-				ManagementObjectCollection.ManagementObjectEnumerator em = collection.GetEnumerator();
-	
-				while (em.MoveNext())
-				{
-					ManagementBaseObject baseObj = em.Current;
-					if (baseObj.Properties["Version"].Value != null)
+					try
 					{
-						try
+						string? name = baseObj.Properties["Name"].Value.ToString();
+						string? version = baseObj.Properties["Version"].Value.ToString();
+						string? location = baseObj.Properties["ProductLocation"].Value.ToString();
+						string? identifier = baseObj.Properties["IdentifyingNumber"].Value.ToString();
+
+						if (name != null && version != null && location != null && identifier != null)
 						{
-							string? name = baseObj.Properties["Name"].Value.ToString();
-							string? version = baseObj.Properties["Version"].Value.ToString();
-							string? location = baseObj.Properties["ProductLocation"].Value.ToString();
-							string? identifier = baseObj.Properties["IdentifyingNumber"].Value.ToString();
-	
-							if (name != null && version != null && location != null && identifier != null)
-							{
-								list.Add(new VisualStudioInstance(name, version, location, identifier, VisualStudioInstanceManager.YearFromVersion(version[..2])));
-							}
-						}
-						catch (Exception ex)
-						{
-							Debug.WriteLine(ex.ToString());
+							list.Add(new VisualStudioInstance(name, version, location, identifier, VisualStudioInstanceManager.YearFromVersion(version[..2])));
 						}
 					}
+					catch (Exception ex)
+					{
+						Debug.WriteLine(ex.ToString());
+					}
 				}
-	
-				em?.Dispose();
-				collection?.Dispose();
-				searcher?.Dispose();
-	
 			}
-			catch 
+
+			em?.Dispose();
+			collection?.Dispose();
+			searcher?.Dispose();
+
+
+			list.Sort((x, y) => x.Version.CompareTo(y.Version));
+
+			return list;
+		}
+
+		public static List<VisualStudioInstance> ReadAllInstancesFromWMI2()
+		{
+			var list = new List<VisualStudioInstance>();
+			// read all data from WMI using CimInstance MSFT_VSInstance but in the new VS namespace
+
+			ManagementScope scope = new ManagementScope("root/cimv2/vs");
+			ManagementObjectSearcher searcher = new ManagementObjectSearcher
 			{
-				// something went wrong, try the alternative way using the Setup API
-				list = ReadAllInstancesFromSetupApi();
+				Query = new SelectQuery("MSFT_VSInstance ", "", new[] { "Name", "Version", "ProductLocation", "IdentifyingNumber" }),
+				Scope = scope
+			};
+			ManagementObjectCollection collection = searcher.Get();
+			ManagementObjectCollection.ManagementObjectEnumerator em = collection.GetEnumerator();
+
+			while (em.MoveNext())
+			{
+				ManagementBaseObject baseObj = em.Current;
+				if (baseObj.Properties["Version"].Value != null)
+				{
+					try
+					{
+						string? name = baseObj.Properties["Name"].Value.ToString();
+						string? version = baseObj.Properties["Version"].Value.ToString();
+						string? location = baseObj.Properties["ProductLocation"].Value.ToString();
+						string? identifier = baseObj.Properties["IdentifyingNumber"].Value.ToString();
+
+						if (name != null && version != null && location != null && identifier != null)
+						{
+							list.Add(new VisualStudioInstance(name, version, location, identifier, VisualStudioInstanceManager.YearFromVersion(version[..2])));
+						}
+					}
+					catch (Exception ex)
+					{
+						Debug.WriteLine(ex.ToString());
+					}
+				}
 			}
-			
+
+			em?.Dispose();
+			collection?.Dispose();
+			searcher?.Dispose();
+
 			list.Sort((x, y) => x.Version.CompareTo(y.Version));
 
 			return list;
@@ -267,7 +350,7 @@ namespace VSLauncher.DataModel
 		{
 			VsFolder solutionList = new VsFolder();
 
-			var vsDir = new DirectoryInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Microsoft",  "VisualStudio"));
+			var vsDir = new DirectoryInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Microsoft", "VisualStudio"));
 
 			foreach (var dir in vsDir.GetDirectories("*", SearchOption.AllDirectories))
 			{
@@ -330,7 +413,7 @@ namespace VSLauncher.DataModel
 				catch (DirectoryNotFoundException)
 				{
 				}
-				catch(NullReferenceException)
+				catch (NullReferenceException)
 				{
 					// possibly invalid file
 				}
@@ -373,7 +456,7 @@ namespace VSLauncher.DataModel
 			if (string.IsNullOrEmpty(name))
 				return HighestVersion();
 
-			var vsi =  this.allInstances.Where(x => x.ShortName.Equals(name, StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault();
+			var vsi = this.allInstances.Where(x => x.ShortName.Equals(name, StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault();
 
 			return vsi is null ? HighestVersion() : vsi;
 		}
@@ -388,7 +471,7 @@ namespace VSLauncher.DataModel
 			if (string.IsNullOrEmpty(version))
 				return HighestVersion();
 
-			var vsi =  this.allInstances.Where(x => x.Version.StartsWith(version, StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault();
+			var vsi = this.allInstances.Where(x => x.Version.StartsWith(version, StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault();
 
 			return vsi is null ? HighestVersion() : vsi;
 		}

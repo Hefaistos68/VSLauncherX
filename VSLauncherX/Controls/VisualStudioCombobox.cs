@@ -10,7 +10,10 @@ namespace VSLauncher.Controls
         private VisualStudioInstanceManager visualStudioVersions = new VisualStudioInstanceManager();
         private bool showDefault;
 
-        public VisualStudioCombobox()
+		/// <summary>
+		/// Initializes a new instance of the <see cref="VisualStudioCombobox"/> class.
+		/// </summary>
+		public VisualStudioCombobox()
         {
             DrawMode = DrawMode.OwnerDrawFixed;
             DropDownStyle = ComboBoxStyle.DropDownList;
@@ -108,8 +111,10 @@ namespace VSLauncher.Controls
         }
 
         protected override void OnDropDown(EventArgs e)
-        {
-            Items.Clear();
+		{
+			int selectedItem = SelectedIndex; // remember the item selected before clearing the list
+
+			Items.Clear();
 
             if (ShowDefault)
             {
@@ -118,7 +123,9 @@ namespace VSLauncher.Controls
 
             Items.AddRange(visualStudioVersions.All.ToArray());
 
-            base.OnDropDown(e);
+			SelectedIndex = selectedItem;   // set the previously selected item back
+
+			base.OnDropDown(e);
         }
 
         /// <summary>

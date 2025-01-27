@@ -143,6 +143,8 @@ namespace VSLauncher
 			this.olvColumnGit.AspectGetter = ColumnHelper.GetAspectForGit;
 			this.olvColumnGit.ImageGetter = ColumnHelper.GetImageForGit;
 
+			this.olvColumnGitName.AspectGetter = ColumnHelper.GetAspectForGitName;
+
 			// setup the Date column
 			this.olvColumnDate.AspectGetter = ColumnHelper.GetAspectForDate;
 
@@ -259,7 +261,25 @@ namespace VSLauncher
 
 			SetupTaskbarTasks();
 
+			gitTimer.Tick += GitTimer_Tick;
+			gitTimer.Interval = 5000;
+			gitTimer.Start();
+
 			_ = this.txtFilter.Focus();
+		}
+
+		/// <summary>
+		/// Handles timer ticks to update Git status every 5 seconds
+		/// </summary>
+		/// <param name="sender"></param>
+		/// <param name="e"></param>
+		private void GitTimer_Tick(object? sender, EventArgs e)
+		{
+			toolStripStatusGit.Visible = true;
+			FetchGitStatus(this.solutionGroups);
+			this.olvFiles.Invalidate();
+			this.olvFiles.Update();
+			toolStripStatusGit.Visible = false;
 		}
 
 		/// <summary>
@@ -270,8 +290,8 @@ namespace VSLauncher
 			string vsi = VisualStudioInstanceManager.InstallerPath;
 
 			btnVsInstaller.Tag = vsi;
-			
-			if(vsi.StartsWith("http"))
+
+			if (vsi.StartsWith("http"))
 			{
 				btnVsInstaller.Text = "Download Visual Studio";
 				btnVsInstaller.Image = Resources.Download;
@@ -304,7 +324,9 @@ namespace VSLauncher
 						using (var repo = new Repository(Path.GetDirectoryName(item.Path)))
 						{
 							var stat = repo.RetrieveStatus();
+							
 							item.Status = stat.IsDirty ? "*" : "!";
+							item.BranchName = repo.Head.FriendlyName;
 						}
 					}
 					catch (RepositoryNotFoundException ex)
@@ -315,13 +337,16 @@ namespace VSLauncher
 							using (var repo = new Repository(Path.GetDirectoryName(Path.GetDirectoryName(item.Path))))
 							{
 								var stat = repo.RetrieveStatus();
+								
 								item.Status = stat.IsDirty ? "*" : "!";
+								item.BranchName = repo.Head.FriendlyName;
 							}
 						}
 						catch (RepositoryNotFoundException ex2)
 						{
 							// this is not a GIT repository
 							item.Status = "?";
+							item.BranchName = string.Empty;
 
 						}
 					}
@@ -376,6 +401,7 @@ namespace VSLauncher
 			{
 				// nothing selected, add to the end
 				this.solutionGroups.Items.AddRange(source);
+				this.solutionGroups.Items.Sort((x, y) => string.Compare(x.Name, y.Name, StringComparison.OrdinalIgnoreCase));
 			}
 			else
 			{
@@ -383,6 +409,7 @@ namespace VSLauncher
 				{
 					// add below selected item
 					sg.Items.AddRange(source);
+					sg.Items.Sort((x, y) => string.Compare(x.Name, y.Name, StringComparison.OrdinalIgnoreCase));
 				}
 				else
 				{
@@ -391,6 +418,7 @@ namespace VSLauncher
 
 					// add at the end
 					this.solutionGroups.Items.AddRange(source);
+					this.solutionGroups.Items.Sort((x, y) => string.Compare(x.Name, y.Name, StringComparison.OrdinalIgnoreCase));
 				}
 			}
 		}
@@ -406,6 +434,7 @@ namespace VSLauncher
 			{
 				// nothing selected, add to the end
 				this.solutionGroups.Items.Add(source);
+				this.solutionGroups.Items.Sort((x, y) => string.Compare(x.Name, y.Name, StringComparison.OrdinalIgnoreCase));
 			}
 			else
 			{
@@ -413,6 +442,7 @@ namespace VSLauncher
 				{
 					// add below selected item
 					sg.Items.Add(source);
+					sg.Items.Sort((x, y) => string.Compare(x.Name, y.Name, StringComparison.OrdinalIgnoreCase));
 				}
 				else
 				{
@@ -421,17 +451,27 @@ namespace VSLauncher
 
 					// add at the end
 					vsi?.Items.Add(source);
+					vsi?.Items.Sort((x, y) => string.Compare(x.Name, y.Name, StringComparison.OrdinalIgnoreCase));
 				}
 			}
+
+			// Sort the list of items
 		}
 
 		#region Taskbar handling
 
 		private void SetupTaskbarTasks()
 		{
-			var cat = new JumpListCustomCategory ( "Test" );
+			var cat = new JumpListCustomCategory("Test");
 			// Create a jump list.
-			this.TaskbarJumpList = JumpList.CreateJumpList();
+			try
+			{
+				this.TaskbarJumpList = JumpList.CreateJumpList();
+			}
+			catch (System.Exception ex)
+			{
+
+			}
 
 			RebuildTaskbarItems();
 		}
@@ -470,10 +510,12 @@ namespace VSLauncher
 		/// <param name="folder"></param>
 		private void RebuildTaskbarItems(VsFolder? folder = null)
 		{
-			if (folder is null)
+			if (this.TaskbarJumpList is null)
 			{
-				folder = this.solutionGroups;
+				return;
 			}
+
+			folder ??= this.solutionGroups;
 
 			// iterate through all items in SolutionItems and add the favorite items to the taskbar
 			foreach (VsItem item in folder.Items)
@@ -527,6 +569,19 @@ namespace VSLauncher
 
 				_ = SolutionData_OnChanged(true);
 			}
+		}
+		private void mainOpenInExplorer_Click(object sender, EventArgs e)
+		{
+			if (this.olvFiles.SelectedItem != null)
+			{
+				VsItem item = (VsItem)this.olvFiles.SelectedItem.RowObject;
+				
+				if (item is not VsFolder)
+				{
+					Process.Start("explorer.exe", "/select, " + item.Path);
+				}
+			}
+
 		}
 
 		/// <summary>
@@ -726,6 +781,8 @@ namespace VSLauncher
 		/// <param name="e">The event parameters</param>
 		private void olvFiles_SelectedIndexChanged(object? sender, EventArgs e)
 		{
+			bool enableOpenInExplorer = false;
+
 			// update status bar text with info on selected item
 			if (this.olvFiles.SelectedItem != null)
 			{
@@ -733,10 +790,12 @@ namespace VSLauncher
 				if (item is VsSolution s)
 				{
 					this.mainStatusLabel.Text = $"Visual Studio Solution: {s.Projects?.Count} Projects, {s.TypeAsName()}";
+					enableOpenInExplorer = true;
 				}
 				else if (item is VsProject p)
 				{
 					this.mainStatusLabel.Text = $"Visual Studio Project: {p.TypeAsName()}, .NET {p.FrameworkVersion}";
+					enableOpenInExplorer = true;
 				}
 				else if (item is VsFolder sg)
 				{
@@ -747,6 +806,8 @@ namespace VSLauncher
 			{
 				this.mainStatusLabel.Text = string.Empty;
 			}
+
+			btnExplorer.Enabled = enableOpenInExplorer;
 		}
 
 		/// <summary>
@@ -1187,6 +1248,20 @@ namespace VSLauncher
 			}
 		}
 
+		/// <summary>
+		/// Handles the favorites menu item
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The e.</param>
+		private void explorerToolStripMenuItem_Click(object sender, EventArgs e)
+		{
+			// open the explorer with the selected item
+			if (this.olvFiles.SelectedObject is VsItem i)
+			{
+				Process.Start("explorer.exe", $"/select, \"{i.Path}\"");
+			}
+		}
+
 		#endregion
 
 		/// <summary>
@@ -1380,10 +1455,25 @@ namespace VSLauncher
 			// TODO: must verify items before loading, indicate missing items through warning icon
 			this.olvFiles.SetObjects(this.solutionGroups.Items);
 
+			IterateAndSortItems();
 			IterateAndExpandItems();
 			FetchGitStatus(this.solutionGroups);
 		}
+		
+		private void IterateAndSortItems()
+		{
+			foreach (var item in this.olvFiles.Objects)
+			{
+				if (item is VsFolder folder)
+				{
+					folder.Items.Sort((x, y) => string.Compare(x.Name, y.Name, StringComparison.OrdinalIgnoreCase));
+				}
+			}
+		}
 
+		/// <summary>
+		/// Iterates through the items in the ObjectListView and expands or collapses them based on their state.
+		/// </summary>
 		private void IterateAndExpandItems()
 		{
 			foreach (var item in this.olvFiles.Objects)
@@ -1486,6 +1576,25 @@ namespace VSLauncher
 		}
 
 		/// <summary>
+		/// Handles click on the btnMainOpenActivityLog button
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The event parameters</param>
+		private void btnMainOpenActivityLog_Click(object sender, EventArgs e)
+		{
+			VisualStudioInstance vs = this.visualStudioInstances[this.selectVisualStudioVersion.SelectedIndex];
+			string version = $"{vs.MainVersion}.0_{vs.Identifier}";
+			string s = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+			ProcessStartInfo psi = new ProcessStartInfo
+			{
+				FileName = $"{s}\\Microsoft\\VisualStudio\\{version}\\ActivityLog.xml",
+				Verb = "open",
+				UseShellExecute = true
+			};
+			Process.Start(psi);
+		}
+
+		/// <summary>
 		/// Handles click on the btnVsInstaller button
 		/// </summary>
 		/// <param name="sender">The sender.</param>
@@ -1502,7 +1611,7 @@ namespace VSLauncher
 			{
 				// ask user if installer should be started with elevated privileges
 				bool bIsElevated = AdminInfo.IsCurrentUserAdmin() || AdminInfo.IsElevated();
-				
+
 				if (!bIsElevated && MessageBox.Show("The Visual Studio Installer may required elevated privileges, do you want to run it as administrator?", "Start installer", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
 				{
 					ProcessStartInfo psi = new ProcessStartInfo
@@ -1541,7 +1650,7 @@ namespace VSLauncher
 		private void mainPanel_Resize(object sender, EventArgs e)
 		{
 			int w = this.txtFilter.Parent.Width;
-			w -= (34 * 6) + 12; // 6 buttons + spacer
+			w -= (34 * 7) + 12 + 12; // 7 buttons + 2 spacer
 			w -= this.txtFilter.Location.X;
 			this.txtFilter.Width = w;
 		}
@@ -1587,6 +1696,5 @@ namespace VSLauncher
 				this.txtFilter.Text = string.Empty;
 			}
 		}
-
 	}
 }
