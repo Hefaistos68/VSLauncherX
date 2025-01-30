@@ -365,13 +365,13 @@ namespace VSLauncher
 		/// <param name="i">The item for which to set up the branch menu.</param>
 		private void SetupBranchMenu(VsItem i)
 		{
-			var branchesMenu = this.ctxMenu.Items.OfType<ToolStripMenuItem>().FirstOrDefault(item => item.Text == "Branches");
+			var branchesMenu = this.gitToolStripMenuItem.DropDownItems.OfType<ToolStripMenuItem>().FirstOrDefault(item => item.Text == "Branches");
 
 			if (branchesMenu == null)
 			{
 				// Create a new submenu for branches
 				branchesMenu = new ToolStripMenuItem("Branches");
-				this.ctxMenu.Items.Add(branchesMenu);
+				this.gitToolStripMenuItem.DropDownItems.Insert(0, branchesMenu);
 			}
 			else
 			{
@@ -422,6 +422,7 @@ namespace VSLauncher
 			}
 
 			branchesMenu.Enabled = enableBranches;
+			this.gitToolStripMenuItem.Enabled = enableBranches;
 		}
 	}
 }

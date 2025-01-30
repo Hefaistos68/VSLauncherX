@@ -33,14 +33,14 @@ namespace VSLauncher
 		private void InitializeComponent()
 		{
 			this.components = new System.ComponentModel.Container();
-			ToolStripSeparator toolStripMenuItem1;
-			ToolStripSeparator toolStripMenuItem2;
 			FlowLayoutPanel flowLayoutPanel2;
 			Label label3;
 			System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainDialog));
 			TableLayoutPanel leftSubPanel;
 			Label titleLabel;
 			Label label2;
+			this.toolStripSeparator1 = new ToolStripSeparator();
+			this.toolStripSeparator2 = new ToolStripSeparator();
 			this.txtFilter = new TextBoxEx();
 			this.btnAddFolder = new Button();
 			this.btnImportFolder = new Button();
@@ -87,12 +87,16 @@ namespace VSLauncher
 			this.toolStripMenuItem4 = new ToolStripSeparator();
 			this.favoriteToolStripMenuItem = new ToolStripMenuItem();
 			this.explorerToolStripMenuItem = new ToolStripMenuItem();
+			this.gitToolStripMenuItem = new ToolStripMenuItem();
+			this.fetchToolStripMenuItem = new ToolStripMenuItem();
+			this.pullToolStripMenuItem = new ToolStripMenuItem();
 			this.statusStrip1 = new StatusStrip();
 			this.mainStatusLabel = new ToolStripStatusLabel();
 			this.toolStripStatusGit = new ToolStripStatusLabel();
 			this.gitTimer = new System.Windows.Forms.Timer(this.components);
-			toolStripMenuItem1 = new ToolStripSeparator();
-			toolStripMenuItem2 = new ToolStripSeparator();
+			this.branchesToolStripMenuItem = new ToolStripMenuItem();
+			this.toolStripMenuItem1 = new ToolStripSeparator();
+			this.xToolStripMenuItem = new ToolStripMenuItem();
 			flowLayoutPanel2 = new FlowLayoutPanel();
 			label3 = new Label();
 			leftSubPanel = new TableLayoutPanel();
@@ -107,15 +111,15 @@ namespace VSLauncher
 			this.statusStrip1.SuspendLayout();
 			SuspendLayout();
 			// 
-			// toolStripMenuItem1
+			// toolStripSeparator1
 			// 
-			toolStripMenuItem1.Name = "toolStripMenuItem1";
-			toolStripMenuItem1.Size = new Size(205, 6);
+			this.toolStripSeparator1.Name = "toolStripSeparator1";
+			this.toolStripSeparator1.Size = new Size(205, 6);
 			// 
-			// toolStripMenuItem2
+			// toolStripSeparator2
 			// 
-			toolStripMenuItem2.Name = "toolStripMenuItem2";
-			toolStripMenuItem2.Size = new Size(205, 6);
+			this.toolStripSeparator2.Name = "toolStripSeparator2";
+			this.toolStripSeparator2.Size = new Size(205, 6);
 			// 
 			// flowLayoutPanel2
 			// 
@@ -683,9 +687,9 @@ namespace VSLauncher
 			// 
 			// ctxMenu
 			// 
-			this.ctxMenu.Items.AddRange(new ToolStripItem[] { this.addToolStripMenuItem, this.toolStripMenuItem3, this.runToolStripMenuItem, this.runAsAdminToolStripMenuItem, this.renameToolStripMenuItem, toolStripMenuItem1, this.settingsToolStripMenuItem, toolStripMenuItem2, this.removeToolStripMenuItem, this.toolStripMenuItem4, this.favoriteToolStripMenuItem, this.explorerToolStripMenuItem });
+			this.ctxMenu.Items.AddRange(new ToolStripItem[] { this.gitToolStripMenuItem, this.addToolStripMenuItem, this.toolStripMenuItem3, this.runToolStripMenuItem, this.runAsAdminToolStripMenuItem, this.renameToolStripMenuItem, this.toolStripSeparator1, this.settingsToolStripMenuItem, this.toolStripSeparator2, this.removeToolStripMenuItem, this.toolStripMenuItem4, this.favoriteToolStripMenuItem, this.explorerToolStripMenuItem });
 			this.ctxMenu.Name = "ctxMenu";
-			this.ctxMenu.Size = new Size(209, 204);
+			this.ctxMenu.Size = new Size(209, 248);
 			this.ctxMenu.Opening += ctxMenu_Opening;
 			// 
 			// addToolStripMenuItem
@@ -779,6 +783,27 @@ namespace VSLauncher
 			this.explorerToolStripMenuItem.Text = "Open location in Explorer";
 			this.explorerToolStripMenuItem.Click += explorerToolStripMenuItem_Click;
 			// 
+			// gitToolStripMenuItem
+			// 
+			this.gitToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { this.branchesToolStripMenuItem, this.toolStripMenuItem1, this.fetchToolStripMenuItem, this.pullToolStripMenuItem });
+			this.gitToolStripMenuItem.Name = "gitToolStripMenuItem";
+			this.gitToolStripMenuItem.Size = new Size(208, 22);
+			this.gitToolStripMenuItem.Text = "Git";
+			// 
+			// fetchToolStripMenuItem
+			// 
+			this.fetchToolStripMenuItem.Name = "fetchToolStripMenuItem";
+			this.fetchToolStripMenuItem.Size = new Size(180, 22);
+			this.fetchToolStripMenuItem.Text = "Fetch";
+			this.fetchToolStripMenuItem.Click += fetchToolStripMenuItem_Click;
+			// 
+			// pullToolStripMenuItem
+			// 
+			this.pullToolStripMenuItem.Name = "pullToolStripMenuItem";
+			this.pullToolStripMenuItem.Size = new Size(180, 22);
+			this.pullToolStripMenuItem.Text = "Pull";
+			this.pullToolStripMenuItem.Click += pullToolStripMenuItem_Click;
+			// 
 			// statusStrip1
 			// 
 			this.statusStrip1.Items.AddRange(new ToolStripItem[] { this.mainStatusLabel, this.toolStripStatusGit });
@@ -805,6 +830,24 @@ namespace VSLauncher
 			// gitTimer
 			// 
 			this.gitTimer.Interval = 1000;
+			// 
+			// branchesToolStripMenuItem
+			// 
+			this.branchesToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { this.xToolStripMenuItem });
+			this.branchesToolStripMenuItem.Name = "branchesToolStripMenuItem";
+			this.branchesToolStripMenuItem.Size = new Size(180, 22);
+			this.branchesToolStripMenuItem.Text = "Branches";
+			// 
+			// toolStripMenuItem1
+			// 
+			this.toolStripMenuItem1.Name = "toolStripMenuItem1";
+			this.toolStripMenuItem1.Size = new Size(177, 6);
+			// 
+			// xToolStripMenuItem
+			// 
+			this.xToolStripMenuItem.Name = "xToolStripMenuItem";
+			this.xToolStripMenuItem.Size = new Size(180, 22);
+			this.xToolStripMenuItem.Text = "x";
 			// 
 			// MainDialog
 			// 
@@ -885,6 +928,14 @@ namespace VSLauncher
 		private System.Windows.Forms.Timer gitTimer;
 		private Button btnMainOpenActivityLog;
 		private ToolStripStatusLabel toolStripStatusGit;
+		private ToolStripMenuItem gitToolStripMenuItem;
+		private ToolStripMenuItem fetchToolStripMenuItem;
+		private ToolStripMenuItem pullToolStripMenuItem;
+		private ToolStripSeparator toolStripSeparator1;
+		private ToolStripSeparator toolStripSeparator2;
+		private ToolStripMenuItem branchesToolStripMenuItem;
+		private ToolStripMenuItem xToolStripMenuItem;
+		private ToolStripSeparator toolStripMenuItem1;
 	}
 }
 

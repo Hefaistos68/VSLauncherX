@@ -396,7 +396,7 @@ namespace VSLauncher
 			if (this.olvFiles.SelectedItem != null)
 			{
 				VsItem item = (VsItem)this.olvFiles.SelectedItem.RowObject;
-				
+
 				if (item is not VsFolder)
 				{
 					Process.Start("explorer.exe", "/select, " + item.Path);
@@ -1331,7 +1331,7 @@ namespace VSLauncher
 
 				// Check if the item is under Git control
 
-					SetupBranchMenu(i);
+				SetupBranchMenu(i);
 			}
 			if (this.olvFiles.SelectedObject is null)
 			{
@@ -1373,7 +1373,7 @@ namespace VSLauncher
 			{
 				// Checkout the selected branch
 				using (var repo = new Repository(Path.GetDirectoryName(item.Path)))
-				{                   
+				{
 					Commands.Checkout(repo, branchName);
 					MessageBox.Show($"Checked out branch: {branchName}", "Branch Checkout", MessageBoxButtons.OK, MessageBoxIcon.Information);
 				}
@@ -1382,6 +1382,66 @@ namespace VSLauncher
 			{
 				MessageBox.Show($"Error checking out branch: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
 			}
+		}
+
+		private void fetchToolStripMenuItem_Click(object sender, EventArgs e)
+		{
+			if (this.olvFiles.SelectedObject is VsItem item and not VsFolder)
+			{
+				try
+				{
+					// Checkout the selected branch
+					using (var repo = new Repository(Path.GetDirectoryName(item.Path)))
+					{
+						var remote = repo.Network.Remotes[repo.Head.RemoteName];
+
+						Commands.Fetch(repo, repo.Head.RemoteName, remote.FetchRefSpecs.Select(rs => rs.Specification), new FetchOptions(), string.Empty);
+						MessageBox.Show(this, $"Fetched branch: {repo.Head.RemoteName} ({repo.Head.FriendlyName})", "Branch Fetch", MessageBoxButtons.OK, MessageBoxIcon.Information);
+					}
+				}
+				catch (Exception ex)
+				{
+					MessageBox.Show(this, $"Error checking out branch: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+				}
+			}
+		}
+
+		private void pullToolStripMenuItem_Click(object sender, EventArgs e)
+		{
+			if (this.olvFiles.SelectedObject is VsItem item and not VsFolder)
+			{
+				try
+				{
+					// Checkout the selected branch
+					using (var repo = new Repository(Path.GetDirectoryName(item.Path)))
+					{
+						var remote = repo.Network.Remotes[repo.Head.RemoteName];
+
+						var stat = repo.RetrieveStatus();
+
+						if(stat.IsDirty)
+						{
+							var msgResult = MessageBox.Show(this, "There are uncommitted changes in the current branch. Do you want to continue with the pull operation?",
+												 "Uncommitted Changes",
+												 MessageBoxButtons.YesNo,
+												 MessageBoxIcon.Warning);
+
+							if (msgResult == DialogResult.No)
+							{
+								return;
+							}
+						}
+
+						var result = Commands.Pull(repo, new Signature("VSLauncherX", "user@example.com", DateTimeOffset.Now), new PullOptions());
+						MessageBox.Show(this, $"Pulled: {repo.Head.RemoteName} ({repo.Head.FriendlyName})\r\nStatus: {result.Status}", "Branch Fetch", MessageBoxButtons.OK, MessageBoxIcon.Information);
+					}
+				}
+				catch (Exception ex)
+				{
+					MessageBox.Show($"Error checking out branch: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+				}
+			}
+
 		}
 	}
 }
