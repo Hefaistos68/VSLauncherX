@@ -78,52 +78,73 @@ namespace VSLauncher
 		}
 
 		/// <summary>
+		/// Starts fetching the git status for all items in the tree asynchronously.
+		/// </summary>
+		/// <param name="folder">The folder.</param>
+		private void FetchGitStatusAsync(VsFolder folder)
+		{
+			Task.Run(() => FetchGitStatusBackground(folder));
+		}
+
+		/// <summary>
 		/// Fetches the git status for all items in the tree
 		/// </summary>
 		/// <param name="folder">The folder.</param>
-		private void FetchGitStatus(VsFolder folder)
+		private void FetchGitStatusBackground(VsFolder folder)
 		{
 			foreach (var item in folder.Items)
 			{
 				if (item is not VsFolder)
 				{
-					// find out if this is a git repo by looking for the ".git" folder
-					// if it is, then we can get the status
+					string? status = null;
+					string? branchName = null;
 
 					try
 					{
 						using (var repo = new Repository(Path.GetDirectoryName(item.Path)))
 						{
 							var stat = repo.RetrieveStatus();
-
-							item.Status = stat.IsDirty ? "*" : "!";
-							item.BranchName = repo.Head.FriendlyName;
+							status = stat.IsDirty ? "*" : "!";
+							branchName = repo.Head.FriendlyName;
 						}
 					}
-					catch (RepositoryNotFoundException ex)
+					catch (RepositoryNotFoundException)
 					{
-						// retry with the parent folder
 						try
 						{
 							using (var repo = new Repository(Path.GetDirectoryName(Path.GetDirectoryName(item.Path))))
 							{
 								var stat = repo.RetrieveStatus();
-
-								item.Status = stat.IsDirty ? "*" : "!";
-								item.BranchName = repo.Head.FriendlyName;
+								status = stat.IsDirty ? "*" : "!";
+								branchName = repo.Head.FriendlyName;
 							}
 						}
-						catch (RepositoryNotFoundException ex2)
+						catch (RepositoryNotFoundException)
 						{
-							// this is not a GIT repository
-							item.Status = "?";
-							item.BranchName = string.Empty;
+							status = "?";
+							branchName = string.Empty;
 						}
+					}
+
+					// Marshal the update to the UI thread
+					if (this.InvokeRequired)
+					{
+						this.BeginInvoke(new Action(() =>
+						{
+							item.Status = status;
+							item.BranchName = branchName;
+							// Optionally refresh the UI for this item here
+						}));
+					}
+					else
+					{
+						item.Status = status;
+						item.BranchName = branchName;
 					}
 				}
 				else
 				{
-					FetchGitStatus(item as VsFolder);
+					FetchGitStatusBackground(item as VsFolder);
 				}
 			}
 		}
@@ -327,7 +348,7 @@ namespace VSLauncher
 			
 			if(updateGitStatus)
 			{
-				FetchGitStatus(this.solutionGroups);
+				FetchGitStatusAsync(this.solutionGroups);
 			}
 		}
 

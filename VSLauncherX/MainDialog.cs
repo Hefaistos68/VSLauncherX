@@ -238,7 +238,7 @@ namespace VSLauncher
 		private void GitTimer_Tick(object? sender, EventArgs e)
 		{
 			toolStripStatusGit.Visible = true;
-			FetchGitStatus(this.solutionGroups);
+			FetchGitStatusAsync(this.solutionGroups);
 			this.olvFiles.Invalidate();
 			this.olvFiles.Update();
 			toolStripStatusGit.Visible = false;
@@ -476,7 +476,7 @@ namespace VSLauncher
 			this.solutionGroups.Items.OnChanged += SolutionData_OnChanged;
 
 			UpdateList(true);
-			FetchGitStatus(this.solutionGroups);
+			// FetchGitStatus(this.solutionGroups);
 		}
 
 		/// <summary>
