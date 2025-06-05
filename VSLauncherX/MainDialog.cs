@@ -237,8 +237,12 @@ namespace VSLauncher
 		/// <param name="e"></param>
 		private void GitTimer_Tick(object? sender, EventArgs e)
 		{
-			// if the main window does not have focus, dont execute the timer event
-			if (this.ActiveControl != this.txtFilter && this.ActiveControl != this.olvFiles)
+			// Only execute if this application is the foreground window
+			// Debug info for foreground window and focus conditions
+			Debug.WriteLine($"Form.ActiveForm == this: {Form.ActiveForm == this}");
+			Debug.WriteLine($"this.Focused: {this.Focused}");
+
+			if (Form.ActiveForm != this)
 			{
 				return;
 			}
