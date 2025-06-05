@@ -196,7 +196,7 @@ namespace VSLauncher
 			LoadSolutionData();
 
 			this.solutionGroups.Items.OnChanged += SolutionData_OnChanged;
-			UpdateList();
+			UpdateList(false);
 		}
 		/// <summary>
 		/// Handles the load event.
@@ -459,7 +459,7 @@ namespace VSLauncher
 				{
 					// add the item to the list
 					MergeNewItem(this.olvFiles.SelectedItem, dlg2.Item!);
-					UpdateList();
+					UpdateList(true);
 				}
 			}
 		}
@@ -475,7 +475,7 @@ namespace VSLauncher
 			LoadSolutionData();
 			this.solutionGroups.Items.OnChanged += SolutionData_OnChanged;
 
-			UpdateList();
+			UpdateList(true);
 			FetchGitStatus(this.solutionGroups);
 		}
 
@@ -717,7 +717,7 @@ namespace VSLauncher
 					}
 				}
 
-				UpdateList();
+				UpdateList(true);
 
 				e.Handled = true;
 			}
@@ -1144,7 +1144,7 @@ namespace VSLauncher
 			{
 				this.solutionGroups.LastModified = DateTime.Now;
 				SaveSolutionData();
-				UpdateList();
+				UpdateList(true);
 			}
 
 			return false;

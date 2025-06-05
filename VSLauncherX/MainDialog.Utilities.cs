@@ -317,14 +317,18 @@ namespace VSLauncher
 		/// <summary>
 		/// Updates the list.
 		/// </summary>
-		private void UpdateList()
+		private void UpdateList(bool updateGitStatus)
 		{
 			// TODO: must verify items before loading, indicate missing items through warning icon
 			this.olvFiles.SetObjects(this.solutionGroups.Items);
 
 			IterateAndSortItems();
 			IterateAndExpandItems();
-			FetchGitStatus(this.solutionGroups);
+			
+			if(updateGitStatus)
+			{
+				FetchGitStatus(this.solutionGroups);
+			}
 		}
 
 		private void IterateAndSortItems()
