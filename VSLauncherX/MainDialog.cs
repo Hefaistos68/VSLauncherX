@@ -237,6 +237,12 @@ namespace VSLauncher
 		/// <param name="e"></param>
 		private void GitTimer_Tick(object? sender, EventArgs e)
 		{
+			// if the main window does not have focus, dont execute the timer event
+			if (this.ActiveControl != this.txtFilter && this.ActiveControl != this.olvFiles)
+			{
+				return;
+			}
+
 			toolStripStatusGit.Visible = true;
 			FetchGitStatusAsync(this.solutionGroups);
 			this.olvFiles.Invalidate();
