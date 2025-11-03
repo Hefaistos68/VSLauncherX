@@ -15,29 +15,120 @@ namespace VSLauncher
 	public partial class MainDialog
 	{
 		#region Git Credentials Helper
+		// Thread-safe lazy cache of PATs loaded from optional config file
+		private static readonly object _credLock = new();
+		private static bool _credsLoaded = false;
+		private static Dictionary<string,string> _hostPats = new(StringComparer.OrdinalIgnoreCase); // host -> PAT
+		private static Dictionary<string,string> _repoPats = new(StringComparer.OrdinalIgnoreCase); // repo name -> PAT
+
+		/// <summary>
+		/// Load credential mappings from %APPDATA%/VSLauncher/git-credentials.json if present.
+		/// Schema:
+		/// {
+		/// "hosts": { "github.com": "PAT1", "dev.azure.com": "PAT2" },
+		/// "repos": { "MyRepo": "PAT3", "AnotherRepo": "PAT4" }
+		/// }
+		/// </summary>
+		private static void EnsureCredentialConfigLoaded()
+		{
+			if (_credsLoaded) return;
+			lock (_credLock)
+			{
+				if (_credsLoaded) return;
+				try
+				{
+					string cfgPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "VSLauncher", "git-credentials.json");
+					if (File.Exists(cfgPath))
+					{
+						var json = File.ReadAllText(cfgPath);
+						var root = JsonConvert.DeserializeObject<GitCredConfig?>(json);
+						if (root != null)
+						{
+							_hostPats = new Dictionary<string,string>(root.Hosts ?? new(), StringComparer.OrdinalIgnoreCase);
+							_repoPats = new Dictionary<string,string>(root.Repos ?? new(), StringComparer.OrdinalIgnoreCase);
+						}
+					}
+				}
+				catch { /* ignore malformed file */ }
+				finally { _credsLoaded = true; }
+			}
+		}
+
+		private class GitCredConfig
+		{
+			[JsonProperty("hosts")] public Dictionary<string,string>? Hosts { get; set; }
+			[JsonProperty("repos")] public Dictionary<string,string>? Repos { get; set; }
+		}
+
 		/// <summary>
 		/// Provides credentials for LibGit2Sharp remote operations.
-		/// Order:
-		///1. Personal Access Token from env var VSLX_GIT_PAT (GitHub/Azure DevOps)
-		///2. DefaultCredentials (Windows integrated auth)
-		/// Customize by setting VSLX_GIT_PAT before launching app.
+		/// Resolution order:
+		///1. Repo-specific env var VSLX_GIT_PAT_REPO_{REPO_NAME}
+		///2. Host-specific env var VSLX_GIT_PAT_HOST_{HOST}
+		/// (dots replaced by '_', uppercased)
+		///3. Config file repo mapping (git-credentials.json)
+		///4. Config file host mapping
+		///5. Generic env var VSLX_GIT_PAT
+		///6. DefaultCredentials
 		/// </summary>
 		private static Credentials GitCredentialsProvider(string url, string usernameFromUrl, SupportedCredentialTypes types)
 		{
-			// Try PAT from environment (password style). GitHub expects Username any value ("git") and Password = PAT.
-			string? pat = Environment.GetEnvironmentVariable("VSLX_GIT_PAT");
-			if (!string.IsNullOrWhiteSpace(pat))
+			EnsureCredentialConfigLoaded();
+
+			// Parse URL to extract host and repo name
+			string? host = null; string? repoName = null;
+			if (Uri.TryCreate(url, UriKind.Absolute, out var uri))
 			{
-				return new UsernamePasswordCredentials
+				host = uri.Host;
+				// repo name is last segment without .git
+				var segments = uri.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+				if (segments.Length >0)
 				{
-					Username = "git",
-					Password = pat
-				};
+					repoName = segments[^1].EndsWith(".git", StringComparison.OrdinalIgnoreCase)
+						? segments[^1].Substring(0, segments[^1].Length -4)
+						: segments[^1];
+				}
 			}
 
-			// Fall back to default (Windows integrated / credential manager)
+			//1 &2: Environment overrides
+			if (!string.IsNullOrEmpty(repoName))
+			{
+				var repoEnvKey = $"VSLX_GIT_PAT_REPO_{repoName.ToUpperInvariant()}";
+				var repoPat = Environment.GetEnvironmentVariable(repoEnvKey);
+				if (!string.IsNullOrWhiteSpace(repoPat))
+					return PatCredentials(repoPat);
+			}
+
+			if (!string.IsNullOrEmpty(host))
+			{
+				var hostKey = host.ToUpperInvariant().Replace('.', '_');
+				var hostEnvKey = $"VSLX_GIT_PAT_HOST_{hostKey}";
+				var hostPat = Environment.GetEnvironmentVariable(hostEnvKey);
+				if (!string.IsNullOrWhiteSpace(hostPat))
+					return PatCredentials(hostPat);
+			}
+
+			//3 &4: Config file mappings
+			if (!string.IsNullOrEmpty(repoName) && _repoPats.TryGetValue(repoName, out var cfgRepoPat) && !string.IsNullOrWhiteSpace(cfgRepoPat))
+				return PatCredentials(cfgRepoPat);
+
+			if (!string.IsNullOrEmpty(host) && _hostPats.TryGetValue(host, out var cfgHostPat) && !string.IsNullOrWhiteSpace(cfgHostPat))
+				return PatCredentials(cfgHostPat);
+
+			//5: Generic PAT
+			var genericPat = Environment.GetEnvironmentVariable("VSLX_GIT_PAT");
+			if (!string.IsNullOrWhiteSpace(genericPat))
+				return PatCredentials(genericPat);
+
+			//6: Fallback
 			return new DefaultCredentials();
 		}
+
+		private static UsernamePasswordCredentials PatCredentials(string pat) => new()
+		{
+			Username = "git",
+			Password = pat
+		};
 		#endregion
 
 		/// <summary>
