@@ -1,7 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <!-- Corrected target framework to include -windows suffix so Windows Forms APIs (MessageBox, etc.) resolve -->
+    <TargetFramework>net8.0-windows</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
 	  <UseWindowsForms>true</UseWindowsForms>
 	  <Nullable>enable</Nullable>
