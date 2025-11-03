@@ -183,8 +183,15 @@ namespace VSLauncher
 
 			if (!string.IsNullOrEmpty(Properties.Settings.Default.SelectedVSversion))
 			{
-				VisualStudioInstance v = this.selectVisualStudioVersion.Versions.Where(v => v.Identifier == Properties.Settings.Default.SelectedVSversion).Single();
-				this.selectVisualStudioVersion.SelectedItem = v;
+				VisualStudioInstance? v = this.selectVisualStudioVersion.Versions.Where(v => v.Identifier == Properties.Settings.Default.SelectedVSversion).SingleOrDefault();
+				if (v is not null)
+				{
+					this.selectVisualStudioVersion.SelectedItem = v;
+				}
+				else
+				{
+					this.selectVisualStudioVersion.SelectedIndex = 0;
+				}
 			}
 			else
 			{
