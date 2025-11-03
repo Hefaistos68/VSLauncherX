@@ -10,11 +10,8 @@ using VSLauncher.Forms;
 using VSLauncher.Helpers;
 
 using VSLXshared.Helpers;
-using System.Globalization;
 using System.Reflection;
 using LibGit2Sharp;
-using Windows.Devices.Geolocation;
-using static System.Windows.Forms.AxHost;
 using System.Runtime.InteropServices;
 
 namespace VSLauncher
