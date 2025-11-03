@@ -1379,21 +1379,45 @@ namespace VSLauncher
 
 		/// <summary>
 		/// Handles the click event for branch menu items.
+		/// Adds credential-aware fetch to avoid "remote authentication required but no callback set".
 		/// </summary>
-		/// <param name="sender">The sender.</param>
-		/// <param name="e">The event parameters.</param>
-		/// <param name="repo">The repository.</param>
-		/// <param name="branchName">The branch name.</param>
 		private void BranchMenuItem_Click(object sender, EventArgs e, VsItem item, string branchName)
 		{
 			try
 			{
-				// Checkout the selected branch
-				using (var repo = new Repository(Path.GetDirectoryName(item.Path)))
+				var repoPath = Path.GetDirectoryName(item.Path);
+				using (var repo = new Repository(repoPath))
 				{
-					Commands.Checkout(repo, branchName);
+					// Ensure local branch exists; if not, try to fetch from origin first with credentials.
+					var target = repo.Branches[branchName];
+					if (target == null)
+					{
+						var remote = repo.Network.Remotes["origin"]; // fallback to 'origin'
+						if (remote != null)
+						{
+							var fetchOptions = new FetchOptions
+							{
+								CredentialsProvider = GitCredentialsProvider
+							};
+							Commands.Fetch(repo, remote.Name, remote.FetchRefSpecs.Select(r => r.Specification), fetchOptions, null);
+							// Re-acquire branch after fetch
+							target = repo.Branches[branchName];
+						}
+					}
+
+					if (target == null)
+					{
+						MessageBox.Show($"Branch '{branchName}' not found after fetch.", "Branch Checkout", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+						return;
+					}
+
+					Commands.Checkout(repo, target);
 					MessageBox.Show($"Checked out branch: {branchName}", "Branch Checkout", MessageBoxButtons.OK, MessageBoxIcon.Information);
 				}
+			}
+			catch (LibGit2SharpException ex) when (ex.Message.Contains("remote authentication required"))
+			{
+				MessageBox.Show("Authentication required for remote repository. Configure credentials (PAT or DefaultCredentials).", "Git Authentication", MessageBoxButtons.OK, MessageBoxIcon.Error);
 			}
 			catch (Exception ex)
 			{
@@ -1401,64 +1425,70 @@ namespace VSLauncher
 			}
 		}
 
+		/// <summary>
+		/// Fetch with credentials.
+		/// </summary>
 		private void fetchToolStripMenuItem_Click(object sender, EventArgs e)
 		{
 			if (this.olvFiles.SelectedObject is VsItem item and not VsFolder)
 			{
 				try
 				{
-					// Checkout the selected branch
 					using (var repo = new Repository(Path.GetDirectoryName(item.Path)))
 					{
 						var remote = repo.Network.Remotes[repo.Head.RemoteName];
-
-						Commands.Fetch(repo, repo.Head.RemoteName, remote.FetchRefSpecs.Select(rs => rs.Specification), new FetchOptions(), string.Empty);
-						MessageBox.Show(this, $"Fetched branch: {repo.Head.RemoteName} ({repo.Head.FriendlyName})", "Branch Fetch", MessageBoxButtons.OK, MessageBoxIcon.Information);
+						var fetchOptions = new FetchOptions { CredentialsProvider = GitCredentialsProvider };
+						Commands.Fetch(repo, remote.Name, remote.FetchRefSpecs.Select(rs => rs.Specification), fetchOptions, null);
+						MessageBox.Show(this, $"Fetched: {remote.Name} ({repo.Head.FriendlyName})", "Branch Fetch", MessageBoxButtons.OK, MessageBoxIcon.Information);
 					}
+				}
+				catch (LibGit2SharpException ex) when (ex.Message.Contains("remote authentication required"))
+				{
+					MessageBox.Show(this, "Authentication required for remote repository. Configure credentials.", "Git Authentication", MessageBoxButtons.OK, MessageBoxIcon.Error);
 				}
 				catch (Exception ex)
 				{
-					MessageBox.Show(this, $"Error checking out branch: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+					MessageBox.Show(this, $"Error fetching: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
 				}
 			}
 		}
 
+		/// <summary>
+		/// Pull with credentials.
+		/// </summary>
 		private void pullToolStripMenuItem_Click(object sender, EventArgs e)
 		{
 			if (this.olvFiles.SelectedObject is VsItem item and not VsFolder)
 			{
 				try
 				{
-					// Checkout the selected branch
 					using (var repo = new Repository(Path.GetDirectoryName(item.Path)))
 					{
-						var remote = repo.Network.Remotes[repo.Head.RemoteName];
-
 						var stat = repo.RetrieveStatus();
-
-						if(stat.IsDirty)
+						if (stat.IsDirty)
 						{
-							var msgResult = MessageBox.Show(this, "There are uncommitted changes in the current branch. Do you want to continue with the pull operation?",
-												 "Uncommitted Changes",
-												 MessageBoxButtons.YesNo,
-												 MessageBoxIcon.Warning);
-
+							var msgResult = MessageBox.Show(this, "There are uncommitted changes. Continue with pull?", "Uncommitted Changes", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
 							if (msgResult == DialogResult.No)
-							{
 								return;
-							}
 						}
 
-						var result = Commands.Pull(repo, new Signature("VSLauncherX", "user@example.com", DateTimeOffset.Now), new PullOptions());
-						MessageBox.Show(this, $"Pulled: {repo.Head.RemoteName} ({repo.Head.FriendlyName})\r\nStatus: {result.Status}", "Branch Fetch", MessageBoxButtons.OK, MessageBoxIcon.Information);
+						var pullOptions = new PullOptions
+						{
+							FetchOptions = new FetchOptions { CredentialsProvider = GitCredentialsProvider }
+						};
+						var result = Commands.Pull(repo, new Signature("VSLauncherX", "user@example.com", DateTimeOffset.Now), pullOptions);
+						MessageBox.Show(this, $"Pulled: {repo.Head.RemoteName} ({repo.Head.FriendlyName})\r\nStatus: {result.Status}", "Branch Pull", MessageBoxButtons.OK, MessageBoxIcon.Information);
 					}
+				}
+				catch (LibGit2SharpException ex) when (ex.Message.Contains("remote authentication required"))
+				{
+					MessageBox.Show(this, "Authentication required for remote repository. Configure credentials.", "Git Authentication", MessageBoxButtons.OK, MessageBoxIcon.Error);
 				}
 				catch (Exception ex)
 				{
-					MessageBox.Show($"Error checking out branch: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+					MessageBox.Show($"Error pulling: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
 				}
 			}
-
 		}
 	}
 }

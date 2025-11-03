@@ -389,14 +389,8 @@ namespace BrightIdeasSoftware
                 if (value == this.VirtualListSize || value < 0)
                     return;
 
-                // Get around the 'private' marker on 'virtualListSize' field using reflection
-                if (virtualListSizeFieldInfo == null) {
-                    virtualListSizeFieldInfo = typeof(ListView).GetField("virtualListSize", BindingFlags.NonPublic | BindingFlags.Instance);
-                    System.Diagnostics.Debug.Assert(virtualListSizeFieldInfo != null);
-                }
-
                 // Set the base class private field so that it keeps on working
-                virtualListSizeFieldInfo.SetValue(this, value);
+                base.VirtualListSize = value;
 
                 // Send a raw message to change the virtual list size *without* changing the scroll position
                 if (this.IsHandleCreated && !this.DesignMode)

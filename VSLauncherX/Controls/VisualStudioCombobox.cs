@@ -123,7 +123,7 @@ namespace VSLauncher.Controls
 
             Items.AddRange(visualStudioVersions.All.ToArray());
 
-			SelectedIndex = selectedItem;   // set the previously selected item back
+			SelectedIndex = selectedItem < 0 ? -1 : selectedItem;   // set the previously selected item back
 
 			base.OnDropDown(e);
         }

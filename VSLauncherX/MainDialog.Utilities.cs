@@ -14,6 +14,32 @@ namespace VSLauncher
 {
 	public partial class MainDialog
 	{
+		#region Git Credentials Helper
+		/// <summary>
+		/// Provides credentials for LibGit2Sharp remote operations.
+		/// Order:
+		///1. Personal Access Token from env var VSLX_GIT_PAT (GitHub/Azure DevOps)
+		///2. DefaultCredentials (Windows integrated auth)
+		/// Customize by setting VSLX_GIT_PAT before launching app.
+		/// </summary>
+		private static Credentials GitCredentialsProvider(string url, string usernameFromUrl, SupportedCredentialTypes types)
+		{
+			// Try PAT from environment (password style). GitHub expects Username any value ("git") and Password = PAT.
+			string? pat = Environment.GetEnvironmentVariable("VSLX_GIT_PAT");
+			if (!string.IsNullOrWhiteSpace(pat))
+			{
+				return new UsernamePasswordCredentials
+				{
+					Username = "git",
+					Password = pat
+				};
+			}
+
+			// Fall back to default (Windows integrated / credential manager)
+			return new DefaultCredentials();
+		}
+		#endregion
+
 		/// <summary>
 		/// Returns if the control key is pressed.
 		/// </summary>
