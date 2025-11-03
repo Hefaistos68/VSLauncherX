@@ -498,7 +498,7 @@ namespace BrightIdeasSoftware
         /// <remark>This method can safely be called from background threads.</remark>
         public override void ClearObjects() {
             if (this.InvokeRequired)
-                this.Invoke(new MethodInvoker(this.ClearObjects));
+                this.Invoke(new System.Windows.Forms.MethodInvoker(this.ClearObjects));
             else {
                 this.CheckStateMap.Clear();
                 this.SetObjects(new ArrayList());
