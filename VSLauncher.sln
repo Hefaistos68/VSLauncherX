@@ -1,6 +1,6 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.6.33801.468
+# Visual Studio Version 18
+VisualStudioVersion = 18.0.11123.170 d18.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VSLauncherX", "VSLauncherX\VSLauncherX.csproj", "{80AC68CF-63FB-49BF-87AD-5B958B9C662B}"
 EndProject
@@ -13,8 +13,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Files", "Solution 
 		AUTHORS.md = AUTHORS.md
 		CODE_OF_CONDUCT.md = CODE_OF_CONDUCT.md
 		CONTRIBUTING.md = CONTRIBUTING.md
+		.github\copilot-instructions.md = .github\copilot-instructions.md
 		LICENSE.md = LICENSE.md
 		README.md = README.md
+		.github\WinFormsExpert.agent.md = .github\WinFormsExpert.agent.md
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{7BBE1A8C-C32D-48A9-832B-68055165EE65}"

@@ -28,19 +28,21 @@ namespace VSLauncher
 			VisualStudioFileIcons16.GetIcon("Solution");
 			VisualStudioFileIcons32.GetIcon("Solution");
 
-			// add logic to start either normal, or as part of autostart, with or without elevation
+			// Consolidated logic to decide once whether to create and run the UI.
 			var args = Environment.GetCommandLineArgs();
-			
-			if((args.Length > 1 && args[1] == "autostart") || Debugger.IsAttached)
+			string? cmd = args.Length > 1 ? args[1] : null;
+
+			bool runUi = false;
+
+			if ((cmd == "autostart") || Debugger.IsAttached)
 			{
-				// we have command line arguments, so we are started as part of autostart
-				Application.Run(new MainDialog());
+				runUi = true;
 			}
 			else
 			{
-				if(args.Length > 1 && args[1] == "register")
+				if (cmd == "register")
 				{
-					// at this point the app was started with admin privs, so we can register the task
+					// Started with admin privileges: register the task
 					UpdateTaskScheduler();
 				}
 
@@ -49,17 +51,21 @@ namespace VSLauncher
 
 				if (!Settings.Default.AlwaysAdmin || bAdmin || bElevated)
 				{
-					Application.Run(new MainDialog());
+					runUi = true;
 				}
 				else
 				{
-					// we are started normally
-					if(!AutoRun.Run())
+					// Attempt autorun; only show UI if autorun was not performed
+					if (!AutoRun.Run())
 					{
-						Application.Run(new MainDialog());
+						runUi = true;
 					}
-
 				}
+			}
+
+			if (runUi)
+			{
+				Application.Run(new MainDialog());
 			}
 		}
 
