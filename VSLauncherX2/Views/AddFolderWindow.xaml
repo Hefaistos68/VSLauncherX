@@ -1,0 +1,33 @@
+<Window x:Class="VSLauncher.Views.AddFolderWindow"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ Title="Add Folder" Height="182" Width="360" WindowStartupLocation="CenterOwner" ResizeMode="NoResize" FocusManager.FocusedElement="{Binding ElementName=txtFolderName}">
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <TextBlock Text="Folder Name:" FontWeight="Bold"/>
+        <TextBox x:Name="txtFolderName" Grid.Row="1" Margin="0,6,0,0" Height="28" VerticalContentAlignment="Center"/>
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,8,0,0" VerticalAlignment="Bottom">
+            <Image Source="/Resources/info.ico" Width="32" Height="32"/>
+            <TextBlock Text="Use this folders 'Settings' to set actions and properties for all contained items" Margin="8,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap" Width="260"/>
+        </StackPanel>
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0" VerticalAlignment="Bottom">
+            <Button Width="100" Height="36" IsCancel="True" Margin="0,0,8,0" >
+                <DockPanel>
+                    <Image Source="pack://application:,,,/Resources/Images24/cancel_24x24.png" Width="24" Height="24"/>
+                    <TextBlock Text="Cancel" Margin="8,0,0,0" VerticalAlignment="Center" FontWeight="Bold"/>
+                </DockPanel>
+            </Button>
+            <Button Width="100" Height="36" IsDefault="True" Margin="0,0,0,0" Click="Ok_Click">
+                <DockPanel>
+                    <Image Source="pack://application:,,,/Resources/Images24/Check_24x24.png" Width="24" Height="24"/>
+                    <TextBlock Text="Add" Margin="8,0,0,0" VerticalAlignment="Center" FontWeight="Bold"/>
+                </DockPanel>
+            </Button>
+        </StackPanel>
+    </Grid>
+</Window>

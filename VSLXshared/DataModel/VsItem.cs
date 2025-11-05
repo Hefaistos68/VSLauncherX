@@ -120,6 +120,19 @@ namespace VSLauncher.DataModel
 		public string BranchName { get; set; }
 
 		/// <summary>
+		/// Gets or sets a value indicating whether this item is expanded in UI (folders use this; others remain false).
+		/// Added to support WPF TreeViewItem style binding without errors on non-folder items.
+		/// </summary>
+		[JsonIgnore]
+		public virtual bool Expanded { get; set; } = false;
+
+		/// <summary>
+		/// Empty children collection for TreeView hierarchical binding. Non-container items expose an empty list.
+		/// </summary>
+		[JsonIgnore]
+		public virtual VsItemList Items { get; set; } = new VsItemList(null);
+
+		/// <summary>
 		/// Refreshes the item
 		/// </summary>
 		public virtual void Refresh()

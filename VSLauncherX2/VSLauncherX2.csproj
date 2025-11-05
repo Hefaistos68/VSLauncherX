@@ -1,0 +1,89 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows7.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWPF>true</UseWPF>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <StartupObject>VSLauncher.App</StartupObject>
+    <ApplicationIcon>Resources\AppLogo2.ico</ApplicationIcon>
+    <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
+    <RootNamespace>VSLauncher</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <SignAssembly>False</SignAssembly>
+    <AssemblyVersion>0.1.5.0</AssemblyVersion>
+    <FileVersion>0.1.5.0</FileVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Wildcard includes only (removed explicit AppLogo2.ico to prevent duplicate) -->
+    <Resource Include="Resources\**\*.png" />
+    <Resource Include="Resources\**\*.ico" />
+    <Resource Include="Resources\**\*.jpg" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageReference Include="LibGit2Sharp" Version="0.31.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+    <PackageReference Include="System.Management" Version="8.0.0" />
+    <PackageReference Include="TaskScheduler" Version="2.12.2" />
+    <PackageReference Include="WindowsAPICodePack" Version="8.0.12" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\VSLXshared\VSLXshared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Forms\dlgImportVisualStudio.cs" />
+    <Compile Update="Forms\dlgImportFolder.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="dlgNewInstance - Copy.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="Forms\dlgWarnMultiple.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="Forms\dlgRename.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="MainDialog.cs" />
+    <Compile Update="Properties\Settings.Designer.cs">
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+    </Compile>
+    <Compile Update="Resources.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Forms\dlgImportVisualStudio.resx">
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Resources.resx">
+      <SubType>Designer</SubType>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+      <Generator>ResXFileCodeGenerator</Generator>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="reference\" />
+  </ItemGroup>
+
+</Project>

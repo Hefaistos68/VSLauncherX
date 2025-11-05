@@ -1,0 +1,196 @@
+﻿<Window x:Class="VSLauncher.MainWindow"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+ xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+ xmlns:vm="clr-namespace:VSLauncher.ViewModels"
+ xmlns:conv="clr-namespace:VSLauncher.Converters"
+ mc:Ignorable="d"
+ Title="VS Launcher X" Height="600" Width="1000"
+ Icon="pack://application:,,,/Resources/AppLogo2.ico"
+ Background="{DynamicResource WindowBackgroundBrush}" Foreground="{DynamicResource WindowForegroundBrush}">
+
+    <Window.Resources>
+        <conv:IconToImageSourceConverter x:Key="IconToImageSourceConverter" />
+        <conv:ItemToIconConverter x:Key="ItemToIconConverter" />
+        <conv:ItemToDescriptionConverter x:Key="ItemToDescriptionConverter" />
+    </Window.Resources>
+
+    <Window.DataContext>
+        <vm:MainViewModel/>
+    </Window.DataContext>
+
+    <Grid Background="{DynamicResource PanelBackgroundBrush}">
+        <Grid.RowDefinitions>
+            <!-- Headline -->
+            <RowDefinition Height="Auto"/>
+            <!-- Search + buttons -->
+            <RowDefinition Height="Auto"/>
+            <!-- Main content -->
+            <RowDefinition Height="*"/>
+            <!-- Status bar -->
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="250"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Headline -->
+        <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
+ Text="Solutions &amp; Projects"
+ FontSize="24" FontWeight="Bold" Margin="8,10,8,4"/>
+
+        <!-- Search Row -->
+        <Grid Grid.Row="1" Grid.Column="0" Margin="8,0,4,8" Background="{DynamicResource PanelBackgroundBrush}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="Search:" VerticalAlignment="Center" Margin="0,0,6,0"/>
+            <!-- Search box with clear button -->
+            <Grid Grid.Column="1" VerticalAlignment="Center">
+                <TextBox x:Name="txtFilter" MinWidth="250" Height="28"
+                         VerticalContentAlignment="Center"
+                         Padding="4,4,24,4"
+                         Text="{Binding FilterText, UpdateSourceTrigger=PropertyChanged}"/>
+                <Button Content="x" Width="20" Height="20" Click="ClearFilter_Click"
+                        ToolTip="Clear"
+                        HorizontalAlignment="Right" VerticalAlignment="Center"
+                        Margin="0,0,4,0"
+                        Padding="0"
+                        BorderThickness="0"
+                        Cursor="Hand"/>
+            </Grid>
+            <!-- Buttons container -->
+            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="4,4,0,4">
+                <Button Command="{Binding AddFolderCommand}" ToolTip="Add Folder" Width="32" Height="32" Margin="0,0,4,0" VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <Image Source="pack://application:,,,/Resources/Images24/Folder-add.png" Width="24" Height="24" Stretch="UniformToFill" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Button>
+                <Button Command="{Binding ImportFolderCommand}" ToolTip="Import from Folder" Width="32" Height="32" Margin="0,0,4,0">
+                    <Image Source="pack://application:,,,/Resources/Images24/Folder-import.png" Width="24" Height="24" Stretch="UniformToFill" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Button>
+                <Button Command="{Binding ImportSolutionOrProjectCommand}" ToolTip="Add Solution / Project" Width="32" Height="32" Margin="0,0,4,0">
+                    <Image Source="pack://application:,,,/Resources/Images24/ImportSoP.png" Width="24" Height="24" Stretch="UniformToFill" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Button>
+                <Button Command="{Binding ImportVisualStudioCommand}" ToolTip="Import VS Recents" Width="32" Height="32" Margin="0,0,4,0">
+                    <Image Source="pack://application:,,,/Resources/Images24/ImportVS.png" Width="24" Height="24" Stretch="UniformToFill" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Button>
+                <Button Command="{Binding RefreshCommand}" ToolTip="Refresh" Width="32" Height="32" Margin="0,0,4,0">
+                    <Image Source="pack://application:,,,/Resources/Images24/Refresh.png" Width="24" Height="24" Stretch="UniformToFill" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Button>
+                <Button Command="{Binding OpenInExplorerCommand}" ToolTip="Open in Explorer" Width="32" Height="32" Margin="0,0,4,0">
+                    <Image Source="pack://application:,,,/Resources/Images24/Folder.png" Width="24" Height="24" Stretch="UniformToFill" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Button>
+                <Button Command="{Binding ShowSettingsCommand}" ToolTip="Settings" Width="32" Height="32" Margin="4,0,4,0">
+                    <Image Source="pack://application:,,,/Resources/Images24/Settings.png" Width="24" Height="24" Stretch="UniformToFill" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <!-- Main Content Area -->
+        <TreeView Grid.Row="2" Grid.Column="0"
+ x:Name="treeViewItems"
+ ItemsSource="{Binding FilteredRootItems}"
+ VirtualizingPanel.IsVirtualizing="True"
+ VirtualizingPanel.VirtualizationMode="Recycling"
+ PreviewTextInput="TreeView_PreviewTextInput"
+ PreviewKeyDown="TreeView_PreviewKeyDown">
+            <TreeView.ContextMenu>
+                <ContextMenu>
+                    <MenuItem Header="Run" Command="{Binding RunItemCommand}"/>
+                    <MenuItem Header="Run as Admin" Command="{Binding RunItemAsAdminCommand}"/>
+                    <Separator/>
+                    <MenuItem Header="Rename" Command="{Binding RenameItemCommand}"/>
+                    <MenuItem Header="Remove" Command="{Binding RemoveItemCommand}"/>
+                    <Separator/>
+                    <MenuItem Header="Add to Favorites" Command="{Binding ToggleFavoriteCommand}"/>
+                    <MenuItem Header="Open in Explorer" Command="{Binding OpenInExplorerCommand}"/>
+                    <Separator/>
+                    <MenuItem Header="Settings" Command="{Binding ShowItemSettingsCommand}"/>
+                </ContextMenu>
+            </TreeView.ContextMenu>
+            <TreeView.ItemTemplate>
+                <HierarchicalDataTemplate ItemsSource="{Binding Items}">
+                    <Grid Margin="2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <!-- Increased icon size to32x32 -->
+                        <Image Grid.Column="0" Width="32" Height="32" Margin="2,2,10,2" Source="{Binding Converter={StaticResource ItemToIconConverter}}" />
+                        <StackPanel Grid.Column="1" Orientation="Vertical" Margin="0,2,0,2">
+                            <TextBlock Text="{Binding Name}" FontSize="14" FontWeight="Bold" />
+                            <TextBlock Text="{Binding Converter={StaticResource ItemToDescriptionConverter}}" FontSize="11" Foreground="Gray" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Grid>
+                </HierarchicalDataTemplate>
+            </TreeView.ItemTemplate>
+        </TreeView>
+
+        <!-- Right Side Launch Buttons with VS Version selector on top -->
+        <StackPanel Grid.Row="2" Grid.Column="1" Margin="8" VerticalAlignment="Stretch">
+            <Button Command="{Binding StartVsCommand}" Margin="0,0,0,4" Padding="4">
+                <DockPanel Margin="3" Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Button}}">
+                    <Image Source="{Binding SelectedVsIcon}" Width="32" Height="32" Margin="0,0,6,0" DockPanel.Dock="Left"/>
+                    <TextBlock Text="{Binding SelectedVisualStudioVersion.ShortName, FallbackValue=Start Visual Studio}" VerticalAlignment="Center" FontWeight="Bold"/>
+                </DockPanel>
+            </Button>
+            <Button Command="{Binding StartVsAdminCommand}" Margin="0,0,0,4" Padding="4">
+                <DockPanel Margin="3" Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Button}}">
+                    <Image Source="{Binding SelectedVsIcon}" Width="32" Height="32" Margin="0,0,6,0" DockPanel.Dock="Left"/>
+                    <TextBlock Text="{Binding SelectedVisualStudioVersion.ShortName, StringFormat=Start {0} as Admin, FallbackValue=Start VS as Admin}" VerticalAlignment="Center" FontWeight="Bold"/>
+                </DockPanel>
+            </Button>
+            <Button Command="{Binding StartVsNewInstanceCommand}" Margin="0,0,0,4" Padding="4">
+                <DockPanel Margin="3" Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Button}}">
+                    <Image Source="{Binding SelectedVsIcon}" Width="32" Height="32" Margin="0,0,6,0" DockPanel.Dock="Left"/>
+                    <TextBlock Text="{Binding SelectedVisualStudioVersion.ShortName, StringFormat=New {0} Instance..., FallbackValue=New Instance...}" VerticalAlignment="Center" FontWeight="Bold"/>
+                </DockPanel>
+            </Button>
+            <Button Command="{Binding StartVsNewProjectCommand}" Margin="0,0,0,12" Padding="4">
+                <DockPanel Margin="3" Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Button}}">
+                    <Image Source="{Binding SelectedVsIcon}" Width="32" Height="32" Margin="0,0,6,0" DockPanel.Dock="Left"/>
+                    <TextBlock Text="{Binding SelectedVisualStudioVersion.ShortName, StringFormat=New {0} Project..., FallbackValue=New Project...}" VerticalAlignment="Center" FontWeight="Bold"/>
+                </DockPanel>
+            </Button>
+            <Button Command="{Binding StartVsDialogCommand}" Margin="0,0,0,20" Padding="4">
+                <DockPanel Margin="3" Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Button}}">
+                    <Image Source="{Binding SelectedVsIcon}" Width="32" Height="32" Margin="0,0,6,0" DockPanel.Dock="Left"/>
+                    <TextBlock Text="{Binding SelectedVisualStudioVersion.ShortName, StringFormat=Start {0}..., FallbackValue=Start...}" VerticalAlignment="Center" FontWeight="Bold"/>
+                </DockPanel>
+            </Button>
+            <Separator/>
+            <Button Command="{Binding OpenActivityLogCommand}" Margin="0,8,0,4" Padding="4">
+                <TextBlock Text="Activity Log" VerticalAlignment="Center" FontWeight="Bold" HorizontalAlignment="Center"/>
+            </Button>
+            <Button Command="{Binding OpenVsInstallerCommand}" Margin="0,0,0,4" Padding="4">
+                <DockPanel Margin="3" Width="Auto" HorizontalAlignment="Center">
+                    <Image Source="pack://application:,,,/Resources/Images24/Installer.png" Width="24" Height="24" Margin="0,0,6,0" DockPanel.Dock="Left"/>
+                    <TextBlock Text="VS Installer" VerticalAlignment="Center" FontWeight="Bold"/>
+                </DockPanel>
+            </Button>
+        </StackPanel>
+
+        <!-- Status Bar -->
+        <StatusBar Grid.Row="3" Grid.ColumnSpan="2" Background="{DynamicResource PanelBackgroundBrush}">
+            <StatusBarItem>
+                <TextBlock Text="{Binding StatusText}"/>
+            </StatusBarItem>
+        </StatusBar>
+        <ComboBox x:Name="cboVisualStudioVersion"
+ ItemsSource="{Binding VisualStudioVersions}"
+ SelectedItem="{Binding SelectedVisualStudioVersion}"
+ MinWidth="200" Margin="10,4,6,7" Grid.Column="1" Grid.Row="1" Height="32" VerticalAlignment="Center">
+            <ComboBox.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Image Width="16" Height="16" Margin="0,0,6,0" Source="{Binding AppIcon, Converter={StaticResource IconToImageSourceConverter}}"/>
+                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </DataTemplate>
+            </ComboBox.ItemTemplate>
+        </ComboBox>
+    </Grid>
+</Window>

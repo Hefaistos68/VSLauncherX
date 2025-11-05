@@ -29,6 +29,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VSLXshared", "VSLXshared\VS
 EndProject
 Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "Setup", "Setup\Setup.vdproj", "{F56EF28A-2C5A-4F03-8C76-2E77232157FB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VSLauncherX2", "VSLauncherX2\VSLauncherX2.csproj", "{BE4F77AF-5E20-F549-1078-0900D794AAF9}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -53,6 +55,10 @@ Global
 		{18C514D3-21C9-4F12-90DE-B2E0D3D1B770}.Release|Any CPU.Build.0 = Release|Any CPU
 		{F56EF28A-2C5A-4F03-8C76-2E77232157FB}.Debug|Any CPU.ActiveCfg = Debug
 		{F56EF28A-2C5A-4F03-8C76-2E77232157FB}.Release|Any CPU.ActiveCfg = Release
+		{BE4F77AF-5E20-F549-1078-0900D794AAF9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BE4F77AF-5E20-F549-1078-0900D794AAF9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BE4F77AF-5E20-F549-1078-0900D794AAF9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BE4F77AF-5E20-F549-1078-0900D794AAF9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

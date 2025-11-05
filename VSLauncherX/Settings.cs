@@ -1,4 +1,6 @@
-﻿namespace VSLauncher.Properties {
+﻿using System.Drawing;
+
+namespace VSLauncher.Properties {
     
     
     // This class allows you to handle specific events on the settings class:

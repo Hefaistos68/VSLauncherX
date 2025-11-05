@@ -19,36 +19,62 @@
 
   <ItemGroup>
     <None Remove="client_secret.json" />
+    <None Remove="Resources\Images\Add.png" />
     <None Remove="Resources\Images\AddFavorite.png" />
     <None Remove="Resources\Images\AddFolder.png" />
+    <None Remove="Resources\Images\Application.png" />
+    <None Remove="Resources\Images\ApplicationGroup.png" />
     <None Remove="Resources\Images\ArrowDownEnd.png" />
     <None Remove="Resources\Images\ArrowUpEnd.png" />
     <None Remove="Resources\Images\ConnectArrow.png" />
+    <None Remove="Resources\Images\CPPProjectNode.png" />
+    <None Remove="Resources\Images\CSProjectNode.png" />
+    <None Remove="Resources\Images\Empty.png" />
     <None Remove="Resources\Images\FolderClosedBlue.png" />
     <None Remove="Resources\Images\FolderOpenBlue.png" />
+    <None Remove="Resources\Images\FSProjectNode.png" />
+    <None Remove="Resources\Images\GitClean.png" />
+    <None Remove="Resources\Images\GitClean2.png" />
+    <None Remove="Resources\Images\GitDirty.png" />
+    <None Remove="Resources\Images\GitDirty2.png" />
+    <None Remove="Resources\Images\ImportVS.png" />
+    <None Remove="Resources\Images\JSProjectNode.png" />
+    <None Remove="Resources\Images\LeftArrowAsterisk.png" />
+    <None Remove="Resources\Images\OpenProjectFolder.png" />
+    <None Remove="Resources\Images\OverlayWarning.png" />
     <None Remove="Resources\Images\Refresh.png" />
     <None Remove="Resources\Images\RightArrowAsterisk.png" />
     <None Remove="Resources\Images\Run.png" />
+    <None Remove="Resources\Images\RunAfter.png" />
     <None Remove="Resources\Images\RunAll.png" />
+    <None Remove="Resources\Images\RunAsAdmin.png" />
+    <None Remove="Resources\Images\RunBefore.png" />
     <None Remove="Resources\Images\RunUpdate.png" />
+    <None Remove="Resources\Images\Search.png" />
     <None Remove="Resources\Images\Settings.png" />
+    <None Remove="Resources\Images\TSProjectNode.png" />
+    <None Remove="Resources\Images\VBProjectNode.png" />
+    <None Remove="Resources\Images\VSL.png" />
+    <None Remove="Resources\Images\VSLogo.png" />
+    <None Remove="Resources\Images\VsSolution.png" />
+    <None Remove="Resources\Images\WebProjectNode.png" />
   </ItemGroup>
 
   <ItemGroup>
     <Content Include="Resources\AppLogo2.ico" />
-    <Content Include="Resources\Images\AddFavorite.png" />
-    <Content Include="Resources\Images\AddFolder.png" />
-    <Content Include="Resources\Images\ArrowDownEnd.png" />
-    <Content Include="Resources\Images\ArrowUpEnd.png" />
-    <Content Include="Resources\Images\ConnectArrow.png" />
-    <Content Include="Resources\Images\FolderClosedBlue.png" />
-    <Content Include="Resources\Images\FolderOpenBlue.png" />
-    <Content Include="Resources\Images\Refresh.png" />
-    <Content Include="Resources\Images\RightArrowAsterisk.png" />
-    <Content Include="Resources\Images\Run.png" />
-    <Content Include="Resources\Images\RunAll.png" />
-    <Content Include="Resources\Images\RunUpdate.png" />
-    <Content Include="Resources\Images\Settings.png" />
+    <Resource Include="Resources\Images\AddFavorite.png" />
+    <Resource Include="Resources\Images\AddFolder.png" />
+    <Resource Include="Resources\Images\ArrowDownEnd.png" />
+    <Resource Include="Resources\Images\ArrowUpEnd.png" />
+    <Resource Include="Resources\Images\ConnectArrow.png" />
+    <Resource Include="Resources\Images\FolderClosedBlue.png" />
+    <Resource Include="Resources\Images\FolderOpenBlue.png" />
+    <Resource Include="Resources\Images\Refresh.png" />
+    <Resource Include="Resources\Images\RightArrowAsterisk.png" />
+    <Resource Include="Resources\Images\Run.png" />
+    <Resource Include="Resources\Images\RunAll.png" />
+    <Resource Include="Resources\Images\RunUpdate.png" />
+    <Resource Include="Resources\Images\Settings.png" />
   </ItemGroup>
 
   <ItemGroup>
@@ -111,6 +137,35 @@
 
   <ItemGroup>
     <Folder Include="reference\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Resources\Images\Add.png" />
+    <Resource Include="Resources\Images\Application.png" />
+    <Resource Include="Resources\Images\ApplicationGroup.png" />
+    <Resource Include="Resources\Images\CPPProjectNode.png" />
+    <Resource Include="Resources\Images\CSProjectNode.png" />
+    <Resource Include="Resources\Images\Empty.png" />
+    <Resource Include="Resources\Images\FSProjectNode.png" />
+    <Resource Include="Resources\Images\GitClean.png" />
+    <Resource Include="Resources\Images\GitClean2.png" />
+    <Resource Include="Resources\Images\GitDirty.png" />
+    <Resource Include="Resources\Images\GitDirty2.png" />
+    <Resource Include="Resources\Images\ImportVS.png" />
+    <Resource Include="Resources\Images\JSProjectNode.png" />
+    <Resource Include="Resources\Images\LeftArrowAsterisk.png" />
+    <Resource Include="Resources\Images\OpenProjectFolder.png" />
+    <Resource Include="Resources\Images\OverlayWarning.png" />
+    <Resource Include="Resources\Images\RunAfter.png" />
+    <Resource Include="Resources\Images\RunAsAdmin.png" />
+    <Resource Include="Resources\Images\RunBefore.png" />
+    <Resource Include="Resources\Images\Search.png" />
+    <Resource Include="Resources\Images\TSProjectNode.png" />
+    <Resource Include="Resources\Images\VBProjectNode.png" />
+    <Resource Include="Resources\Images\VSL.png" />
+    <Resource Include="Resources\Images\VSLogo.png" />
+    <Resource Include="Resources\Images\VsSolution.png" />
+    <Resource Include="Resources\Images\WebProjectNode.png" />
   </ItemGroup>
 
 </Project>

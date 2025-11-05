@@ -2,6 +2,7 @@
 using System.Xml.Linq;
 
 using VSLauncher.Helpers;
+using Newtonsoft.Json;
 
 namespace VSLauncher.DataModel
 {
@@ -179,5 +180,12 @@ namespace VSLauncher.DataModel
 
 			return false;
 		}
+
+		/// <summary>
+		/// Empty children collection added for TreeView hierarchical binding.
+		/// Projects have no child items but WPF bindings expect 'Items'.
+		/// </summary>
+		[JsonIgnore]
+		public VsItemList Items { get; } = new VsItemList(null);
 	}
 }

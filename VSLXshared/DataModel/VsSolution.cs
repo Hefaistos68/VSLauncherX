@@ -51,6 +51,12 @@ namespace VSLauncher.DataModel
 		public VsItemList Projects { get; private set; } = new VsItemList(null);
 
 		/// <summary>
+		/// Added for WPF TreeView hierarchical binding. Maps to Projects so bindings to 'Items' succeed.
+		/// </summary>
+		[JsonIgnore]
+		public VsItemList Items => Projects;
+
+		/// <summary>
 		/// Gets the required version.
 		/// </summary>
 		public string RequiredVersion { get; set; } = string.Empty;
