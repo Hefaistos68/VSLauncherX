@@ -3,6 +3,7 @@
     <!-- Light theme color palette -->
     <Color x:Key="WindowBackgroundColor">#FFF3F3F3</Color>
     <Color x:Key="PanelBackgroundColor">#FFFFFFFF</Color>
+    <Color x:Key="DarkPanelBackgroundColor">#FFA0A0A0</Color>
     <Color x:Key="ControlBackgroundColor">#FFFFFFFF</Color>
     <Color x:Key="ControlBorderColor">#FFC9C9C9</Color>
     <Color x:Key="ControlHoverColor">#FFE6F2FB</Color>
@@ -17,6 +18,7 @@
     <SolidColorBrush x:Key="WindowBackgroundBrush" Color="{StaticResource WindowBackgroundColor}"/>
     <SolidColorBrush x:Key="WindowForegroundBrush" Color="{StaticResource WindowForegroundColor}"/>
     <SolidColorBrush x:Key="PanelBackgroundBrush" Color="{StaticResource PanelBackgroundColor}"/>
+    <SolidColorBrush x:Key="DarkPanelBackgroundBrush" Color="{StaticResource DarkPanelBackgroundColor}"/>
     <SolidColorBrush x:Key="ControlBackgroundBrush" Color="{StaticResource ControlBackgroundColor}"/>
     <SolidColorBrush x:Key="ControlBorderBrush" Color="{StaticResource ControlBorderColor}"/>
     <SolidColorBrush x:Key="ControlHoverBrush" Color="{StaticResource ControlHoverColor}"/>
@@ -88,6 +90,16 @@
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="Padding" Value="0,0"/>
         <Setter Property="Margin" Value="2"/>
+        <Setter Property="ItemContainerStyle">
+            <Setter.Value>
+                <Style TargetType="ComboBoxItem">
+                    <Setter Property="Height" Value="24"/>
+                    <Setter Property="MinHeight" Value="24"/>
+                    <Setter Property="Padding" Value="2,0,2,0"/>
+                    <Setter Property="VerticalContentAlignment" Value="Center"/>
+                </Style>
+            </Setter.Value>
+        </Setter>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ComboBox">
@@ -97,12 +109,15 @@
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
                         <Border x:Name="Border" Grid.ColumnSpan="2" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="2"/>
-                        <ContentPresenter Grid.Column="0" Margin="4,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Left" Content="{TemplateBinding SelectionBoxItem}"/>
+                        <!-- Bind ContentTemplate so the selected item uses ItemTemplate (shows icon + text) -->
+                        <ContentPresenter Grid.Column="0" Margin="4,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Left"
+                                          Content="{TemplateBinding SelectionBoxItem}"
+                                          ContentTemplate="{TemplateBinding ItemTemplate}"/>
                         <ToggleButton Grid.Column="1" Margin="0" Focusable="False" IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}" ClickMode="Press" Background="Transparent" BorderThickness="0">
                             <Path Data="M 0 0 L 4 4 L 8 0 Z" Fill="{StaticResource WindowForegroundBrush}" Stretch="Uniform" Width="10" Height="6" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </ToggleButton>
                         <Popup x:Name="Popup" Placement="Bottom" IsOpen="{TemplateBinding IsDropDownOpen}" AllowsTransparency="True" Focusable="False" PopupAnimation="Fade">
-                            <Border Background="{StaticResource PanelBackgroundBrush}" BorderBrush="{StaticResource ControlBorderBrush}" BorderThickness="1" CornerRadius="2">
+                            <Border Background="{StaticResource PanelBackgroundBrush}" BorderBrush="{StaticResource ControlBorderBrush}" BorderThickness="1" CornerRadius="2" Width="{Binding ActualWidth, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ComboBox}}">
                                 <ScrollViewer Margin="0" CanContentScroll="True">
                                     <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained"/>
                                 </ScrollViewer>
@@ -145,7 +160,7 @@
         <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
         <Style.Triggers>
             <Trigger Property="IsSelected" Value="True">
-                <Setter Property="Background" Value="{StaticResource SelectionBackgroundBrush}"/>
+                <Setter Property="Background" Value="Transparent"/>
             </Trigger>
             <Trigger Property="IsSelected" Value="False">
                 <Setter Property="Background" Value="Transparent"/>

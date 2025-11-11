@@ -5,15 +5,111 @@
  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
  xmlns:vm="clr-namespace:VSLauncher.ViewModels"
  xmlns:conv="clr-namespace:VSLauncher.Converters"
+ xmlns:settings="clr-namespace:VSLauncher.Properties"
+ xmlns:model="clr-namespace:VSLauncher.DataModel;assembly=VSLXshared"
  mc:Ignorable="d"
  Title="VS Launcher X" Height="600" Width="1000"
  Icon="pack://application:,,,/Resources/AppLogo2.ico"
  Background="{DynamicResource WindowBackgroundBrush}" Foreground="{DynamicResource WindowForegroundBrush}">
 
     <Window.Resources>
+        <!-- Added indent adjusted width converter -->
+        <conv:IndentAdjustedWidthConverter x:Key="IndentAdjustedWidthConverter" IndentSize="19" />
+        <!-- existing resources -->
         <conv:IconToImageSourceConverter x:Key="IconToImageSourceConverter" />
         <conv:ItemToIconConverter x:Key="ItemToIconConverter" />
         <conv:ItemToDescriptionConverter x:Key="ItemToDescriptionConverter" />
+        <conv:ItemToGitBranchConverter x:Key="ItemToGitBranchConverter" />
+        <conv:ItemToDateConverter x:Key="ItemToDateConverter" />
+        <conv:ItemToVersionConverter x:Key="ItemToVersionConverter" />
+        <conv:ItemToOptionsConverter x:Key="ItemToOptionsConverter" />
+        <conv:ItemGitStatusIconConverter x:Key="ItemGitStatusIconConverter" />
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+        <Style x:Key="ColumnSplitterStyle" TargetType="GridSplitter">
+            <Setter Property="Width" Value="4" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="VerticalAlignment" Value="Stretch" />
+            <Setter Property="Cursor" Value="SizeWE" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="GridSplitter">
+                        <Grid Background="{TemplateBinding Background}">
+                            <Grid HorizontalAlignment="Center" Width="4" Margin="0">
+                                <Rectangle x:Name="Line1" Width="1" HorizontalAlignment="Center" Fill="{DynamicResource WindowForegroundBrush}" Opacity="0.35" Margin="0,2,2,2" />
+                                <Rectangle x:Name="Line2" Width="1" HorizontalAlignment="Center" Fill="{DynamicResource WindowForegroundBrush}" Opacity="0.35" Margin="2,2,0,2" />
+                            </Grid>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Line1" Property="Opacity" Value="0.75" />
+                                <Setter TargetName="Line2" Property="Opacity" Value="0.75" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Line1" Property="Opacity" Value="0.15" />
+                                <Setter TargetName="Line2" Property="Opacity" Value="0.15" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="ExpanderToggleButton" TargetType="ToggleButton">
+            <Setter Property="Width" Value="12"/>
+            <Setter Property="Height" Value="12"/>
+            <Setter Property="Margin" Value="0,0,4,0"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="IsChecked" Value="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"/>
+            <Setter Property="Visibility" Value="Collapsed"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Grid Background="Transparent" Width="12" Height="12">
+                            <Path x:Name="ExpanderGlyph" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=TreeViewItem}}" StrokeThickness="2" Data="M 0 0 L 4 4 L 0 8" Stretch="Uniform" />
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="ExpanderGlyph" Property="Data" Value="M 0 0 L 4 4 L 8 0" />
+                            </Trigger>
+                            <DataTrigger Binding="{Binding ItemType}" Value="{x:Static model:ItemTypeEnum.Solution}">
+                                <Setter TargetName="ExpanderGlyph" Property="Stroke" Value="{DynamicResource ControlBorderBrush}" />
+                            </DataTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Context menu for TreeView items -->
+        <ContextMenu x:Key="TreeItemContextMenu" Opened="TreeItemContextMenu_Opened">
+            <!-- Git submenu -->
+            <MenuItem Header="Git" x:Name="miGit" IsEnabled="False">
+                <MenuItem Header="Fetch" x:Name="miGitFetch" Click="GitFetch_Click" />
+                <MenuItem Header="Pull" x:Name="miGitPull" Click="GitPull_Click" />
+                <Separator />
+                <!-- Branch items will be injected below this separator -->
+                <MenuItem Header="Branches" x:Name="miGitBranches" IsEnabled="False" />
+            </MenuItem>
+            <MenuItem Header="Add ..." Command="{Binding DataContext.AddFolderCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
+            <Separator />
+            <MenuItem Header="Run" Command="{Binding DataContext.RunItemCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
+            <MenuItem Header="Run as Admin" Command="{Binding DataContext.RunItemAsAdminCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
+            <MenuItem Header="Rename..." Command="{Binding DataContext.RenameItemCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
+            <Separator />
+            <MenuItem Header="Settings..." Command="{Binding DataContext.ShowItemSettingsCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
+             <Separator />
+           <MenuItem Header="Remove" Command="{Binding DataContext.RemoveItemCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
+              <Separator />
+           <MenuItem Header="Toggle Favorite" Command="{Binding DataContext.ToggleFavoriteCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
+            <MenuItem Header="Open in Explorer" Command="{Binding DataContext.OpenInExplorerCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
+        </ContextMenu>
+
+        <!-- Style to attach context menu to TreeViewItems -->
+        <Style x:Key="TreeViewItemWithContext" BasedOn="{StaticResource {x:Type TreeViewItem}}" TargetType="TreeViewItem">
+            <Setter Property="ContextMenu" Value="{StaticResource TreeItemContextMenu}" />
+        </Style>
     </Window.Resources>
 
     <Window.DataContext>
@@ -22,13 +118,10 @@
 
     <Grid Background="{DynamicResource PanelBackgroundBrush}">
         <Grid.RowDefinitions>
-            <!-- Headline -->
             <RowDefinition Height="Auto"/>
-            <!-- Search + buttons -->
             <RowDefinition Height="Auto"/>
-            <!-- Main content -->
+            <RowDefinition Height="Auto"/> <!-- headers -->
             <RowDefinition Height="*"/>
-            <!-- Status bar -->
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
@@ -37,12 +130,10 @@
         </Grid.ColumnDefinitions>
 
         <!-- Headline -->
-        <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
- Text="Solutions &amp; Projects"
- FontSize="24" FontWeight="Bold" Margin="8,10,8,4"/>
+        <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" Text="Solutions &amp; Projects" FontSize="24" FontWeight="Bold" Margin="8,10,8,4"/>
 
         <!-- Search Row -->
-        <Grid Grid.Row="1" Grid.Column="0" Margin="8,0,4,8" Background="{DynamicResource PanelBackgroundBrush}">
+        <Grid Grid.Row="1" Grid.Column="0" Margin="8,0,4,8" Background="{DynamicResource DarkPanelBackgroundBrush}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="*"/>
@@ -51,17 +142,8 @@
             <TextBlock Text="Search:" VerticalAlignment="Center" Margin="0,0,6,0"/>
             <!-- Search box with clear button -->
             <Grid Grid.Column="1" VerticalAlignment="Center">
-                <TextBox x:Name="txtFilter" MinWidth="250" Height="28"
-                         VerticalContentAlignment="Center"
-                         Padding="4,4,24,4"
-                         Text="{Binding FilterText, UpdateSourceTrigger=PropertyChanged}"/>
-                <Button Content="x" Width="20" Height="20" Click="ClearFilter_Click"
-                        ToolTip="Clear"
-                        HorizontalAlignment="Right" VerticalAlignment="Center"
-                        Margin="0,0,4,0"
-                        Padding="0"
-                        BorderThickness="0"
-                        Cursor="Hand"/>
+                <TextBox x:Name="txtFilter" MinWidth="250" Height="28" VerticalContentAlignment="Center" Padding="4,4,24,4" Text="{Binding FilterText, UpdateSourceTrigger=PropertyChanged}"/>
+                <Button Content="x" Width="20" Height="20" Click="ClearFilter_Click" ToolTip="Clear" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,4,0" Padding="0" BorderThickness="0" Cursor="Hand"/>
             </Grid>
             <!-- Buttons container -->
             <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="4,4,0,4">
@@ -89,48 +171,77 @@
             </StackPanel>
         </Grid>
 
-        <!-- Main Content Area -->
-        <TreeView Grid.Row="2" Grid.Column="0"
- x:Name="treeViewItems"
- ItemsSource="{Binding FilteredRootItems}"
- VirtualizingPanel.IsVirtualizing="True"
- VirtualizingPanel.VirtualizationMode="Recycling"
- PreviewTextInput="TreeView_PreviewTextInput"
- PreviewKeyDown="TreeView_PreviewKeyDown">
-            <TreeView.ContextMenu>
-                <ContextMenu>
-                    <MenuItem Header="Run" Command="{Binding RunItemCommand}"/>
-                    <MenuItem Header="Run as Admin" Command="{Binding RunItemAsAdminCommand}"/>
-                    <Separator/>
-                    <MenuItem Header="Rename" Command="{Binding RenameItemCommand}"/>
-                    <MenuItem Header="Remove" Command="{Binding RemoveItemCommand}"/>
-                    <Separator/>
-                    <MenuItem Header="Add to Favorites" Command="{Binding ToggleFavoriteCommand}"/>
-                    <MenuItem Header="Open in Explorer" Command="{Binding OpenInExplorerCommand}"/>
-                    <Separator/>
-                    <MenuItem Header="Settings" Command="{Binding ShowItemSettingsCommand}"/>
-                </ContextMenu>
-            </TreeView.ContextMenu>
+        <!-- Column Headers with resizable splitters (Branch column inserted after Git) -->
+        <Border Grid.Row="2" Grid.Column="0" Margin="8,0,4,0" Background="{DynamicResource PanelBackgroundBrush}" BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1" SnapsToDevicePixels="True">
+            <Grid x:Name="HeaderGrid" Background="{DynamicResource PanelBackgroundBrush}" SnapsToDevicePixels="True">
+                <Grid.ColumnDefinitions>
+                    <!-- Data column + splitter column pairs -->
+                    <ColumnDefinition x:Name="ColName"    Width="300" MinWidth="80" />
+                    <ColumnDefinition Width="4" />
+                    <ColumnDefinition x:Name="ColGit"     Width="40" MinWidth="32" />
+                    <ColumnDefinition Width="4" />
+                    <ColumnDefinition x:Name="ColBranch"  Width="120" MinWidth="60" />
+                    <ColumnDefinition Width="4" />
+                    <ColumnDefinition x:Name="ColDate"    Width="130" MinWidth="80" />
+                    <ColumnDefinition Width="4" />
+                    <ColumnDefinition x:Name="ColVersion" Width="120" MinWidth="80" />
+                    <ColumnDefinition Width="4" />
+                    <ColumnDefinition x:Name="ColOptions" Width="60" MinWidth="80" />
+                </Grid.ColumnDefinitions>
+                <!-- Headers -->
+                <TextBlock Grid.Column="0" Text="Name" FontWeight="Bold" Margin="4,4,4,4"/>
+                <GridSplitter Grid.Column="1" Style="{StaticResource ColumnSplitterStyle}" />
+                <TextBlock Grid.Column="2" Text="Git" FontWeight="Bold" Margin="4,4,4,4"/>
+                <GridSplitter Grid.Column="3" Style="{StaticResource ColumnSplitterStyle}" />
+                <TextBlock Grid.Column="4" Text="Branch" FontWeight="Bold" Margin="4,4,4,4"/>
+                <GridSplitter Grid.Column="5" Style="{StaticResource ColumnSplitterStyle}" />
+                <TextBlock Grid.Column="6" Text="Last Modified" FontWeight="Bold" Margin="4,4,4,4" Visibility="{Binding Source={x:Static settings:Settings.Default}, Path=ColumnDateVisible, Converter={StaticResource BoolToVis}}"/>
+                <GridSplitter Grid.Column="7" Style="{StaticResource ColumnSplitterStyle}" />
+                <TextBlock Grid.Column="8" Text="Version" FontWeight="Bold" Margin="4,4,4,4"/>
+                <GridSplitter Grid.Column="9" Style="{StaticResource ColumnSplitterStyle}" />
+                <TextBlock Grid.Column="10" Text="Run Options" FontWeight="Bold" Margin="4,4,4,4" Visibility="{Binding Source={x:Static settings:Settings.Default}, Path=ColumnOptionsVisible, Converter={StaticResource BoolToVis}}"/>
+            </Grid>
+        </Border>
+
+        <!-- Main Content Area (apply indent subtraction to first column width) -->
+        <TreeView Grid.Row="3" Grid.Column="0" x:Name="treeViewItems" ItemsSource="{Binding FilteredRootItems}" ItemContainerStyle="{StaticResource TreeViewItemWithContext}" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" PreviewTextInput="TreeView_PreviewTextInput" PreviewKeyDown="TreeView_PreviewKeyDown" SelectedItemChanged="TreeViewItems_SelectedItemChanged" Margin="8,0,4,8" AlternationCount="1000">
             <TreeView.ItemTemplate>
                 <HierarchicalDataTemplate ItemsSource="{Binding Items}">
-                    <Grid Margin="2">
+                    <Grid Margin="2" SnapsToDevicePixels="True">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition>
+                                <ColumnDefinition.Width>
+                                    <MultiBinding Converter="{StaticResource IndentAdjustedWidthConverter}">
+                                        <Binding ElementName="ColName" Path="Width" />
+                                        <Binding RelativeSource="{RelativeSource AncestorType=TreeViewItem}" />
+                                    </MultiBinding>
+                                </ColumnDefinition.Width>
+                            </ColumnDefinition>
+                            <ColumnDefinition Width="{Binding ElementName=ColGit, Path=Width}" />
+                            <ColumnDefinition Width="{Binding ElementName=ColBranch, Path=Width}" />
+                            <ColumnDefinition Width="{Binding ElementName=ColDate, Path=Width}" />
+                            <ColumnDefinition Width="{Binding ElementName=ColVersion, Path=Width}" />
+                            <ColumnDefinition Width="{Binding ElementName=ColOptions, Path=Width}" />
                         </Grid.ColumnDefinitions>
-                        <!-- Increased icon size to32x32 -->
-                        <Image Grid.Column="0" Width="32" Height="32" Margin="2,2,10,2" Source="{Binding Converter={StaticResource ItemToIconConverter}}" />
-                        <StackPanel Grid.Column="1" Orientation="Vertical" Margin="0,2,0,2">
-                            <TextBlock Text="{Binding Name}" FontSize="14" FontWeight="Bold" />
-                            <TextBlock Text="{Binding Converter={StaticResource ItemToDescriptionConverter}}" FontSize="11" Foreground="Gray" TextWrapping="Wrap" />
-                        </StackPanel>
+                        <DockPanel Grid.Column="0" Margin="2" ClipToBounds="True">
+                            <Image Width="32" Height="32" Margin="2,2,10,2" Source="{Binding Converter={StaticResource ItemToIconConverter}}" />
+                            <StackPanel Orientation="Vertical" Margin="0,2,0,2" ClipToBounds="True">
+                                <TextBlock Text="{Binding Name}" FontSize="14" FontWeight="Bold" TextWrapping="NoWrap" />
+                                <TextBlock Text="{Binding Converter={StaticResource ItemToDescriptionConverter}}" FontSize="11" Foreground="Gray" TextWrapping="NoWrap" />
+                            </StackPanel>
+                        </DockPanel>
+                        <Image Grid.Column="1" Width="16" Height="16" Margin="4,8,4,4" Source="{Binding Converter={StaticResource ItemGitStatusIconConverter}}" VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="2" Text="{Binding Converter={StaticResource ItemToGitBranchConverter}}" Margin="4,8,4,4" VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="3" Text="{Binding Converter={StaticResource ItemToDateConverter}}" Margin="4,8,4,4" VerticalAlignment="Center" Visibility="{Binding Source={x:Static settings:Settings.Default}, Path=ColumnDateVisible, Converter={StaticResource BoolToVis}}" />
+                        <TextBlock Grid.Column="4" Text="{Binding Converter={StaticResource ItemToVersionConverter}}" Margin="4,8,4,4" VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="5" Text="{Binding Converter={StaticResource ItemToOptionsConverter}}" Margin="4,8,4,4" VerticalAlignment="Center" Visibility="{Binding Source={x:Static settings:Settings.Default}, Path=ColumnOptionsVisible, Converter={StaticResource BoolToVis}}" />
                     </Grid>
                 </HierarchicalDataTemplate>
             </TreeView.ItemTemplate>
         </TreeView>
 
         <!-- Right Side Launch Buttons with VS Version selector on top -->
-        <StackPanel Grid.Row="2" Grid.Column="1" Margin="8" VerticalAlignment="Stretch">
+        <StackPanel Grid.Row="3" Grid.Column="1" Margin="8" VerticalAlignment="Stretch">
             <Button Command="{Binding StartVsCommand}" Margin="0,0,0,4" Padding="4">
                 <DockPanel Margin="3" Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Button}}">
                     <Image Source="{Binding SelectedVsIcon}" Width="32" Height="32" Margin="0,0,6,0" DockPanel.Dock="Left"/>
@@ -174,15 +285,12 @@
         </StackPanel>
 
         <!-- Status Bar -->
-        <StatusBar Grid.Row="3" Grid.ColumnSpan="2" Background="{DynamicResource PanelBackgroundBrush}">
+        <StatusBar Grid.Row="4" Grid.ColumnSpan="2" Background="{DynamicResource PanelBackgroundBrush}">
             <StatusBarItem>
                 <TextBlock Text="{Binding StatusText}"/>
             </StatusBarItem>
         </StatusBar>
-        <ComboBox x:Name="cboVisualStudioVersion"
- ItemsSource="{Binding VisualStudioVersions}"
- SelectedItem="{Binding SelectedVisualStudioVersion}"
- MinWidth="200" Margin="10,4,6,7" Grid.Column="1" Grid.Row="1" Height="32" VerticalAlignment="Center">
+        <ComboBox x:Name="cboVisualStudioVersion" ItemsSource="{Binding VisualStudioVersions}" SelectedItem="{Binding SelectedVisualStudioVersion}" MinWidth="200" Margin="10,4,6,7" Grid.Column="1" Grid.Row="1" Height="32" VerticalAlignment="Center">
             <ComboBox.ItemTemplate>
                 <DataTemplate>
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">

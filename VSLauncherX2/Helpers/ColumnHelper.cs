@@ -9,12 +9,14 @@ namespace VSLauncher.Helpers
 	/// </summary>
 	public class ColumnHelper
 	{
+		private static readonly VisualStudioInstanceManager visualStudioInstances = new();
+
 		/// <summary>
 		/// Gets the aspect for date.
 		/// </summary>
 		/// <param name="row">The row.</param>
 		/// <returns>An object.</returns>
-		public static object GetAspectForDate(object row)
+		public static string GetAspectForDate(object row)
 		{
 			if (row is VsFolder)
 			{
@@ -23,7 +25,7 @@ namespace VSLauncher.Helpers
 
 			if (row is VsItem s)
 			{
-				return s.LastModified;
+				return s.LastModified.ToShortDateString();
 			}
 
 			return string.Empty;
@@ -34,7 +36,7 @@ namespace VSLauncher.Helpers
 		/// </summary>
 		/// <param name="row">The row.</param>
 		/// <returns>An object.</returns>
-		public static object GetAspectForFile(object row)
+		public static string GetAspectForFile(object row)
 		{
 			if (row is VsFolder f)
 			{
@@ -64,7 +66,7 @@ namespace VSLauncher.Helpers
 		/// </summary>
 		/// <param name="row">The row.</param>
 		/// <returns>An object.</returns>
-		public static object GetAspectForOptions(object row)
+		public static OptionsEnum GetAspectForOptions(object row)
 		{
 			OptionsEnum e = OptionsEnum.None;
 			if (row is VsItem s)
@@ -77,12 +79,34 @@ namespace VSLauncher.Helpers
 			return e;
 		}
 
+		internal static string? GetAspectForVersion(object rowObject)
+		{
+			if (rowObject is VsItem item)
+			{
+				if (item.VsVersion is null)
+				{
+					return "<default>";
+				}
+
+				var vs = visualStudioInstances.GetByIdentifier(item.VsVersion);
+				if (vs == null)
+				{
+					return item.VsVersion; // fallback
+				}
+
+				string s = $"{vs.Year} ({vs.ShortVersion})";
+				return s;
+			}
+
+			return null;
+		}
+
 		/// <summary>
 		/// Gets the aspect for the git column
 		/// </summary>
 		/// <param name="rowObject">The row object.</param>
 		/// <returns>An object.</returns>
-		internal static object GetAspectForGit(object rowObject)
+		internal static string GetAspectForGit(object rowObject)
 		{
 			if (rowObject is VsFolder)
 			{
@@ -113,7 +137,7 @@ namespace VSLauncher.Helpers
 		/// </summary>
 		/// <param name="rowObject">The row object.</param>
 		/// <returns>An object.</returns>
-		public static object GetAspectForGitName(object rowObject)
+		public static string GetAspectForGitBranch(object rowObject)
 		{
 			if (rowObject is VsFolder)
 			{
@@ -212,7 +236,7 @@ namespace VSLauncher.Helpers
 		/// </summary>
 		/// <param name="rowObject">The row object.</param>
 		/// <returns>An object.</returns>
-		internal static object? GetDescription(object rowObject)
+		internal static string? GetDescription(object rowObject)
 		{
 			string? desc;
 			if (rowObject is VsSolution s)

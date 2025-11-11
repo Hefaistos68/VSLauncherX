@@ -3,22 +3,23 @@ using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Threading;
-using System.Windows.Media; // added
-using System.Windows.Interop; // added
-using System.Windows.Media.Imaging; // added
-using Microsoft.VisualBasic; // for Interaction.InputBox
-using System.Security.Principal; // elevation check
+using System.Windows.Media;
+using System.Windows.Interop;
+using System.Windows.Media.Imaging;
+using Microsoft.VisualBasic;
+using System.Security.Principal;
+using System.Threading.Tasks;
+using System;
+using System.Linq;
 
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
-using LibGit2Sharp;
-
-using Newtonsoft.Json;
+using LibGit2Sharp; // restore
+using Newtonsoft.Json; // restore
 
 using VSLauncher.DataModel;
 using VSLauncher.Helpers;
-
 using VSLXshared.Helpers;
 using VSLauncher.Views;
 
@@ -32,8 +33,10 @@ namespace VSLauncher.ViewModels
 		#region Fields
 
 		private readonly VisualStudioInstanceManager visualStudioInstances = new();
-		private readonly DispatcherTimer gitTimer;
-		private bool isInUpdate;
+		private readonly DispatcherTimer              gitTimer               ;
+		private bool                                   isInUpdate             ;
+		// Capture a UI dispatcher early to avoid relying on Application.Current which can be null after shutdown/restart scenarios.
+		private readonly Dispatcher                    uiDispatcher           ;
 
 		// Filtered items backing store
 		public ObservableCollection<VsItem> FilteredRootItems { get; } = new();
@@ -45,6 +48,14 @@ namespace VSLauncher.ViewModels
 		[ObservableProperty]
 		private VsFolder solutionGroups = new();
 
+		// Ensure commands depending on SelectedItem re-query CanExecute when it changes
+		[NotifyCanExecuteChangedFor(nameof(ShowItemSettingsCommand))]
+		[NotifyCanExecuteChangedFor(nameof(RunItemCommand))]
+		[NotifyCanExecuteChangedFor(nameof(RunItemAsAdminCommand))]
+		[NotifyCanExecuteChangedFor(nameof(RenameItemCommand))]
+		[NotifyCanExecuteChangedFor(nameof(RemoveItemCommand))]
+		[NotifyCanExecuteChangedFor(nameof(ToggleFavoriteCommand))]
+		[NotifyCanExecuteChangedFor(nameof(OpenInExplorerCommand))]
 		[ObservableProperty]
 		private VsItem? selectedItem;
 
@@ -79,6 +90,9 @@ namespace VSLauncher.ViewModels
 
 		public MainViewModel()
 		{
+			// Capture dispatcher (Application.Current may be null later if app shuts down for restart)
+			uiDispatcher = Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
+
 			// Initialize collections
 			VisualStudioVersions = new ObservableCollection<VisualStudioInstance>();
 			foreach (var vs in visualStudioInstances.All)
@@ -89,12 +103,15 @@ namespace VSLauncher.ViewModels
 			// Initialize Git timer
 			gitTimer = new DispatcherTimer
 			{
-				Interval = TimeSpan.FromSeconds(5)
+				Interval = TimeSpan.FromSeconds(20)
 			};
 			gitTimer.Tick += GitTimer_Tick;
 
 			// Load data
 			LoadSolutionData();
+
+			// Initial Git status update
+			FetchGitStatusAsync();
 
 			// Subscribe to change events
 			solutionGroups.Items.OnChanged += SolutionData_OnChanged;
@@ -112,14 +129,17 @@ namespace VSLauncher.ViewModels
 		{
 			FilteredRootItems.Clear();
 			string ft = FilterText?.Trim();
+
 			if (string.IsNullOrEmpty(ft))
 			{
 				foreach (var i in SolutionGroups.Items)
 				{
 					FilteredRootItems.Add(i);
 				}
+
 				return;
 			}
+
 			foreach (var root in SolutionGroups.Items)
 			{
 				var filtered = FilterRecursive(root, ft);
@@ -131,24 +151,29 @@ namespace VSLauncher.ViewModels
 		private VsItem? FilterRecursive(VsItem item, string term)
 		{
 			bool IsMatch(VsItem i) => (i.Name ?? string.Empty).IndexOf(term, StringComparison.OrdinalIgnoreCase) >= 0;
+
 			if (item is VsFolder folder)
 			{
 				VsFolder clone = new VsFolder(folder.Name ?? string.Empty, folder.Path ?? string.Empty)
 				{ ItemType = folder.ItemType, VsVersion = folder.VsVersion, Expanded = folder.Expanded };
+
 				foreach (var child in folder.Items)
 				{
 					var fc = FilterRecursive(child, term);
 					if (fc != null)
 						clone.Items.Add(fc);
 				}
+
 				if (clone.Items.Count > 0 || IsMatch(folder))
 					return clone;
+
 				return null;
 			}
 			else if (item is VsSolution sol)
 			{
 				if (IsMatch(sol))
 					return sol; // show solution itself if matches
+
 				// filter projects within solution
 				VsSolution solClone = new VsSolution(sol.Name ?? string.Empty, sol.Path ?? string.Empty, sol.SolutionType) { VsVersion = sol.VsVersion, RequiredVersion = sol.RequiredVersion };
 				foreach (var proj in sol.Projects)
@@ -157,8 +182,10 @@ namespace VSLauncher.ViewModels
 					if (fc != null)
 						solClone.Projects.Add(fc);
 				}
+
 				if (solClone.Projects.Count > 0)
 					return solClone;
+
 				return null;
 			}
 			else
@@ -179,11 +206,13 @@ namespace VSLauncher.ViewModels
 		{
 			var wnd = new AddFolderWindow();
 			bool? result = wnd.ShowDialog();
+
 			if (result == true)
 			{
 				string? name = wnd.Tag as string;
 				if (string.IsNullOrWhiteSpace(name)) return;
 				var newFolder = new VsFolder { Name = name.Trim(), ItemType = ItemTypeEnum.Folder };
+
 				if (SelectedItem is VsFolder parent)
 				{
 					parent.Items.Add(newFolder);
@@ -194,6 +223,7 @@ namespace VSLauncher.ViewModels
 					SolutionGroups.Items.Add(newFolder);
 					SolutionGroups.Items.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase));
 				}
+
 				OnSolutionDataChanged();
 			}
 		}
@@ -206,6 +236,7 @@ namespace VSLauncher.ViewModels
 		{
 			var wnd = new ImportFolderWindow();
 			bool? result = wnd.ShowDialog();
+
 			if (result == true && wnd.Tag is VsFolder importedRoot)
 			{
 				MergeNewItems(importedRoot.Items);
@@ -264,6 +295,7 @@ namespace VSLauncher.ViewModels
 				Owner = Application.Current.MainWindow
 			};
 			bool? result = wnd.ShowDialog();
+
 			if (result == true && wnd.Tag is VsFolder importedRoot)
 			{
 				MergeNewItems(importedRoot.Items);
@@ -344,9 +376,10 @@ namespace VSLauncher.ViewModels
 			var wnd = new ExecuteVisualStudioWindow
 			{
 				Owner = Application.Current.MainWindow,
-				Tag = item
+				Tag   = item
 			};
 			bool? result = wnd.ShowDialog();
+
 			if (result == true)
 			{
 				OnSolutionDataChanged();
@@ -371,9 +404,9 @@ namespace VSLauncher.ViewModels
 						{
 							Process.Start(new ProcessStartInfo
 							{
-								FileName = exe,
+								FileName        = exe,
 								UseShellExecute = true,
-								Verb = "runas"
+								Verb            = "runas"
 							});
 							Application.Current.Shutdown();
 						}
@@ -388,6 +421,7 @@ namespace VSLauncher.ViewModels
 			{
 				App.RemoveTaskScheduler();
 			}
+
 			OnSolutionDataChanged();
 		}
 
@@ -401,6 +435,7 @@ namespace VSLauncher.ViewModels
 			{
 				return;
 			}
+
 			await LaunchItem(SelectedItem, false);
 		}
 
@@ -414,6 +449,7 @@ namespace VSLauncher.ViewModels
 			{
 				return;
 			}
+
 			await LaunchItem(SelectedItem, true);
 		}
 
@@ -574,9 +610,10 @@ namespace VSLauncher.ViewModels
 			var wnd = new ExecuteVisualStudioWindow
 			{
 				Owner = Application.Current.MainWindow,
-				Tag = SelectedItem
+				Tag   = SelectedItem
 			};
 			bool? result = wnd.ShowDialog();
+
 			if (result == true)
 			{
 				if (wnd.Tag is VsItem updated)
@@ -599,18 +636,18 @@ namespace VSLauncher.ViewModels
 		{
 			if (SelectedVisualStudioVersion!= null)
 			{
-				var vs = SelectedVisualStudioVersion;
+				var vs     = SelectedVisualStudioVersion;
 				string version = $"{vs.MainVersion}.0_{vs.Identifier}";
-				string s = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-				string file = Path.Combine(s, "Microsoft", "VisualStudio", version, "ActivityLog.xml");
+				string s      = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+				string file   = Path.Combine(s, "Microsoft", "VisualStudio", version, "ActivityLog.xml");
 
 				if (File.Exists(file))
 				{
 					Process.Start(new ProcessStartInfo
 					{
-						FileName = file,
+						FileName        = file,
 						UseShellExecute = true,
-						Verb = "open"
+						Verb            = "open"
 					});
 				}
 			}
@@ -631,7 +668,7 @@ namespace VSLauncher.ViewModels
 					// Open download URL in default browser
 					Process.Start(new ProcessStartInfo
 					{
-						FileName = installer,
+						FileName        = installer,
 						UseShellExecute = true
 					});
 					return;
@@ -651,9 +688,9 @@ namespace VSLauncher.ViewModels
 					{
 						Process.Start(new ProcessStartInfo
 						{
-							FileName = installer,
+							FileName        = installer,
 							UseShellExecute = true,
-							Verb = "runas"
+							Verb            = "runas"
 						});
 						return;
 					}
@@ -662,7 +699,7 @@ namespace VSLauncher.ViewModels
 				// Normal launch
 				Process.Start(new ProcessStartInfo
 				{
-					FileName = installer,
+					FileName        = installer,
 					UseShellExecute = true
 				});
 			}
@@ -685,7 +722,7 @@ namespace VSLauncher.ViewModels
 		private void GitTimer_Tick(object? sender, EventArgs e)
 		{
 			// Only update if window is active
-			if (Application.Current.MainWindow?.IsActive == true)
+			if (Application.Current?.MainWindow?.IsActive == true)
 			{
 				FetchGitStatusAsync();
 			}
@@ -701,6 +738,22 @@ namespace VSLauncher.ViewModels
 				  }).ContinueWith(t =>
 				{
 					IsGitStatusUpdating = false;
+					// redraw the treeview column 2 (Git status) by raising PropertyChanged for all items
+					void RaiseForItems(VsFolder folder)
+					{
+						foreach (var item in folder.Items)
+						{
+							if (item is VsFolder subFolder)
+							{
+								RaiseForItems(subFolder);
+							}
+							else
+							{
+								OnPropertyChanged(nameof(item.Status));
+								OnPropertyChanged(nameof(item.BranchName));
+							}
+						}
+					}
 				}, TaskScheduler.FromCurrentSynchronizationContext());
 		}
 
@@ -721,48 +774,56 @@ namespace VSLauncher.ViewModels
 
 		private void UpdateGitStatus(VsItem item)
 		{
-			string? status = null;
+			string? status     = "?";
 			string? branchName = null;
 
 			try
 			{
 				var repoPath = Path.GetDirectoryName(item.Path);
-				if (Directory.Exists(Path.Combine(repoPath!, ".git")))
+				if (repoPath != null && Directory.Exists(Path.Combine(repoPath, ".git")))
 				{
 					using var repo = new Repository(repoPath);
-					var stat = repo.RetrieveStatus();
-					status = stat.IsDirty ? "*" : "!";
-					branchName = repo.Head.FriendlyName;
+					var stat       = repo.RetrieveStatus();
+					status         = stat.IsDirty ? "*" : "!";
+
+					branchName     = repo.Head.FriendlyName;
 				}
-				else
+				else if (repoPath != null)
 				{
 					// Try parent directory
 					var parentPath = Path.GetDirectoryName(repoPath);
 					if (parentPath != null && Directory.Exists(Path.Combine(parentPath, ".git")))
 					{
 						using var repo = new Repository(parentPath);
-						var stat = repo.RetrieveStatus();
-						status = stat.IsDirty ? "*" : "!";
-						branchName = repo.Head.FriendlyName;
+						var stat       = repo.RetrieveStatus();
+						status         = stat.IsDirty ? "*" : "!";
+
+						branchName     = repo.Head.FriendlyName;
 					}
 				}
 			}
 			catch (RepositoryNotFoundException)
 			{
-				status = "?";
+				status     = "?";
 				branchName = string.Empty;
 			}
 			catch (Exception)
 			{
-				status = "?";
+				status     = "?";
 				branchName = string.Empty;
 			}
 
-			// Update on UI thread
-			Application.Current.Dispatcher.BeginInvoke(() =>
+			// Update on UI thread (guard against null Application.Current)
+			var dispatcher = Application.Current?.Dispatcher ?? uiDispatcher;
+			if (dispatcher == null || dispatcher.HasShutdownStarted || dispatcher.HasShutdownFinished)
+			{
+				return; // cannot update UI
+			}
+
+			dispatcher.BeginInvoke(() =>
 					  {
-						  item.Status = status;
-						  item.BranchName = branchName;
+						  item.Status     = status;
+						  item.BranchName = branchName ?? string.Empty;
 					  });
 		}
 
@@ -778,17 +839,14 @@ namespace VSLauncher.ViewModels
 			{
 				try
 				{
-					string json = File.ReadAllText(fileName);
-					var settings = new JsonSerializerSettings
-					{
-						TypeNameHandling = TypeNameHandling.All
-					};
-
-					var data = JsonConvert.DeserializeObject<VsFolder>(json, settings);
+					string json      = File.ReadAllText(fileName);
+					var settings     = new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.All };
+					var data         = JsonConvert.DeserializeObject<VsFolder>(json, settings);
 					if (data != null)
 					{
 						data.Refresh();
-						SolutionGroups= data;
+						RestoreExpandedState(data);
+						SolutionGroups = data;
 					}
 				}
 				catch (Exception ex)
@@ -800,6 +858,7 @@ namespace VSLauncher.ViewModels
 
 		private void SaveSolutionData()
 		{
+			CaptureExpandedState(SolutionGroups);
 			string fileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "VSLauncher", "VSLauncher.json");
 
 			try
@@ -810,13 +869,8 @@ namespace VSLauncher.ViewModels
 					Directory.CreateDirectory(dir);
 				}
 
-				var settings = new JsonSerializerSettings
-				{
-					Formatting = Formatting.Indented,
-					TypeNameHandling = TypeNameHandling.All
-				};
-
-				string json = JsonConvert.SerializeObject(SolutionGroups, settings);
+				var settings = new JsonSerializerSettings { Formatting = Formatting.Indented, TypeNameHandling = TypeNameHandling.All };
+				string json   = JsonConvert.SerializeObject(SolutionGroups, settings);
 				File.WriteAllText(fileName, json);
 			}
 			catch (Exception ex)
@@ -825,17 +879,49 @@ namespace VSLauncher.ViewModels
 			}
 		}
 
+		private void CaptureExpandedState(VsFolder root)
+		{
+			foreach (var item in root.Items)
+			{
+				if (item is VsFolder f)
+				{
+					// Expanded already reflects UI state (updated via events)
+					CaptureExpandedState(f);
+				}
+			}
+		}
+
+		private void RestoreExpandedState(VsFolder root)
+		{
+			foreach (var item in root.Items)
+			{
+				if (item is VsFolder f)
+				{
+					// Expanded loaded from persisted file; recurse
+					RestoreExpandedState(f);
+				}
+			}
+		}
+
+		public void UpdateFolderExpanded(VsFolder folder, bool expanded)
+		{
+			if (folder == null) return;
+
+			folder.Expanded = expanded;
+			// Removed: SolutionGroups.Items.Changed = true; to avoid re-entrant ApplyFilter during TreeView expansion causing cyclic Style evaluation.
+		}
+
+		#region Restored Methods
+
 		private void LoadSelectedVisualStudioVersion()
 		{
 			isInUpdate = true;
 
 			if (!string.IsNullOrEmpty(Properties.Settings.Default.SelectedVSversion))
 			{
-				// use property to raise change notification
 				SelectedVisualStudioVersion = VisualStudioVersions.FirstOrDefault(v => v.Identifier == Properties.Settings.Default.SelectedVSversion);
 			}
 
-			// fallback
 			if (SelectedVisualStudioVersion is null)
 			{
 				SelectedVisualStudioVersion = VisualStudioVersions.FirstOrDefault();
@@ -844,8 +930,6 @@ namespace VSLauncher.ViewModels
 			isInUpdate = false;
 		}
 
-		// CommunityToolkit.Mvvm automatically generates the partial method
-		// No need to declare it manually anymore
 		private bool SolutionData_OnChanged(bool changed)
 		{
 			if (changed)
@@ -863,55 +947,43 @@ namespace VSLauncher.ViewModels
 			SolutionData_OnChanged(true);
 		}
 
-		#endregion
-
-		#region Helper Methods
-
 		private async Task LaunchItem(VsItem item, bool asAdmin)
 		{
-			VisualStudioInstance? vs = SelectedVisualStudioVersion;
-			ItemLauncher? launcher = null;
+			VisualStudioInstance? vs        = SelectedVisualStudioVersion;
+			ItemLauncher?         launcher  = null;
 
 			if (item is VsFolder folder)
 			{
-				// Check if launching multiple items
 				if (!Properties.Settings.Default.DontShowMultiplesWarning)
 				{
 					var count = folder.ContainedSolutionsCount() + folder.ContainedProjectsCount();
-
 					if (count > 3)
 					{
-						var warn = new WarnMultipleWindow(count)
-						{
-							Owner = Application.Current.MainWindow
-						};
+						var warn = new WarnMultipleWindow(count) { Owner = Application.Current.MainWindow };
 						if (warn.ShowDialog() != true)
 							return;
 					}
 				}
-
-				vs = string.IsNullOrEmpty(folder.VsVersion) ? visualStudioInstances.GetByIdentifier(folder.VsVersion) : vs;
+				vs       = string.IsNullOrEmpty(folder.VsVersion) ? visualStudioInstances.GetByIdentifier(folder.VsVersion) : vs;
 				launcher = new ItemLauncher(folder, vs);
 			}
 			else if (item is VsSolution solution)
 			{
-				vs = visualStudioInstances.GetByVersion(solution.RequiredVersion) ?? vs;
+				vs       = visualStudioInstances.GetByVersion(solution.RequiredVersion) ?? vs;
 				launcher = new ItemLauncher(solution, vs);
 			}
 			else if (item is VsProject project)
 			{
-				vs = visualStudioInstances.GetByIdentifier(project.VsVersion) ?? vs;
+				vs       = visualStudioInstances.GetByIdentifier(project.VsVersion) ?? vs;
 				launcher = new ItemLauncher(project, vs);
 			}
 
 			if (launcher != null)
 			{
-				StatusText= $"Launching '{item.Name}'...";
-
+				StatusText = $"Launching '{item.Name}'...";
 				try
 				{
 					await launcher.Launch(asAdmin);
-
 					if (launcher.LastException != null)
 					{
 						MessageBox.Show(launcher.LastException.Message, "Launch Error", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -919,7 +991,7 @@ namespace VSLauncher.ViewModels
 				}
 				finally
 				{
-					StatusText= string.Empty;
+					StatusText = string.Empty;
 				}
 			}
 		}
@@ -947,8 +1019,6 @@ namespace VSLauncher.ViewModels
 			}
 		}
 
-		#endregion
-
 		partial void OnSelectedVisualStudioVersionChanged(VisualStudioInstance? value)
 		{
 			if (value == null)
@@ -956,10 +1026,11 @@ namespace VSLauncher.ViewModels
 				SelectedVsIcon = null;
 				return;
 			}
+
 			try
 			{
 				var iconHandle = value.AppIcon.Handle;
-				var src = Imaging.CreateBitmapSourceFromHIcon(iconHandle, Int32Rect.Empty, BitmapSizeOptions.FromWidthAndHeight(32, 32));
+				var src        = Imaging.CreateBitmapSourceFromHIcon(iconHandle, Int32Rect.Empty, BitmapSizeOptions.FromWidthAndHeight(32, 32));
 				src.Freeze();
 				SelectedVsIcon = src;
 			}
@@ -968,5 +1039,8 @@ namespace VSLauncher.ViewModels
 				SelectedVsIcon = null;
 			}
 		}
+
+		#endregion // Restored Methods
+		#endregion // Data Management
 	}
 }
