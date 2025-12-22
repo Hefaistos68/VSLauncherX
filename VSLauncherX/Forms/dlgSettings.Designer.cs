@@ -35,6 +35,7 @@
 			chkSync = new CheckBox();
 			chkShowPath = new CheckBox();
 			chkAutostart = new CheckBox();
+			chkDarkMode = new CheckBox();
 			SuspendLayout();
 			// 
 			// btnCancel
@@ -45,7 +46,7 @@
 			btnCancel.Location = new Point(334, 261);
 			btnCancel.Name = "btnCancel";
 			btnCancel.Size = new Size(100, 40);
-			btnCancel.TabIndex = 4;
+			btnCancel.TabIndex = 5;
 			btnCancel.Text = " Cancel";
 			btnCancel.TextImageRelation = TextImageRelation.ImageBeforeText;
 			btnCancel.UseVisualStyleBackColor = true;
@@ -58,7 +59,7 @@
 			btnOk.Location = new Point(440, 261);
 			btnOk.Name = "btnOk";
 			btnOk.Size = new Size(100, 40);
-			btnOk.TabIndex = 5;
+			btnOk.TabIndex = 6;
 			btnOk.Text = " Ok";
 			btnOk.TextImageRelation = TextImageRelation.ImageBeforeText;
 			btnOk.UseVisualStyleBackColor = true;
@@ -104,6 +105,16 @@
 			chkAutostart.Text = "Autostart on logon";
 			chkAutostart.UseVisualStyleBackColor = true;
 			// 
+			// chkDarkMode
+			// 
+			chkDarkMode.AutoSize = true;
+			chkDarkMode.Location = new Point(12, 112);
+			chkDarkMode.Name = "chkDarkMode";
+			chkDarkMode.Size = new Size(133, 19);
+			chkDarkMode.TabIndex = 4;
+			chkDarkMode.Text = "Enable dark theme";
+			chkDarkMode.UseVisualStyleBackColor = true;
+			// 
 			// dlgSettings
 			// 
 			this.AcceptButton = btnOk;
@@ -112,6 +123,7 @@
 			this.CancelButton = btnCancel;
 			this.ClientSize = new Size(552, 313);
 			this.ControlBox = false;
+			this.Controls.Add(chkDarkMode);
 			this.Controls.Add(chkShowPath);
 			this.Controls.Add(chkSync);
 			this.Controls.Add(chkAutostart);
@@ -139,5 +151,6 @@
 		private CheckBox chkSync;
 		private CheckBox chkShowPath;
 		private CheckBox chkAutostart;
+		private CheckBox chkDarkMode;
 	}
 }

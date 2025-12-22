@@ -1,8 +1,7 @@
 ﻿using System.Diagnostics;
 using Microsoft.WindowsAPICodePack.Taskbar;
-
 using BrightIdeasSoftware;
-
+using ThemePalette = VSLauncher.Helpers.ThemeHelper.ThemePalette;
 using Newtonsoft.Json;
 
 using VSLauncher.DataModel;
@@ -32,6 +31,8 @@ namespace VSLauncher
 		private DataObject? lastDroppedData;
 
 		public JumpList TaskbarJumpList { get; private set; }
+
+		private ThemePalette currentTheme;
 
 
 		/// <summary>
@@ -162,6 +163,7 @@ namespace VSLauncher
 			InitializeComponent();
 			InitializeListview();
 			SetupDragAndDrop();
+			ApplyTheme(Properties.Settings.Default.DarkMode);
 
 			bool bAdmin = AdminInfo.IsCurrentUserAdmin();
 			bool bElevated = AdminInfo.IsElevated();
@@ -521,7 +523,32 @@ namespace VSLauncher
 					Program.RemoveTaskScheduler();
 				}
 
+				ApplyTheme(Properties.Settings.Default.DarkMode);
 				_ = SolutionData_OnChanged(true);
+			}
+		}
+
+		private void ApplyTheme(bool useDarkMode)
+		{
+			this.currentTheme = ThemeHelper.GetPalette(useDarkMode);
+
+			ThemeHelper.ApplyTheme(this, this.currentTheme);
+			ThemeHelper.ApplyTheme(this.ctxMenu, this.currentTheme);
+
+			this.olvFiles.HighlightBackgroundColor = this.currentTheme.Selection;
+			this.olvFiles.UnfocusedHighlightBackgroundColor = this.currentTheme.Selection;
+			this.olvFiles.AlternateRowBackColor = this.currentTheme.SurfaceAlt;
+
+			if (this.olvFiles.TreeColumnRenderer != null)
+			{
+				this.olvFiles.TreeColumnRenderer.FillBrush = new SolidBrush(this.currentTheme.Accent);
+				this.olvFiles.TreeColumnRenderer.FramePen = new Pen(this.currentTheme.Border);
+			}
+
+			if (this.itemRenderer is DescribedTaskRenderer describedTaskRenderer)
+			{
+				describedTaskRenderer.TitleColor = this.currentTheme.Text;
+				describedTaskRenderer.DescriptionColor = this.currentTheme.SubText;
 			}
 		}
 
@@ -712,28 +739,29 @@ namespace VSLauncher
 						MergeNewItem(e.DropTargetItem, item);
 					}
 					else if (item?.ItemType == ItemTypeEnum.Other)
-					{
-						// check if the file is actually a folder, then invoke the import folder dialog
-						FileInfo fi = new FileInfo(file);
-						if (fi.Attributes.HasFlag(FileAttributes.Directory))
-						{
-							dlgImportFolder dlg = new dlgImportFolder(file);
+                    {
+                        // check if the file is actually a folder, then invoke the import folder dialog
+                        FileInfo fi = new FileInfo(file);
+                        if (fi.Attributes.HasFlag(FileAttributes.Directory))
+                        {
+                            dlgImportFolder dlg = new dlgImportFolder(file);
+                            
 							if (dlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
-							{
-								OLVListItem r = this.olvFiles.SelectedItem;
-								VsItemList source = dlg.Solution.Items;
+                            {
+                                OLVListItem r = this.olvFiles.SelectedItem;
+                                VsItemList source = dlg.Solution.Items;
 
-								MergeNewItems(r, source);
+                                MergeNewItems(r, source);
 
-								_ = SolutionData_OnChanged(true);
-							}
-						}
-					}
-				}
+                                _ = SolutionData_OnChanged(true);
+                            }
+                        }
+                    }
+                }
 
-				UpdateList(true);
+                UpdateList(true);
 
-				e.Handled = true;
+                e.Handled = true;
 			}
 		}
 
@@ -1090,18 +1118,41 @@ namespace VSLauncher
 		/// <param name="e">The event parameters</param>
 		private void selectVisualStudioVersion_DrawItem(object sender, DrawItemEventArgs e)
 		{
-			// draw the selected item with the Visual Studio Icon and the version as text
-			if (e.Index >= 0 && e.Index <= this.visualStudioInstances.Count)
+			var palette = this.currentTheme;
+			Color backColor = palette.SurfaceAlt;
+			Color textColor = palette.Text;
+			Color selectedBackColor = palette.Selection;
+
+			if (e.Index >= 0 && e.Index < this.visualStudioInstances.Count)
 			{
-				e.DrawBackground();
+				bool selected = (e.State & DrawItemState.Selected) == DrawItemState.Selected;
+				using var backBrush = new SolidBrush(selected ? selectedBackColor : backColor);
+				using var textBrush = new SolidBrush(textColor);
+				e.Graphics.FillRectangle(backBrush, e.Bounds);
 
-				int height = 16; // selectVisualStudioVersion.Height - (selectVisualStudioVersion.Margin.Top+selectVisualStudioVersion.Margin.Bottom);
-
+				int height = 16;
 				Rectangle iconRect = new Rectangle(e.Bounds.Left + this.selectVisualStudioVersion.Margin.Left,
 													e.Bounds.Top + ((this.selectVisualStudioVersion.ItemHeight - height) / 2),
 													height, height);
 				e.Graphics.DrawIcon(this.visualStudioInstances[e.Index].AppIcon, iconRect);
-				e.Graphics.DrawString(this.visualStudioInstances[e.Index].Name, e.Font!, Brushes.Black, e.Bounds.Left + 20, e.Bounds.Top + 4);
+				e.Graphics.DrawString(this.visualStudioInstances[e.Index].Name, e.Font!, textBrush, e.Bounds.Left + 20, e.Bounds.Top + 4);
+
+				e.DrawFocusRectangle();
+			}
+			else if (e.Index == -1 && this.selectVisualStudioVersion.SelectedIndex >= 0)
+			{
+				// paint the edit portion when closed
+				using var backBrush = new SolidBrush(backColor);
+				using var textBrush = new SolidBrush(textColor);
+				e.Graphics.FillRectangle(backBrush, e.Bounds);
+
+				int height = 16;
+				Rectangle iconRect = new Rectangle(e.Bounds.Left + this.selectVisualStudioVersion.Margin.Left,
+													e.Bounds.Top + ((this.selectVisualStudioVersion.ItemHeight - height) / 2),
+													height, height);
+				var vs = this.visualStudioInstances[this.selectVisualStudioVersion.SelectedIndex];
+				e.Graphics.DrawIcon(vs.AppIcon, iconRect);
+				e.Graphics.DrawString(vs.Name, e.Font!, textBrush, e.Bounds.Left + 20, e.Bounds.Top + 4);
 			}
 		}
 
