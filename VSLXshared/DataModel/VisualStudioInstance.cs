@@ -10,6 +10,7 @@ using System.Security.Principal;
 using VSLauncher.Helpers;
 using System.Drawing;
 using VSLXshared;
+using System.Windows.Forms;
 
 namespace VSLauncher.DataModel
 {

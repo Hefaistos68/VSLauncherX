@@ -1,8 +1,7 @@
 ﻿using System.Diagnostics;
 using Microsoft.WindowsAPICodePack.Taskbar;
-
 using BrightIdeasSoftware;
-
+using ThemePalette = VSLauncher.Helpers.ThemeHelper.ThemePalette;
 using Newtonsoft.Json;
 
 using VSLauncher.DataModel;
@@ -10,11 +9,8 @@ using VSLauncher.Forms;
 using VSLauncher.Helpers;
 
 using VSLXshared.Helpers;
-using System.Globalization;
 using System.Reflection;
 using LibGit2Sharp;
-using Windows.Devices.Geolocation;
-using static System.Windows.Forms.AxHost;
 using System.Runtime.InteropServices;
 
 namespace VSLauncher
@@ -36,44 +32,8 @@ namespace VSLauncher
 
 		public JumpList TaskbarJumpList { get; private set; }
 
-		/// <summary>
-		/// Returns if the control key is pressed.
-		/// </summary>
-		/// <returns>A bool.</returns>
-		private static bool IsControlPressed()
-		{
-			return (Control.ModifierKeys & Keys.Control) == Keys.Control;
-		}
+		private ThemePalette currentTheme;
 
-		/// <summary>
-		/// Creates the described task renderer.
-		/// </summary>
-		/// <returns>A DescribedTaskRenderer.</returns>
-		private DescribedTaskRenderer CreateDescribedRenderer()
-		{
-			// Let's create an appropriately configured renderer.
-			DescribedTaskRenderer renderer = new DescribedTaskRenderer
-			{
-				// Give the renderer its own collection of images. If this isn't set, the renderer will use the
-				// SmallImageList from the ObjectListView. (this is standard Renderer behaviour, not specific to DescribedTaskRenderer).
-				ImageList = this.imageListMainIcons,
-
-				// Tell the renderer which property holds the text to be used as a description
-				DescriptionGetter = ColumnHelper.GetDescription,
-
-				// Change the formatting slightly
-				TitleFont = new Font("Verdana", 11, FontStyle.Bold),
-				DescriptionFont = new Font("Verdana", 8),
-				ImageTextSpace = 8,
-				TitleDescriptionSpace = 1,
-
-				// Use older Gdi renderering, since most people think the text looks clearer
-				UseGdiTextRendering = true,
-				Aspect = "Name"
-			};
-
-			return renderer;
-		}
 
 		/// <summary>
 		/// Initializes the listview.
@@ -203,6 +163,7 @@ namespace VSLauncher
 			InitializeComponent();
 			InitializeListview();
 			SetupDragAndDrop();
+			ApplyTheme(Properties.Settings.Default.DarkMode);
 
 			bool bAdmin = AdminInfo.IsCurrentUserAdmin();
 			bool bElevated = AdminInfo.IsElevated();
@@ -221,8 +182,15 @@ namespace VSLauncher
 
 			if (!string.IsNullOrEmpty(Properties.Settings.Default.SelectedVSversion))
 			{
-				VisualStudioInstance v = this.selectVisualStudioVersion.Versions.Where(v => v.Identifier == Properties.Settings.Default.SelectedVSversion).Single();
-				this.selectVisualStudioVersion.SelectedItem = v;
+				VisualStudioInstance? v = this.selectVisualStudioVersion.Versions.Where(v => v.Identifier == Properties.Settings.Default.SelectedVSversion).SingleOrDefault();
+				if (v is not null)
+				{
+					this.selectVisualStudioVersion.SelectedItem = v;
+				}
+				else
+				{
+					this.selectVisualStudioVersion.SelectedIndex = 0;
+				}
 			}
 			else
 			{
@@ -234,7 +202,7 @@ namespace VSLauncher
 			LoadSolutionData();
 
 			this.solutionGroups.Items.OnChanged += SolutionData_OnChanged;
-			UpdateList();
+			UpdateList(false);
 		}
 		/// <summary>
 		/// Handles the load event.
@@ -275,88 +243,23 @@ namespace VSLauncher
 		/// <param name="e"></param>
 		private void GitTimer_Tick(object? sender, EventArgs e)
 		{
+			// Only execute if this application is the foreground window
+			// Debug info for foreground window and focus conditions
+			Debug.WriteLine($"Form.ActiveForm == this: {Form.ActiveForm == this}");
+			Debug.WriteLine($"this.Focused: {this.Focused}");
+
+			if (Form.ActiveForm != this)
+			{
+				return;
+			}
+
 			toolStripStatusGit.Visible = true;
-			FetchGitStatus(this.solutionGroups);
+			FetchGitStatusAsync(this.solutionGroups);
 			this.olvFiles.Invalidate();
 			this.olvFiles.Update();
 			toolStripStatusGit.Visible = false;
 		}
 
-		/// <summary>
-		/// Finds the visual studio installer and sets up the button.
-		/// </summary>
-		private void FindVisualStudioInstaller()
-		{
-			string vsi = VisualStudioInstanceManager.InstallerPath;
-
-			btnVsInstaller.Tag = vsi;
-
-			if (vsi.StartsWith("http"))
-			{
-				btnVsInstaller.Text = "Download Visual Studio";
-				btnVsInstaller.Image = Resources.Download;
-			}
-			else
-			{
-				btnVsInstaller.Tag = vsi;
-				btnVsInstaller.Text = "Visual Studio Installer";
-				// get icon from installer and set as image into the button
-				Icon? ico = Icon.ExtractAssociatedIcon(vsi);
-				btnVsInstaller.Image = ico is null ? Resources.Installer : ico.ToBitmap();
-			}
-		}
-
-		/// <summary>
-		/// Fetches the git status for all items in the tree
-		/// </summary>
-		/// <param name="folder">The folder.</param>
-		private void FetchGitStatus(VsFolder folder)
-		{
-			foreach (var item in folder.Items)
-			{
-				if (item is not VsFolder)
-				{
-					// find out if this is a git repo by looking for the ".git" folder
-					// if it is, then we can get the status
-
-					try
-					{
-						using (var repo = new Repository(Path.GetDirectoryName(item.Path)))
-						{
-							var stat = repo.RetrieveStatus();
-							
-							item.Status = stat.IsDirty ? "*" : "!";
-							item.BranchName = repo.Head.FriendlyName;
-						}
-					}
-					catch (RepositoryNotFoundException ex)
-					{
-						// retry with the parent folder
-						try
-						{
-							using (var repo = new Repository(Path.GetDirectoryName(Path.GetDirectoryName(item.Path))))
-							{
-								var stat = repo.RetrieveStatus();
-								
-								item.Status = stat.IsDirty ? "*" : "!";
-								item.BranchName = repo.Head.FriendlyName;
-							}
-						}
-						catch (RepositoryNotFoundException ex2)
-						{
-							// this is not a GIT repository
-							item.Status = "?";
-							item.BranchName = string.Empty;
-
-						}
-					}
-				}
-				else
-				{
-					FetchGitStatus(item as VsFolder);
-				}
-			}
-		}
 
 		/// <summary>
 		/// Handles the form closing, saves state
@@ -390,73 +293,7 @@ namespace VSLauncher
 			SaveSolutionData();
 		}
 
-		/// <summary>
-		/// Merges new items into the selected list item
-		/// </summary>
-		/// <param name="r">The selected item</param>
-		/// <param name="source">The source to add</param>
-		private void MergeNewItems(OLVListItem r, VsItemList source)
-		{
-			if (r == null)
-			{
-				// nothing selected, add to the end
-				this.solutionGroups.Items.AddRange(source);
-				this.solutionGroups.Items.Sort((x, y) => string.Compare(x.Name, y.Name, StringComparison.OrdinalIgnoreCase));
-			}
-			else
-			{
-				if (r.RowObject is VsFolder sg)
-				{
-					// add below selected item
-					sg.Items.AddRange(source);
-					sg.Items.Sort((x, y) => string.Compare(x.Name, y.Name, StringComparison.OrdinalIgnoreCase));
-				}
-				else
-				{
-					// get parent of this item
-					_ = this.solutionGroups.FindParent(r.RowObject as VsItem);
 
-					// add at the end
-					this.solutionGroups.Items.AddRange(source);
-					this.solutionGroups.Items.Sort((x, y) => string.Compare(x.Name, y.Name, StringComparison.OrdinalIgnoreCase));
-				}
-			}
-		}
-
-		/// <summary>
-		/// Merges a new item into the selected list item
-		/// </summary>
-		/// <param name="r">The selected list item</param>
-		/// <param name="source">The source to add</param>
-		private void MergeNewItem(OLVListItem r, VsItem source)
-		{
-			if (r == null)
-			{
-				// nothing selected, add to the end
-				this.solutionGroups.Items.Add(source);
-				this.solutionGroups.Items.Sort((x, y) => string.Compare(x.Name, y.Name, StringComparison.OrdinalIgnoreCase));
-			}
-			else
-			{
-				if (r.RowObject is VsFolder sg)
-				{
-					// add below selected item
-					sg.Items.Add(source);
-					sg.Items.Sort((x, y) => string.Compare(x.Name, y.Name, StringComparison.OrdinalIgnoreCase));
-				}
-				else
-				{
-					// get parent of this item
-					VsFolder? vsi = this.solutionGroups.FindParent(r.RowObject as VsItem);
-
-					// add at the end
-					vsi?.Items.Add(source);
-					vsi?.Items.Sort((x, y) => string.Compare(x.Name, y.Name, StringComparison.OrdinalIgnoreCase));
-				}
-			}
-
-			// Sort the list of items
-		}
 
 		#region Taskbar handling
 
@@ -575,7 +412,7 @@ namespace VSLauncher
 			if (this.olvFiles.SelectedItem != null)
 			{
 				VsItem item = (VsItem)this.olvFiles.SelectedItem.RowObject;
-				
+
 				if (item is not VsFolder)
 				{
 					Process.Start("explorer.exe", "/select, " + item.Path);
@@ -638,7 +475,7 @@ namespace VSLauncher
 				{
 					// add the item to the list
 					MergeNewItem(this.olvFiles.SelectedItem, dlg2.Item!);
-					UpdateList();
+					UpdateList(true);
 				}
 			}
 		}
@@ -654,8 +491,8 @@ namespace VSLauncher
 			LoadSolutionData();
 			this.solutionGroups.Items.OnChanged += SolutionData_OnChanged;
 
-			UpdateList();
-			FetchGitStatus(this.solutionGroups);
+			UpdateList(true);
+			// FetchGitStatus(this.solutionGroups);
 		}
 
 		/// <summary>
@@ -686,24 +523,33 @@ namespace VSLauncher
 					Program.RemoveTaskScheduler();
 				}
 
+				ApplyTheme(Properties.Settings.Default.DarkMode);
 				_ = SolutionData_OnChanged(true);
 			}
 		}
 
-		/// <summary>
-		/// Restarts the application to register it with admin rights.
-		/// </summary>
-		private void RestartOurselves()
+		private void ApplyTheme(bool useDarkMode)
 		{
-			ProcessStartInfo startInfo = new ProcessStartInfo
-			{
-				FileName = Assembly.GetExecutingAssembly().Location.Replace(".dll", ".exe"),
-				Arguments = "register",
-				Verb = "runas",
-				UseShellExecute = true
-			};
+			this.currentTheme = ThemeHelper.GetPalette(useDarkMode);
 
-			Process.Start(startInfo);
+			ThemeHelper.ApplyTheme(this, this.currentTheme);
+			ThemeHelper.ApplyTheme(this.ctxMenu, this.currentTheme);
+
+			this.olvFiles.HighlightBackgroundColor = this.currentTheme.Selection;
+			this.olvFiles.UnfocusedHighlightBackgroundColor = this.currentTheme.Selection;
+			this.olvFiles.AlternateRowBackColor = this.currentTheme.SurfaceAlt;
+
+			if (this.olvFiles.TreeColumnRenderer != null)
+			{
+				this.olvFiles.TreeColumnRenderer.FillBrush = new SolidBrush(this.currentTheme.Accent);
+				this.olvFiles.TreeColumnRenderer.FramePen = new Pen(this.currentTheme.Border);
+			}
+
+			if (this.itemRenderer is DescribedTaskRenderer describedTaskRenderer)
+			{
+				describedTaskRenderer.TitleColor = this.currentTheme.Text;
+				describedTaskRenderer.DescriptionColor = this.currentTheme.SubText;
+			}
 		}
 
 		#endregion
@@ -893,28 +739,29 @@ namespace VSLauncher
 						MergeNewItem(e.DropTargetItem, item);
 					}
 					else if (item?.ItemType == ItemTypeEnum.Other)
-					{
-						// check if the file is actually a folder, then invoke the import folder dialog
-						FileInfo fi = new FileInfo(file);
-						if (fi.Attributes.HasFlag(FileAttributes.Directory))
-						{
-							dlgImportFolder dlg = new dlgImportFolder(file);
+                    {
+                        // check if the file is actually a folder, then invoke the import folder dialog
+                        FileInfo fi = new FileInfo(file);
+                        if (fi.Attributes.HasFlag(FileAttributes.Directory))
+                        {
+                            dlgImportFolder dlg = new dlgImportFolder(file);
+                            
 							if (dlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
-							{
-								OLVListItem r = this.olvFiles.SelectedItem;
-								VsItemList source = dlg.Solution.Items;
+                            {
+                                OLVListItem r = this.olvFiles.SelectedItem;
+                                VsItemList source = dlg.Solution.Items;
 
-								MergeNewItems(r, source);
+                                MergeNewItems(r, source);
 
-								_ = SolutionData_OnChanged(true);
-							}
-						}
-					}
-				}
+                                _ = SolutionData_OnChanged(true);
+                            }
+                        }
+                    }
+                }
 
-				UpdateList();
+                UpdateList(true);
 
-				e.Handled = true;
+                e.Handled = true;
 			}
 		}
 
@@ -1271,18 +1118,41 @@ namespace VSLauncher
 		/// <param name="e">The event parameters</param>
 		private void selectVisualStudioVersion_DrawItem(object sender, DrawItemEventArgs e)
 		{
-			// draw the selected item with the Visual Studio Icon and the version as text
-			if (e.Index >= 0 && e.Index <= this.visualStudioInstances.Count)
+			var palette = this.currentTheme;
+			Color backColor = palette.SurfaceAlt;
+			Color textColor = palette.Text;
+			Color selectedBackColor = palette.Selection;
+
+			if (e.Index >= 0 && e.Index < this.visualStudioInstances.Count)
 			{
-				e.DrawBackground();
+				bool selected = (e.State & DrawItemState.Selected) == DrawItemState.Selected;
+				using var backBrush = new SolidBrush(selected ? selectedBackColor : backColor);
+				using var textBrush = new SolidBrush(textColor);
+				e.Graphics.FillRectangle(backBrush, e.Bounds);
 
-				int height = 16; // selectVisualStudioVersion.Height - (selectVisualStudioVersion.Margin.Top+selectVisualStudioVersion.Margin.Bottom);
-
+				int height = 16;
 				Rectangle iconRect = new Rectangle(e.Bounds.Left + this.selectVisualStudioVersion.Margin.Left,
 													e.Bounds.Top + ((this.selectVisualStudioVersion.ItemHeight - height) / 2),
 													height, height);
 				e.Graphics.DrawIcon(this.visualStudioInstances[e.Index].AppIcon, iconRect);
-				e.Graphics.DrawString(this.visualStudioInstances[e.Index].Name, e.Font!, Brushes.Black, e.Bounds.Left + 20, e.Bounds.Top + 4);
+				e.Graphics.DrawString(this.visualStudioInstances[e.Index].Name, e.Font!, textBrush, e.Bounds.Left + 20, e.Bounds.Top + 4);
+
+				e.DrawFocusRectangle();
+			}
+			else if (e.Index == -1 && this.selectVisualStudioVersion.SelectedIndex >= 0)
+			{
+				// paint the edit portion when closed
+				using var backBrush = new SolidBrush(backColor);
+				using var textBrush = new SolidBrush(textColor);
+				e.Graphics.FillRectangle(backBrush, e.Bounds);
+
+				int height = 16;
+				Rectangle iconRect = new Rectangle(e.Bounds.Left + this.selectVisualStudioVersion.Margin.Left,
+													e.Bounds.Top + ((this.selectVisualStudioVersion.ItemHeight - height) / 2),
+													height, height);
+				var vs = this.visualStudioInstances[this.selectVisualStudioVersion.SelectedIndex];
+				e.Graphics.DrawIcon(vs.AppIcon, iconRect);
+				e.Graphics.DrawString(vs.Name, e.Font!, textBrush, e.Bounds.Left + 20, e.Bounds.Top + 4);
 			}
 		}
 
@@ -1339,158 +1209,12 @@ namespace VSLauncher
 			{
 				this.solutionGroups.LastModified = DateTime.Now;
 				SaveSolutionData();
-				UpdateList();
+				UpdateList(true);
 			}
 
 			return false;
 		}
 
-		/// <summary>
-		/// Loads the solution data.
-		/// </summary>
-		private void LoadSolutionData()
-		{
-			// load this.solutionGroups data from a JSON file in the users data folder
-			string fileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "VSLauncher", "VSLauncher.json");
-
-			if (File.Exists(fileName))
-			{
-				string json = File.ReadAllText(fileName);
-				JsonSerializerSettings settings = new JsonSerializerSettings()
-				{
-					TypeNameHandling = TypeNameHandling.All
-				};
-
-				VsFolder? data = null;
-
-				try
-				{
-					data = JsonConvert.DeserializeObject<VsFolder>(json, settings);
-				}
-				catch (System.Exception)
-				{
-					// probably wrong format
-				}
-
-				if (data is null)
-				{
-					// alert the user that the datafile was unreadable
-					_ = MessageBox.Show($"The datafile was unreadable. Please check the file in '{fileName}' and try again.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-				}
-				else
-				{
-					data.Refresh();
-					this.solutionGroups = data;
-				}
-			}
-		}
-
-		/// <summary>
-		/// Saves the solution data.
-		/// </summary>
-		private void SaveSolutionData()
-		{
-			// 			if (true)
-			// 			{
-			// 				JsonSerializerSettings settings = new JsonSerializerSettings()
-			// 				{
-			// 					Formatting = Formatting.Indented,
-			// 					TypeNameHandling = TypeNameHandling.All
-			// 				};
-			// 
-			// 				string json = JsonConvert.SerializeObject(this.solutionGroups, settings);
-			// 				// testing out storing the file in the google drive
-			// 				new GoogleDriveStorage().Upload(json);
-			// 			}
-
-			// save this.solutionGroups data to a JSON file in the users data folder
-			string fileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "VSLauncher", "VSLauncher.json");
-
-			try
-			{
-				string? dir = Path.GetDirectoryName(fileName);
-				if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
-				{
-					// make sure the path exists
-					_ = Directory.CreateDirectory(dir);
-				}
-
-				JsonSerializerSettings settings = new JsonSerializerSettings()
-				{
-					Formatting = Formatting.Indented,
-					TypeNameHandling = TypeNameHandling.All
-				};
-
-				string json = JsonConvert.SerializeObject(this.solutionGroups, settings);
-				try
-				{
-					File.WriteAllText(fileName, json);
-				}
-				catch (System.Exception ex)
-				{
-					// alert user of an error saving the data
-					_ = MessageBox.Show($"There was an error saving the data. \r\n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-				}
-			}
-			catch (System.Exception ex)
-			{
-				_ = MessageBox.Show($"There was an error saving the data. \r\n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-			}
-		}
-
-		/// <summary>
-		/// Rebuilds the filters.
-		/// </summary>
-		private void RebuildFilters()
-		{
-			this.olvFiles.ModelFilter = string.IsNullOrEmpty(this.txtFilter.Text) ? null : new TextMatchFilter(this.olvFiles, this.txtFilter.Text);
-			// this.olvFiles.AdditionalFilter = filters.Count == 0 ? null : new CompositeAllFilter(filters);
-		}
-
-		/// <summary>
-		/// Updates the list.
-		/// </summary>
-		private void UpdateList()
-		{
-			// TODO: must verify items before loading, indicate missing items through warning icon
-			this.olvFiles.SetObjects(this.solutionGroups.Items);
-
-			IterateAndSortItems();
-			IterateAndExpandItems();
-			FetchGitStatus(this.solutionGroups);
-		}
-		
-		private void IterateAndSortItems()
-		{
-			foreach (var item in this.olvFiles.Objects)
-			{
-				if (item is VsFolder folder)
-				{
-					folder.Items.Sort((x, y) => string.Compare(x.Name, y.Name, StringComparison.OrdinalIgnoreCase));
-				}
-			}
-		}
-
-		/// <summary>
-		/// Iterates through the items in the ObjectListView and expands or collapses them based on their state.
-		/// </summary>
-		private void IterateAndExpandItems()
-		{
-			foreach (var item in this.olvFiles.Objects)
-			{
-				if (item is VsFolder folder)
-				{
-					if (folder.Expanded)
-					{
-						this.olvFiles.Expand(item);
-					}
-					else
-					{
-						this.olvFiles.Collapse(item);
-					}
-				}
-			}
-		}
 		#endregion
 
 		#region Main VS Execution Buttons handling
@@ -1669,6 +1393,10 @@ namespace VSLauncher
 			if (this.olvFiles.SelectedObject is VsItem i)
 			{
 				this.favoriteToolStripMenuItem.Checked = i.IsFavorite;
+
+				// Check if the item is under Git control
+
+				SetupBranchMenu(i);
 			}
 			if (this.olvFiles.SelectedObject is null)
 			{
@@ -1694,6 +1422,120 @@ namespace VSLauncher
 			if (e.KeyChar == (char)Keys.Escape)
 			{
 				this.txtFilter.Text = string.Empty;
+			}
+		}
+
+		/// <summary>
+		/// Handles the click event for branch menu items.
+		/// Adds credential-aware fetch to avoid "remote authentication required but no callback set".
+		/// </summary>
+		private void BranchMenuItem_Click(object sender, EventArgs e, VsItem item, string branchName)
+		{
+			try
+			{
+				var repoPath = Path.GetDirectoryName(item.Path);
+				using (var repo = new Repository(repoPath))
+				{
+					// Ensure local branch exists; if not, try to fetch from origin first with credentials.
+					var target = repo.Branches[branchName];
+					if (target == null)
+					{
+						var remote = repo.Network.Remotes["origin"]; // fallback to 'origin'
+						if (remote != null)
+						{
+							var fetchOptions = new FetchOptions
+							{
+								CredentialsProvider = GitCredentialsProvider
+							};
+							Commands.Fetch(repo, remote.Name, remote.FetchRefSpecs.Select(r => r.Specification), fetchOptions, null);
+							// Re-acquire branch after fetch
+							target = repo.Branches[branchName];
+						}
+					}
+
+					if (target == null)
+					{
+						MessageBox.Show($"Branch '{branchName}' not found after fetch.", "Branch Checkout", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+						return;
+					}
+
+					Commands.Checkout(repo, target);
+					MessageBox.Show($"Checked out branch: {branchName}", "Branch Checkout", MessageBoxButtons.OK, MessageBoxIcon.Information);
+				}
+			}
+			catch (LibGit2SharpException ex) when (ex.Message.Contains("remote authentication required"))
+			{
+				MessageBox.Show("Authentication required for remote repository. Configure credentials (PAT or DefaultCredentials).", "Git Authentication", MessageBoxButtons.OK, MessageBoxIcon.Error);
+			}
+			catch (Exception ex)
+			{
+				MessageBox.Show($"Error checking out branch: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+			}
+		}
+
+		/// <summary>
+		/// Fetch with credentials.
+		/// </summary>
+		private void fetchToolStripMenuItem_Click(object sender, EventArgs e)
+		{
+			if (this.olvFiles.SelectedObject is VsItem item and not VsFolder)
+			{
+				try
+				{
+					using (var repo = new Repository(Path.GetDirectoryName(item.Path)))
+					{
+						var remote = repo.Network.Remotes[repo.Head.RemoteName];
+						var fetchOptions = new FetchOptions { CredentialsProvider = GitCredentialsProvider };
+						Commands.Fetch(repo, remote.Name, remote.FetchRefSpecs.Select(rs => rs.Specification), fetchOptions, null);
+						MessageBox.Show(this, $"Fetched: {remote.Name} ({repo.Head.FriendlyName})", "Branch Fetch", MessageBoxButtons.OK, MessageBoxIcon.Information);
+					}
+				}
+				catch (LibGit2SharpException ex) when (ex.Message.Contains("remote authentication required"))
+				{
+					MessageBox.Show(this, "Authentication required for remote repository. Configure credentials.", "Git Authentication", MessageBoxButtons.OK, MessageBoxIcon.Error);
+				}
+				catch (Exception ex)
+				{
+					MessageBox.Show(this, $"Error fetching: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Pull with credentials.
+		/// </summary>
+		private void pullToolStripMenuItem_Click(object sender, EventArgs e)
+		{
+			if (this.olvFiles.SelectedObject is VsItem item and not VsFolder)
+			{
+				try
+				{
+					using (var repo = new Repository(Path.GetDirectoryName(item.Path)))
+					{
+						var stat = repo.RetrieveStatus();
+						if (stat.IsDirty)
+						{
+							var msgResult = MessageBox.Show(this, "There are uncommitted changes. Continue with pull?", "Uncommitted Changes", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+							if (msgResult == DialogResult.No)
+								return;
+						}
+
+						var pullOptions = new PullOptions
+						{
+							FetchOptions = new FetchOptions { CredentialsProvider = GitCredentialsProvider }
+						};
+						var result = Commands.Pull(repo, new Signature("VSLauncherX", "user@example.com", DateTimeOffset.Now), pullOptions);
+						MessageBox.Show(this, $"Pulled: {repo.Head.RemoteName} ({repo.Head.FriendlyName})\r\nStatus: {result.Status}", "Branch Pull", MessageBoxButtons.OK, MessageBoxIcon.Information);
+					}
+				}
+				catch (LibGit2SharpException ex) when (ex.Message.Contains("remote authentication required"))
+				{
+					MessageBox.Show(this, "Authentication required for remote repository. Configure credentials.", "Git Authentication", MessageBoxButtons.OK, MessageBoxIcon.Error);
+				}
+				catch (Exception ex)
+				{
+					MessageBox.Show($"Error pulling: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+				}
 			}
 		}
 	}
