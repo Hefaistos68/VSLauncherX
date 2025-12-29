@@ -32,19 +32,35 @@ namespace VSLauncher.Properties
             // Add code to handle the SettingsSaving event here.
         }
 
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        public bool DarkMode
-        {
-            get
-            {
-                return ((bool)(this["DarkMode"] ?? IsSystemInDarkMode()));
-            }
-            set
-            {
-                this["DarkMode"] = value;
-            }
-        }
+		[global::System.Configuration.UserScopedSettingAttribute()]
+		[global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+		[global::System.Configuration.DefaultSettingValueAttribute("False")]
+		public bool DarkMode
+		{
+			get
+			{
+        return ((bool)(this["DarkMode"] ?? IsSystemInDarkMode()));
+			}
+			set
+			{
+				this["DarkMode"] = value;
+			}
+		}
+
+		[global::System.Configuration.UserScopedSettingAttribute()]
+		[global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+		[global::System.Configuration.DefaultSettingValueAttribute("")]
+		public System.Windows.Forms.FormWindowState AppWindow
+		{
+			get
+			{
+				return ((System.Windows.Forms.FormWindowState)(this["AppWindow"]));
+			}
+			set
+			{
+				this["AppWindow"] = value;
+			}
+		}
 
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
