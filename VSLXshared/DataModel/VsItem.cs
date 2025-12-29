@@ -18,7 +18,7 @@ namespace VSLauncher.DataModel
 	/// The vs item.
 	/// </summary>
 	public class VsItem : VsOptions
-    {
+	{
 		/// <summary>
 		/// Initializes a new instance of the <see cref="VsItem"/> class.
 		/// </summary>
@@ -46,6 +46,8 @@ namespace VSLauncher.DataModel
 			this.Name = name ?? throw new ArgumentNullException(nameof(name));
 			this.Path = path ?? throw new ArgumentNullException(nameof(path));
 			this.LastModified = modified ?? DateTime.Now;
+
+			this.BranchName = string.Empty;
 		}
 
 		/// <summary>
@@ -112,6 +114,10 @@ namespace VSLauncher.DataModel
 		/// </summary>
 		[JsonIgnore]
 		public string? Status { get; set; }
+		/// <summary>
+		/// Gets or sets the branch name.
+		/// </summary>
+		public string BranchName { get; set; }
 
 		/// <summary>
 		/// Refreshes the item
@@ -119,5 +125,5 @@ namespace VSLauncher.DataModel
 		public virtual void Refresh()
 		{
 		}
-    }
+	}
 }
