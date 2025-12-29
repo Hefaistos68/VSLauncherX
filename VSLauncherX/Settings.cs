@@ -39,7 +39,16 @@ namespace VSLauncher.Properties
 		{
 			get
 			{
-        return ((bool)(this["DarkMode"] ?? IsSystemInDarkMode()));
+				object value = this["DarkMode"];
+				if (value == null)
+				{
+					bool systemDefault = IsSystemInDarkMode();
+					this["DarkMode"] = systemDefault;
+					// Optionally persist immediately:
+					// this.Save();
+					return systemDefault;
+				}
+				return (bool)value;
 			}
 			set
 			{
