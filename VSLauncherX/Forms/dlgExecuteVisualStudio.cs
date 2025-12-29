@@ -124,7 +124,7 @@ namespace VSLauncher
 		/// <param name="e">The e.</param>
 		private void cbxVisualStudioVersion_SelectedIndexChanged(object sender, EventArgs e)
 		{
-			if(cbxVisualStudioVersion.SelectedIndex != -1)
+			if(cbxVisualStudioVersion.SelectedIndex >= 0)
 			{
 				var s = this.cbxVisualStudioVersion.SelectedItem!.GetInstances();
 				this.cbxInstance.Enabled = true;

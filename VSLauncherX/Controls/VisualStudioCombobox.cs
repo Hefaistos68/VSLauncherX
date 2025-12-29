@@ -1,4 +1,6 @@
 ﻿using VSLauncher.DataModel;
+using VSLauncher.Helpers;
+using ThemePalette = VSLauncher.Helpers.ThemeHelper.ThemePalette;
 
 namespace VSLauncher.Controls
 {
@@ -9,8 +11,12 @@ namespace VSLauncher.Controls
     {
         private VisualStudioInstanceManager visualStudioVersions = new VisualStudioInstanceManager();
         private bool showDefault;
+        private ThemePalette? currentTheme;
 
-        public VisualStudioCombobox()
+		/// <summary>
+		/// Initializes a new instance of the <see cref="VisualStudioCombobox"/> class.
+		/// </summary>
+		public VisualStudioCombobox()
         {
             DrawMode = DrawMode.OwnerDrawFixed;
             DropDownStyle = ComboBoxStyle.DropDownList;
@@ -108,8 +114,10 @@ namespace VSLauncher.Controls
         }
 
         protected override void OnDropDown(EventArgs e)
-        {
-            Items.Clear();
+		{
+			int selectedItem = SelectedIndex; // remember the item selected before clearing the list
+
+			Items.Clear();
 
             if (ShowDefault)
             {
@@ -118,7 +126,9 @@ namespace VSLauncher.Controls
 
             Items.AddRange(visualStudioVersions.All.ToArray());
 
-            base.OnDropDown(e);
+			SelectedIndex = selectedItem < 0 ? -1 : selectedItem;   // set the previously selected item back
+
+			base.OnDropDown(e);
         }
 
         /// <summary>
@@ -177,40 +187,60 @@ namespace VSLauncher.Controls
         }
 
         /// <summary>
+        /// Applies themed colors.
+        /// </summary>
+        internal void ApplyTheme(ThemePalette palette)
+        {
+            this.currentTheme = palette;
+            BackColor = palette.SurfaceAlt;
+            ForeColor = palette.Text;
+        }
+
+        /// <summary>
         /// Custom draws the item
         /// </summary>
         /// <param name="sender">The sender.</param>
         /// <param name="e">The e.</param>
         private void CustomDrawItem(object sender, DrawItemEventArgs e)
         {
-            // draw the selected item with the Visual Studio Icon and the version as text
             if (e.Index >= 0 && e.Index <= visualStudioVersions.Count)
             {
-                e.DrawBackground();
+                var palette = this.currentTheme;
+                bool selected = (e.State & DrawItemState.Selected) == DrawItemState.Selected;
+                Color backColor = selected ? (palette?.Selection ?? SystemColors.Highlight) : (palette?.SurfaceAlt ?? SystemColors.Window);
+                Color textColor = palette?.Text ?? SystemColors.ControlText;
 
-                var height = 16;
-
-                Rectangle iconRect = new Rectangle(e.Bounds.Left + Margin.Left,
-                                                    e.Bounds.Top + (ItemHeight - height) / 2,
-                                                    height, height);
-                if (ShowDefault)
+                using (var backBrush = new SolidBrush(backColor))
+                using (var textBrush = new SolidBrush(textColor))
                 {
-                    if (e.Index > 0)
+                    e.Graphics.FillRectangle(backBrush, e.Bounds);
+
+                    int height = 16;
+                    Rectangle iconRect = new Rectangle(e.Bounds.Left + Margin.Left,
+                                                        e.Bounds.Top + (ItemHeight - height) / 2,
+                                                        height, height);
+
+                    if (ShowDefault)
                     {
-                        e.Graphics.DrawIcon(visualStudioVersions[e.Index - 1].AppIcon, iconRect);
-                        e.Graphics.DrawString(visualStudioVersions[e.Index - 1].Name, e.Font, Brushes.Black, e.Bounds.Left + 20, e.Bounds.Top + 4);
+                        if (e.Index > 0)
+                        {
+                            e.Graphics.DrawIcon(visualStudioVersions[e.Index - 1].AppIcon, iconRect);
+                            e.Graphics.DrawString(visualStudioVersions[e.Index - 1].Name, e.Font, textBrush, e.Bounds.Left + 20, e.Bounds.Top + 4);
+                        }
+                        else
+                        {
+                            e.Graphics.DrawIcon(Resources.AppLogo, iconRect);
+                            e.Graphics.DrawString("<default>", e.Font, textBrush, e.Bounds.Left + 20, e.Bounds.Top + 4);
+                        }
                     }
                     else
                     {
-                        e.Graphics.DrawIcon(Resources.AppLogo, iconRect);
-                        e.Graphics.DrawString("<default>", e.Font, Brushes.Black, e.Bounds.Left + 20, e.Bounds.Top + 4);
+                        e.Graphics.DrawIcon(visualStudioVersions[e.Index].AppIcon, iconRect);
+                        e.Graphics.DrawString(visualStudioVersions[e.Index].Name, e.Font, textBrush, e.Bounds.Left + 20, e.Bounds.Top + 4);
                     }
                 }
-                else
-                {
-                    e.Graphics.DrawIcon(visualStudioVersions[e.Index].AppIcon, iconRect);
-                    e.Graphics.DrawString(visualStudioVersions[e.Index].Name, e.Font, Brushes.Black, e.Bounds.Left + 20, e.Bounds.Top + 4);
-                }
+
+                e.DrawFocusRectangle();
             }
         }
 

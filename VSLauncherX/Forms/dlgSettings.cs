@@ -26,6 +26,7 @@ namespace VSLauncher.Forms
 			Properties.Settings.Default.AutoStart = chkAutostart.Checked;
 			Properties.Settings.Default.SynchronizeVS = chkSync.Checked;
 			Properties.Settings.Default.ShowPathForSolutions = chkShowPath.Checked;
+			Properties.Settings.Default.DarkMode = chkDarkMode.Checked;
 			Properties.Settings.Default.Save();
 		}
 
@@ -35,6 +36,7 @@ namespace VSLauncher.Forms
 			chkAlwaysAdmin.Checked = Properties.Settings.Default.AlwaysAdmin;
 			chkSync.Checked = Properties.Settings.Default.SynchronizeVS;
 			chkShowPath.Checked = Properties.Settings.Default.ShowPathForSolutions;
+			chkDarkMode.Checked = Properties.Settings.Default.DarkMode;
 		}
 	}
 }

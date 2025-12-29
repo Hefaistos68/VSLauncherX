@@ -76,9 +76,9 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
-using System.Reflection;
 using System.Windows.Forms;
 using System.Runtime.InteropServices;
+using System.Reflection;
 
 namespace BrightIdeasSoftware
 {
@@ -389,14 +389,8 @@ namespace BrightIdeasSoftware
                 if (value == this.VirtualListSize || value < 0)
                     return;
 
-                // Get around the 'private' marker on 'virtualListSize' field using reflection
-                if (virtualListSizeFieldInfo == null) {
-                    virtualListSizeFieldInfo = typeof(ListView).GetField("virtualListSize", BindingFlags.NonPublic | BindingFlags.Instance);
-                    System.Diagnostics.Debug.Assert(virtualListSizeFieldInfo != null);
-                }
-
                 // Set the base class private field so that it keeps on working
-                virtualListSizeFieldInfo.SetValue(this, value);
+                base.VirtualListSize = value;
 
                 // Send a raw message to change the virtual list size *without* changing the scroll position
                 if (this.IsHandleCreated && !this.DesignMode)
@@ -498,7 +492,7 @@ namespace BrightIdeasSoftware
         /// <remark>This method can safely be called from background threads.</remark>
         public override void ClearObjects() {
             if (this.InvokeRequired)
-                this.Invoke(new MethodInvoker(this.ClearObjects));
+                this.Invoke((System.Windows.Forms.MethodInvoker)this.ClearObjects);
             else {
                 this.CheckStateMap.Clear();
                 this.SetObjects(new ArrayList());
@@ -576,7 +570,7 @@ namespace BrightIdeasSoftware
         /// <remarks>This method does not resort the items.</remarks>
         public override void RefreshObjects(IList modelObjects) {
             if (this.InvokeRequired) {
-                this.Invoke((MethodInvoker)delegate { this.RefreshObjects(modelObjects); });
+                this.Invoke((System.Windows.Forms.MethodInvoker)delegate { this.RefreshObjects(modelObjects); });
                 return;
             }
 
@@ -698,7 +692,7 @@ namespace BrightIdeasSoftware
         /// <param name="preserveState">Should the state of the list be preserved as far as is possible.</param>
         public override void SetObjects(IEnumerable collection, bool preserveState) {
             if (this.InvokeRequired) {
-                this.Invoke((MethodInvoker)delegate { this.SetObjects(collection, preserveState); });
+                this.Invoke((System.Windows.Forms.MethodInvoker)delegate { this.SetObjects(collection, preserveState); });
                 return;
             }
 

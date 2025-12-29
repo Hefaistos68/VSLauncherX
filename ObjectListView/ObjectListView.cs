@@ -585,6 +585,8 @@ using System.Windows.Forms;
 using System.Windows.Forms.VisualStyles;
 using System.Runtime.Serialization.Formatters;
 using System.Threading;
+using MethodInvoker = System.Windows.Forms.MethodInvoker;
+using System.Text.Json;
 
 namespace BrightIdeasSoftware
 {
@@ -5427,9 +5429,7 @@ namespace BrightIdeasSoftware
 
             // Now that we have stored our state, convert it to a byte array
             using (MemoryStream ms = new MemoryStream()) {
-                BinaryFormatter serializer = new BinaryFormatter();
-                serializer.AssemblyFormat = FormatterAssemblyStyle.Simple;
-                serializer.Serialize(ms, olvState);
+                JsonSerializer.Serialize(ms, olvState);
                 return ms.ToArray();
             }
         }
@@ -5442,10 +5442,9 @@ namespace BrightIdeasSoftware
         /// <returns>Returns true if the state was restored</returns>
         public virtual bool RestoreState(byte[] state) {
             using (MemoryStream ms = new MemoryStream(state)) {
-                BinaryFormatter deserializer = new BinaryFormatter();
                 ObjectListViewState olvState;
                 try {
-                    olvState = deserializer.Deserialize(ms) as ObjectListViewState;
+                    olvState = JsonSerializer.Deserialize<ObjectListViewState>(ms);
                 } catch (System.Runtime.Serialization.SerializationException) {
                     return false;
                 }
