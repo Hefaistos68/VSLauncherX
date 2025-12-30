@@ -56,21 +56,6 @@ namespace VSLauncher.Properties
 			}
 		}
 
-		[global::System.Configuration.UserScopedSettingAttribute()]
-		[global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-		[global::System.Configuration.DefaultSettingValueAttribute("")]
-		public System.Windows.Forms.FormWindowState AppWindow
-		{
-			get
-			{
-				return ((System.Windows.Forms.FormWindowState)(this["AppWindow"]));
-			}
-			set
-			{
-				this["AppWindow"] = value;
-			}
-		}
-
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("")]
