@@ -200,25 +200,68 @@ namespace VSLauncher
 		/// <param name="folder">The folder.</param>
 		private void FetchGitStatusAsync(VsFolder folder)
 		{
-			Task.Run(() => FetchGitStatusBackground(folder));
+			// Build a snapshot of items on the UI thread to avoid concurrent modification while iterating.
+			List<VsItem> snapshot = CollectGitTargets(folder);
+
+			Task.Run(() => FetchGitStatusBackground(snapshot));
 		}
 
 		/// <summary>
-		/// Fetches the git status for all items in the tree
+		/// Collects all non-folder items from the tree into a flat list.
+		/// Executed on the UI thread to avoid concurrent modification of the tree while building the snapshot.
 		/// </summary>
-		/// <param name="folder">The folder.</param>
-		private void FetchGitStatusBackground(VsFolder folder)
+		/// <param name="folder">The root folder.</param>
+		/// <returns>A list of VsItem.</returns>
+		private static List<VsItem> CollectGitTargets(VsFolder folder)
 		{
-			foreach (var item in folder.Items)
-			{
-				if (item is not VsFolder)
-				{
-					string? status = null;
-					string? branchName = null;
+			List<VsItem> items = new();
+			Stack<VsFolder> stack = new();
+			stack.Push(folder);
 
+			while (stack.Count > 0)
+			{
+				VsFolder current = stack.Pop();
+				foreach (var item in current.Items)
+				{
+					if (item is VsFolder childFolder)
+					{
+						stack.Push(childFolder);
+					}
+					else
+					{
+						items.Add(item);
+					}
+				}
+			}
+
+			return items;
+		}
+
+		/// <summary>
+		/// Fetches the git status for all items in the provided snapshot.
+		/// </summary>
+		/// <param name="items">The items.</param>
+		private void FetchGitStatusBackground(IEnumerable<VsItem> items)
+		{
+			foreach (var item in items)
+			{
+				string? status = null;
+				string? branchName = null;
+
+				try
+				{
+					using (var repo = new Repository(Path.GetDirectoryName(item.Path)))
+					{
+						var stat = repo.RetrieveStatus();
+						status = stat.IsDirty ? "*" : "!";
+						branchName = repo.Head.FriendlyName;
+					}
+				}
+				catch (RepositoryNotFoundException)
+				{
 					try
 					{
-						using (var repo = new Repository(Path.GetDirectoryName(item.Path)))
+						using (var repo = new Repository(Path.GetDirectoryName(Path.GetDirectoryName(item.Path))))
 						{
 							var stat = repo.RetrieveStatus();
 							status = stat.IsDirty ? "*" : "!";
@@ -227,41 +270,25 @@ namespace VSLauncher
 					}
 					catch (RepositoryNotFoundException)
 					{
-						try
-						{
-							using (var repo = new Repository(Path.GetDirectoryName(Path.GetDirectoryName(item.Path))))
-							{
-								var stat = repo.RetrieveStatus();
-								status = stat.IsDirty ? "*" : "!";
-								branchName = repo.Head.FriendlyName;
-							}
-						}
-						catch (RepositoryNotFoundException)
-						{
-							status = "?";
-							branchName = string.Empty;
-						}
+						status = "?";
+						branchName = string.Empty;
 					}
+				}
 
-					// Marshal the update to the UI thread
-					if (this.InvokeRequired)
-					{
-						this.BeginInvoke(new Action(() =>
-						{
-							item.Status = status;
-							item.BranchName = branchName;
-							// Optionally refresh the UI for this item here
-						}));
-					}
-					else
+				// Marshal the update to the UI thread
+				if (this.InvokeRequired)
+				{
+					this.BeginInvoke(new Action(() =>
 					{
 						item.Status = status;
 						item.BranchName = branchName;
-					}
+						// Optionally refresh the UI for this item here
+					}));
 				}
 				else
 				{
-					FetchGitStatusBackground(item as VsFolder);
+					item.Status = status;
+					item.BranchName = branchName;
 				}
 			}
 		}

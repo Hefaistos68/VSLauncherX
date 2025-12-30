@@ -20,7 +20,8 @@ namespace VSLauncher.Helpers
 			Accent = Color.CornflowerBlue,
 			AccentDark = Color.SteelBlue,
 			Selection = Color.FromArgb(204, 228, 247),
-			Button = SystemColors.ControlLight
+			Button = SystemColors.ControlLight,
+			HierarchyLine = Color.DarkBlue
 		};
 
 		private static readonly ThemePalette DarkPalette = new ThemePalette
@@ -35,7 +36,8 @@ namespace VSLauncher.Helpers
 			Accent = Color.CornflowerBlue,
 			AccentDark = Color.SteelBlue,
 			Selection = Color.FromArgb(60, 120, 200),
-			Button = Color.FromArgb(50, 50, 50)
+			Button = Color.FromArgb(50, 50, 50),
+			HierarchyLine = Color.LightSteelBlue
 		};
 
 		internal static ThemePalette GetPalette(bool useDarkMode)
@@ -91,8 +93,9 @@ namespace VSLauncher.Helpers
 					vsCombo.ApplyTheme(palette);
 					break;
 				case Label label:
-                    bool isHeaderText = label.Parent?.Name == "leftSubPanel" |  label.Parent?.Name == "flowLayoutPanel2";
+                    bool isHeaderText = label.Parent?.Name == "leftSubPanel" ||  label.Parent?.Name == "flowLayoutPanel2" ||  label.Parent?.Name == "flowLayoutPanel1";
 					label.BackColor = isHeaderText ? palette.SurfaceContrast : palette.SurfaceAlt;
+					label.ForeColor = isHeaderText ? palette.AccentDark : palette.Text;
 					break;
 
                 case TextBoxBase textBox:
@@ -111,18 +114,23 @@ namespace VSLauncher.Helpers
 					button.ForeColor = palette.Text;
 					button.UseVisualStyleBackColor = false;
 					break;
+				
 				case TableLayoutPanel tableLayoutPanel:
-					if (tableLayoutPanel.Name == "leftSubPanel" | tableLayoutPanel.Name == "flowLayoutPanel2")
+					if (tableLayoutPanel.Name == "leftSubPanel" 
+						|| tableLayoutPanel.Name == "flowLayoutPanel2"
+						|| tableLayoutPanel.Name == "mainPanel")
 					{
 						tableLayoutPanel.BackColor = palette.SurfaceContrast;
 					}
+
 					break;
 
 				case FlowLayoutPanel flowLayoutPanel:
-					if (flowLayoutPanel.Name == "flowLayoutPanel2")
+					if (flowLayoutPanel.Name == "flowLayoutPanel2" || flowLayoutPanel.Name == "flowLayoutPanel1")
 					{
                         flowLayoutPanel.BackColor = palette.SurfaceContrast;
 					}
+
 					break;
 			}
 
@@ -148,7 +156,13 @@ namespace VSLauncher.Helpers
 			};
 			treeListView.SelectedBackColor = palette.Selection;
 			treeListView.UnfocusedSelectedBackColor= palette.Selection;
-		}
+
+            Pen linePen = treeListView.TreeColumnRenderer.LinePen;
+            if (linePen != null)
+            {
+                linePen.Color = palette.HierarchyLine;
+            }
+        }
 
 		internal readonly struct ThemePalette
 		{
@@ -163,6 +177,7 @@ namespace VSLauncher.Helpers
 			internal Color AccentDark { get; init; }
 			internal Color Selection { get; init; }
 			internal Color Button { get; init; }
+			internal Color HierarchyLine { get; init; }
 		}
 
 		private sealed class ThemeColorTable : ProfessionalColorTable

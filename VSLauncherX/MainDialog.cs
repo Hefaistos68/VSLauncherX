@@ -369,7 +369,14 @@ namespace VSLauncher
 
 			if (folder is null || folder == this.solutionGroups)
 			{
-				this.TaskbarJumpList.Refresh();
+				try
+				{
+					this.TaskbarJumpList.Refresh();
+				}
+				catch (Exception)
+				{
+					// whatever goes wrong, we can do anything about it 
+				}			
 			}
 		}
 		#endregion
