@@ -11,7 +11,7 @@ using System.Windows.Forms;
 
 using VSLauncher.DataModel;
 using VSLauncher.Forms;
-
+using VSLauncher.Helpers;
 using VSLXshared.Helpers;
 
 namespace VSLauncher
@@ -34,6 +34,8 @@ namespace VSLauncher
 			
 			this.Item = new VsItem();
 			this.bIsListItem = false;
+
+			ThemeHelper.ApplyDarkMode(this, Properties.Settings.Default.DarkMode);
 		}
 
 		/// <summary>
@@ -45,6 +47,8 @@ namespace VSLauncher
 
 			this.Item = (VsItem)item;
 			this.bIsListItem = true;
+
+			ThemeHelper.ApplyDarkMode(this, Properties.Settings.Default.DarkMode);
 		}
 
 		/// <summary>
