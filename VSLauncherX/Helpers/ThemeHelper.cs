@@ -15,6 +15,12 @@ namespace VSLauncher.Helpers
 		[DllImport("dwmapi.dll")]
 		private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
 
+		[DllImport("uxtheme.dll", EntryPoint = "#135", SetLastError = true, CharSet = CharSet.Unicode)]
+		private static extern int SetPreferredAppMode(int preferredAppMode);
+
+		[DllImport("uxtheme.dll", EntryPoint = "#136", SetLastError = true, CharSet = CharSet.Unicode)]
+		private static extern void FlushMenuThemes();
+
 		private static readonly ThemePalette LightPalette = new ThemePalette
 		{
 			Window = SystemColors.Control,
@@ -191,6 +197,8 @@ namespace VSLauncher.Helpers
 					: DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1;
 
 				DwmSetWindowAttribute(handle, attribute, ref useDark, sizeof(int));
+				SetPreferredAppMode(enable ? 2 : 0);
+				FlushMenuThemes();
 			}
 		}
 
