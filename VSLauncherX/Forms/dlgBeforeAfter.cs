@@ -1,5 +1,5 @@
 ﻿using VSLauncher.DataModel;
-
+using VSLauncher.Helpers;
 using VSLXshared.Helpers;
 
 namespace VSLauncher
@@ -17,7 +17,8 @@ namespace VSLauncher
 			InitializeComponent();
 			this.Options = options;
 			this.txtTitle.Text = title;
-			;
+			
+			ThemeHelper.ApplyDarkMode(this, Properties.Settings.Default.DarkMode);
 		}
 
 		/// <summary>

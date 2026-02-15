@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 
 using VSLauncher.DataModel;
+using VSLauncher.Helpers;
 
 namespace VSLauncher
 {
@@ -29,6 +30,8 @@ namespace VSLauncher
 		{
 			InitializeComponent();
 			this.Solution = new VsFolder();
+
+			ThemeHelper.ApplyDarkMode(this, Properties.Settings.Default.DarkMode);
 		}
 
 		/// <summary>

@@ -1,13 +1,26 @@
-using System.Drawing;
-using System.Windows.Forms;
-
 using BrightIdeasSoftware;
+using System.Drawing;
+using System.Runtime.InteropServices;
+using System.Windows.Forms;
 using VSLauncher.Controls;
 
 namespace VSLauncher.Helpers
 {
 	internal static class ThemeHelper
 	{
+		// DWM API constants
+		private const int DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1 = 19;
+		private const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20; // Windows 10 1809+
+
+		[DllImport("dwmapi.dll")]
+		private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
+
+		[DllImport("uxtheme.dll", EntryPoint = "#135", SetLastError = true, CharSet = CharSet.Unicode)]
+		private static extern int SetPreferredAppMode(int preferredAppMode);
+
+		[DllImport("uxtheme.dll", EntryPoint = "#136", SetLastError = true, CharSet = CharSet.Unicode)]
+		private static extern void FlushMenuThemes();
+
 		private static readonly ThemePalette LightPalette = new ThemePalette
 		{
 			Window = SystemColors.Control,
@@ -43,6 +56,16 @@ namespace VSLauncher.Helpers
 		internal static ThemePalette GetPalette(bool useDarkMode)
 		{
 			return useDarkMode ? DarkPalette : LightPalette;
+		}
+
+		internal static ThemePalette ApplyDarkMode(Form form, bool useDarkMode)
+		{
+			var theme = GetPalette(useDarkMode);
+
+			EnableDarkTitleBar(form.Handle, useDarkMode);
+			ApplyControl(form, theme, true);
+
+			return theme;
 		}
 
 		internal static void ApplyTheme(Control root, ThemePalette palette)
@@ -163,6 +186,27 @@ namespace VSLauncher.Helpers
                 linePen.Color = palette.HierarchyLine;
             }
         }
+
+		private static void EnableDarkTitleBar(IntPtr handle, bool enable)
+		{
+			if (IsWindows10OrGreater(17763)) // Windows 10 1809+
+			{
+				int useDark = enable ? 1 : 0;
+				int attribute = IsWindows10OrGreater(18985) // Windows 10 20H1+
+					? DWMWA_USE_IMMERSIVE_DARK_MODE
+					: DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1;
+
+				DwmSetWindowAttribute(handle, attribute, ref useDark, sizeof(int));
+				SetPreferredAppMode(enable ? 2 : 0);
+				FlushMenuThemes();
+			}
+		}
+
+		private static bool IsWindows10OrGreater(int build)
+		{
+			var osVersion = Environment.OSVersion.Version;
+			return ((osVersion.Major >= 10) && (osVersion.Build >= build));
+		}
 
 		internal readonly struct ThemePalette
 		{

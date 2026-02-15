@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using VSLauncher.Helpers;
 
 namespace VSLauncher
 {
@@ -21,6 +22,8 @@ namespace VSLauncher
 		public dlgNewInstance()
 		{
 			InitializeComponent();
+
+			ThemeHelper.ApplyDarkMode(this, Properties.Settings.Default.DarkMode);
 		}
 
 		/// <summary>

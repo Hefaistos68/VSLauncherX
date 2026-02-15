@@ -29,6 +29,8 @@ namespace VSLauncher
 			InitializeComponent();
 			InitializeList();
 			this.OnlyDefaultInstances = Properties.Settings.Default.OnlyDefaultInstances;
+
+			ThemeHelper.ApplyDarkMode(this, Properties.Settings.Default.DarkMode);
 		}
 
 		/// <summary>

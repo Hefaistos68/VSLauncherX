@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 
 using VSLauncher.DataModel;
+using VSLauncher.Helpers;
 
 namespace VSLauncher
 {
@@ -24,6 +25,8 @@ namespace VSLauncher
 		{
 			InitializeComponent();
 			this.lblItemNumber.Text = n.ToString();
+
+			ThemeHelper.ApplyDarkMode(this, Properties.Settings.Default.DarkMode);
 		}
 
 		/// <summary>

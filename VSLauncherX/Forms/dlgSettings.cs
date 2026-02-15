@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using VSLauncher.Helpers;
 
 namespace VSLauncher.Forms
 {
@@ -32,6 +33,8 @@ namespace VSLauncher.Forms
 
 		private void dlgSettings_Load(object sender, EventArgs e)
 		{
+			ThemeHelper.ApplyDarkMode(this, Properties.Settings.Default.DarkMode);
+
 			chkAutostart.Checked = Properties.Settings.Default.AutoStart;
 			chkAlwaysAdmin.Checked = Properties.Settings.Default.AlwaysAdmin;
 			chkSync.Checked = Properties.Settings.Default.SynchronizeVS;
