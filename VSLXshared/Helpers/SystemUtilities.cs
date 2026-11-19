@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -22,7 +22,7 @@ namespace VSLauncher.Helpers
         /// <returns>A bool.</returns>
         public static bool IsAdmin()
         {
-            WindowsIdentity id = WindowsIdentity.GetCurrent();
+            using WindowsIdentity id = WindowsIdentity.GetCurrent();
             WindowsPrincipal principal = new WindowsPrincipal(id);
 
             return principal.IsInRole(WindowsBuiltInRole.Administrator);
@@ -283,82 +283,128 @@ namespace VSLauncher.Helpers
         {
             // 1. Get the shell
             var shell = NativeMethods.GetShellWindow();
+
             if (shell == IntPtr.Zero)
             {
                 throw new Exception("Could not find shell window");
             }
 
-            // 2. Copy the access token of the process
-            uint shellProcessId;
-            NativeMethods.GetWindowThreadProcessId(shell, out shellProcessId);
-            var hShellProcess = NativeMethods.OpenProcess(0x00000400 /* QueryInformation */, false, (int)shellProcessId);
-            IntPtr hShellToken;
-            if (!NativeMethods.OpenProcessToken(hShellProcess, 2 /* TOKEN_DUPLICATE */, out hShellToken))
-            {
-                throw new Win32Exception();
-            }
+            IntPtr hShellProcess = IntPtr.Zero;
+            IntPtr hShellToken = IntPtr.Zero;
+            IntPtr hToken = IntPtr.Zero;
+            ProcessInformation processInfo = default;
 
-            // 3. Duplicate the access token
-            uint tokenAccess = 8 /*TOKEN_QUERY*/ | 1 /*TOKEN_ASSIGN_PRIMARY*/ | 2 /*TOKEN_DUPLICATE*/ | 0x80 /*TOKEN_ADJUST_DEFAULT*/ | 0x100 /*TOKEN_ADJUST_SESSIONID*/;
-            var securityAttributes = new SecurityAttributes();
-            IntPtr hToken;
-            
-			if (!NativeMethods.DuplicateTokenEx(
-                hShellToken,
-                tokenAccess,
-                ref securityAttributes,
-                2 /* SecurityImpersonation */,
-                1 /* TokenPrimary */,
-                out hToken))
+            try
             {
-                throw new Win32Exception();
-            }
+                // 2. Copy the access token of the process
+                NativeMethods.GetWindowThreadProcessId(shell, out uint shellProcessId);
+                hShellProcess = NativeMethods.OpenProcess(0x00000400 /* QueryInformation */, false, (int)shellProcessId);
 
-            // 4. Create a new process with the copied token
-            var si = new Startupinfo();
-            si.cb = Marshal.SizeOf(si);
-            ProcessInformation processInfo;
-            
-			if (!NativeMethods.CreateProcessWithTokenW(
-                hToken,
-                0x00000002 /* LogonNetcredentialsOnly */,
-                null,
-                cmdArgs,
-                0x00000010 /* CreateNewConsole */,
-                IntPtr.Zero,
-                null,
-                ref si,
-                out processInfo))
-            {
-                // Can't do that when not elevated (see https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-createprocesswithtokenw)
-                // -> start the process as usual
-                if (Marshal.GetLastWin32Error() == 1314)
-                {
-                    SecurityAttributes processSecurityAttributes = new SecurityAttributes();
-                    SecurityAttributes threadSecurityAttributes = new SecurityAttributes();
-                    if (!NativeMethods.CreateProcessAsUser(
-                        IntPtr.Zero,
-                        null,
-                        cmdArgs,
-                        ref processSecurityAttributes,
-                        ref threadSecurityAttributes,
-                        true,
-                        0x00000010 /* CreateNewConsole */,
-                        IntPtr.Zero,
-                        null,
-                        ref si,
-                        out processInfo))
-                    {
-                        throw new Win32Exception();
-                    }
-                }
-                else
+                if (hShellProcess == IntPtr.Zero)
                 {
                     throw new Win32Exception();
                 }
-            }
 
-            return processInfo.dwProcessId;
+                if (!NativeMethods.OpenProcessToken(hShellProcess, 2 /* TOKEN_DUPLICATE */, out hShellToken))
+                {
+                    throw new Win32Exception();
+                }
+
+                // 3. Duplicate the access token
+                uint tokenAccess = 8 /*TOKEN_QUERY*/ | 1 /*TOKEN_ASSIGN_PRIMARY*/ | 2 /*TOKEN_DUPLICATE*/ | 0x80 /*TOKEN_ADJUST_DEFAULT*/ | 0x100 /*TOKEN_ADJUST_SESSIONID*/;
+                var securityAttributes = new SecurityAttributes
+                {
+                    nLength = Marshal.SizeOf<SecurityAttributes>()
+                };
+
+                if (!NativeMethods.DuplicateTokenEx(
+                    hShellToken,
+                    tokenAccess,
+                    ref securityAttributes,
+                    2 /* SecurityImpersonation */,
+                    1 /* TokenPrimary */,
+                    out hToken))
+                {
+                    throw new Win32Exception();
+                }
+
+                // 4. Create a new process with the copied token
+                var si = new Startupinfo
+                {
+                    cb = Marshal.SizeOf<Startupinfo>()
+                };
+                var commandLine = new StringBuilder(cmdArgs);
+
+                if (!NativeMethods.CreateProcessWithTokenW(
+                    hToken,
+                    0x00000002 /* LogonNetcredentialsOnly */,
+                    null,
+                    commandLine,
+                    0x00000010 /* CreateNewConsole */,
+                    IntPtr.Zero,
+                    null,
+                    ref si,
+                    out processInfo))
+                {
+                    int lastError = Marshal.GetLastWin32Error();
+
+                    // Can't do that when not elevated (see https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-createprocesswithtokenw)
+                    // -> start the process normally without requiring SeImpersonatePrivilege
+                    if (lastError == 1314)
+                    {
+                        var processSecurityAttributes = new SecurityAttributes
+                        {
+                            nLength = Marshal.SizeOf<SecurityAttributes>()
+                        };
+                        var threadSecurityAttributes = new SecurityAttributes
+                        {
+                            nLength = Marshal.SizeOf<SecurityAttributes>()
+                        };
+                        var fallbackCommandLine = new StringBuilder(cmdArgs);
+
+                        if (!NativeMethods.CreateProcessW(
+                            null,
+                            fallbackCommandLine,
+                            ref processSecurityAttributes,
+                            ref threadSecurityAttributes,
+                            false,
+                            0x00000010 /* CreateNewConsole */,
+                            IntPtr.Zero,
+                            null,
+                            ref si,
+                            out processInfo))
+                        {
+                            throw new Win32Exception();
+                        }
+                    }
+                    else
+                    {
+                        throw new Win32Exception(lastError);
+                    }
+                }
+
+                return processInfo.dwProcessId;
+            }
+            finally
+            {
+                CloseIfValid(processInfo.hThread);
+                CloseIfValid(processInfo.hProcess);
+                CloseIfValid(hToken);
+                CloseIfValid(hShellToken);
+                CloseIfValid(hShellProcess);
+            }
+        }
+
+        /// <summary>
+        /// Closes a native Win32 handle if it is non-zero.
+        /// </summary>
+        /// <param name="handle">The handle to close.</param>
+        private static void CloseIfValid(IntPtr handle)
+        {
+            if (handle != IntPtr.Zero)
+            {
+                NativeMethods.CloseHandle(handle);
+            }
         }
 
 		/// <summary>
@@ -431,40 +477,46 @@ namespace VSLauncher.Helpers
 			[DllImport("advapi32", SetLastError = true, CharSet = CharSet.Unicode)]
             public static extern bool CreateProcessWithTokenW(
                 IntPtr hToken, int dwLogonFlags,
-                string lpApplicationName, string lpCommandLine,
+                string? lpApplicationName, StringBuilder lpCommandLine,
                 int dwCreationFlags, IntPtr lpEnvironment,
-                string lpCurrentDirectory,
+                string? lpCurrentDirectory,
                 [In] ref Startupinfo lpStartupInfo,
                 out ProcessInformation lpProcessInformation);
 
 			/// <summary>
-			/// Creates the process as user.
+			/// Creates a process in the current security context.
 			/// </summary>
-			/// <param name="hToken">The h token.</param>
-			/// <param name="lpApplicationName">The lp application name.</param>
-			/// <param name="lpCommandLine">The lp command line.</param>
-			/// <param name="lpProcessAttributes">The lp process attributes.</param>
-			/// <param name="lpThreadAttributes">The lp thread attributes.</param>
-			/// <param name="bInheritHandles">If true, b inherit handles.</param>
-			/// <param name="dwCreationFlags">The dw creation flags.</param>
-			/// <param name="lpEnvironment">The lp environment.</param>
-			/// <param name="lpCurrentDirectory">The lp current directory.</param>
-			/// <param name="lpStartupInfo">The lp startup info.</param>
-			/// <param name="lpProcessInformation">The lp process information.</param>
-			/// <returns>A bool.</returns>
-			[DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-            public static extern bool CreateProcessAsUser(
-                IntPtr hToken,
-                string lpApplicationName,
-                string lpCommandLine,
+			/// <param name="lpApplicationName">The application name.</param>
+			/// <param name="lpCommandLine">The mutable command line.</param>
+			/// <param name="lpProcessAttributes">The process attributes.</param>
+			/// <param name="lpThreadAttributes">The thread attributes.</param>
+			/// <param name="bInheritHandles">Whether handles are inherited.</param>
+			/// <param name="dwCreationFlags">Creation flags.</param>
+			/// <param name="lpEnvironment">Environment pointer.</param>
+			/// <param name="lpCurrentDirectory">Working directory.</param>
+			/// <param name="lpStartupInfo">Startup info.</param>
+			/// <param name="lpProcessInformation">Process info.</param>
+			/// <returns>True if process creation succeeded.</returns>
+			[DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+            public static extern bool CreateProcessW(
+                string? lpApplicationName,
+                StringBuilder lpCommandLine,
                 ref SecurityAttributes lpProcessAttributes,
                 ref SecurityAttributes lpThreadAttributes,
                 bool bInheritHandles,
                 uint dwCreationFlags,
                 IntPtr lpEnvironment,
-                string lpCurrentDirectory,
+                string? lpCurrentDirectory,
                 ref Startupinfo lpStartupInfo,
                 out ProcessInformation lpProcessInformation);
+
+			/// <summary>
+			/// Closes an open kernel handle.
+			/// </summary>
+			/// <param name="hObject">Handle to close.</param>
+			/// <returns>True on success.</returns>
+			[DllImport("kernel32.dll", SetLastError = true)]
+            public static extern bool CloseHandle(IntPtr hObject);
         }
 
         [StructLayout(LayoutKind.Sequential)]
@@ -556,44 +608,101 @@ namespace VSLauncher.Helpers
 
 			try
 			{
-				var readAllow = false;
-				var readDeny = false;
 				DirectoryInfo di = new DirectoryInfo(path);
 				var accessControlList = di.GetAccessControl();
+
 				if (accessControlList == null)
-					return false;
-
-				//get the access rules that pertain to a valid SID/NTAccount.
-				var accessRules = accessControlList.GetAccessRules(true, true, typeof(System.Security.Principal.SecurityIdentifier));
-				if (accessRules == null)
-					return false;
-
-				//we want to go over these rules to ensure a valid SID has access
-				var user = WindowsIdentity.GetCurrent().User?.Value;
-				foreach (FileSystemAccessRule rule in accessRules)
 				{
-					if ((FileSystemRights.Read & rule.FileSystemRights) != FileSystemRights.Read)
-					{
-						continue;
-					}
-
-					if (rule.AccessControlType == AccessControlType.Allow)
-					{
-						readAllow = true;
-					}
-					else if (rule.AccessControlType == AccessControlType.Deny)
-					{
-						readDeny = true;
-					}
-					if (user.Equals(rule.IdentityReference.Value, StringComparison.Ordinal) == true)
-					{
-						readAllow = true;
-					}
+					return ProbeDirectoryRead(path);
 				}
 
-				return readAllow && !readDeny;
+				//get the access rules that pertain to a valid SID/NTAccount.
+				var accessRules = accessControlList.GetAccessRules(true, true, typeof(SecurityIdentifier));
+
+				if (accessRules == null)
+				{
+					return ProbeDirectoryRead(path);
+				}
+
+				return EvaluateReadAccessRules(accessRules);
 			}
-			catch (UnauthorizedAccessException ex)
+			catch (Exception ex) when (ex is InvalidOperationException or PlatformNotSupportedException or PrivilegeNotHeldException)
+			{
+				// Non-NTFS volumes (e.g. FAT32/exFAT) or shares without readable ACLs: probe directory listing directly
+				return ProbeDirectoryRead(path);
+			}
+			catch (Exception ex) when (ex is UnauthorizedAccessException or IOException)
+			{
+				return false;
+			}
+		}
+
+		/// <summary>
+		/// Evaluates ACL read rules strictly for the current user's SID and group SIDs.
+		/// </summary>
+		/// <param name="accessRules">Directory access rules.</param>
+		/// <returns>True when read access is allowed and not denied for the current identity.</returns>
+		private static bool EvaluateReadAccessRules(AuthorizationRuleCollection accessRules)
+		{
+			using WindowsIdentity identity = WindowsIdentity.GetCurrent();
+			var relevantSids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+			if (identity.User != null)
+			{
+				relevantSids.Add(identity.User.Value);
+			}
+
+			if (identity.Groups != null)
+			{
+				foreach (IdentityReference group in identity.Groups)
+				{
+					relevantSids.Add(group.Value);
+				}
+			}
+
+			bool readAllow = false;
+			bool readDeny = false;
+
+			foreach (FileSystemAccessRule rule in accessRules)
+			{
+				if (!relevantSids.Contains(rule.IdentityReference.Value))
+				{
+					continue;
+				}
+
+				if ((FileSystemRights.Read & rule.FileSystemRights) != FileSystemRights.Read)
+				{
+					continue;
+				}
+
+				if (rule.AccessControlType == AccessControlType.Deny)
+				{
+					readDeny = true;
+				}
+				else if (rule.AccessControlType == AccessControlType.Allow)
+				{
+					readAllow = true;
+				}
+			}
+
+			return readAllow && !readDeny;
+		}
+
+		/// <summary>
+		/// Probes whether a directory can be enumerated by the current process.
+		/// </summary>
+		/// <param name="path">Directory path to probe.</param>
+		/// <returns>True if enumeration succeeds.</returns>
+		private static bool ProbeDirectoryRead(string path)
+		{
+			try
+			{
+				using var enumerator = Directory.EnumerateFileSystemEntries(path).GetEnumerator();
+				_ = enumerator.MoveNext();
+
+				return true;
+			}
+			catch
 			{
 				return false;
 			}

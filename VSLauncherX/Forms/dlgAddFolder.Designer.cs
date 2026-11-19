@@ -1,4 +1,4 @@
-﻿namespace VSLauncher
+namespace VSLauncher
 {
 	partial class dlgAddFolder
 	{
@@ -68,6 +68,7 @@
 			// btnOk
 			// 
 			btnOk.DialogResult = DialogResult.OK;
+			btnOk.Enabled = false;
 			btnOk.Image = Resources.Check_24x24;
 			btnOk.Location = new Point(280, 109);
 			btnOk.Name = "btnOk";

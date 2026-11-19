@@ -1,4 +1,4 @@
-﻿namespace VSLauncher.Properties {
+namespace VSLauncher.Properties {
     
     
     // This class allows you to handle specific events on the settings class:
@@ -42,7 +42,7 @@
 
 		[global::System.Configuration.UserScopedSettingAttribute()]
 		[global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-		[global::System.Configuration.DefaultSettingValueAttribute("")]
+		[global::System.Configuration.DefaultSettingValueAttribute("Normal")]
 		public System.Windows.Forms.FormWindowState AppWindow
 		{
 			get
@@ -57,7 +57,7 @@
 
 		[global::System.Configuration.UserScopedSettingAttribute()]
 		[global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-		[global::System.Configuration.DefaultSettingValueAttribute("")]
+		[global::System.Configuration.DefaultSettingValueAttribute("0, 0")]
 		public Point AppLocation
 		{
 			get
@@ -72,7 +72,7 @@
 		
 		[global::System.Configuration.UserScopedSettingAttribute()]
 		[global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-		[global::System.Configuration.DefaultSettingValueAttribute("")]
+		[global::System.Configuration.DefaultSettingValueAttribute("949, 558")]
 		public Size AppSize
 		{
 			get

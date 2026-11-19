@@ -1,4 +1,4 @@
-﻿using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
 
 using Microsoft.Win32;
 
@@ -37,18 +37,64 @@ namespace VSLauncher.DataModel
 				}
 			}
 
-			iconsByName.Add("CSProject", RegisteredFileType.ExtractIconFromFile(all[".csproj"], true));
-			iconsByName.Add("VBProject", RegisteredFileType.ExtractIconFromFile(all[".vbproj"], true));
-			iconsByName.Add("WebSite", RegisteredFileType.ExtractIconFromFile(all[".razor"], true));
-			iconsByName.Add("FSProject", RegisteredFileType.ExtractIconFromFile(all[".fsproj"], true));
-			iconsByName.Add("CPPProject", RegisteredFileType.ExtractIconFromFile(all[".vcxproj"], true));
-			iconsByName.Add("JSProject", RegisteredFileType.ExtractIconFromFile(all[".esproj"], true));
-			iconsByName.Add("TSProject", RegisteredFileType.ExtractIconFromFile(all[".esproj"], true));
-			iconsByName.Add("Mixed", RegisteredFileType.ExtractIconFromFile(all[".sln"], true));
-			iconsByName.Add("Solution", RegisteredFileType.ExtractIconFromFile(all[".sln"], true));
+			iconsByName.Add("CSProject", SafeExtractIcon(".csproj", all[".csproj"], bLarge));
+			iconsByName.Add("VBProject", SafeExtractIcon(".vbproj", all[".vbproj"], bLarge));
+			iconsByName.Add("WebSite", SafeExtractIcon(".razor", all[".razor"], bLarge));
+			iconsByName.Add("FSProject", SafeExtractIcon(".fsproj", all[".fsproj"], bLarge));
+			iconsByName.Add("CPPProject", SafeExtractIcon(".vcxproj", all[".vcxproj"], bLarge));
+			iconsByName.Add("JSProject", SafeExtractIcon(".esproj", all[".esproj"], bLarge));
+			iconsByName.Add("TSProject", SafeExtractIcon(".esproj", all[".esproj"], bLarge));
+
+			Icon solutionIcon = SafeExtractIcon(".sln", all[".sln"], bLarge);
+
+			iconsByName.Add("Mixed", solutionIcon);
+			iconsByName.Add("Solution", solutionIcon);
+			iconsByName.Add("SolutionX", TryExtractIcon(".slnx", all[".slnx"], bLarge) ?? solutionIcon);
+			iconsByName.Add("None", Resources.DefaultIcon);
 
 			iconsByName.Add("Warning", Resources.Warning);
 			iconsByName.Add("Folder", Resources.Folder);
+		}
+
+		/// <summary>
+		/// Attempts to extract an icon from a registry descriptor or shell icon handler.
+		/// </summary>
+		/// <param name="extension">The file extension including leading dot.</param>
+		/// <param name="fileAndParam">The registry icon descriptor.</param>
+		/// <param name="bLarge">Whether to extract the large icon.</param>
+		/// <returns>The extracted icon, or <c>null</c> if unavailable.</returns>
+		private static Icon? TryExtractIcon(string extension, string fileAndParam, bool bLarge)
+		{
+			try
+			{
+				if (!string.IsNullOrWhiteSpace(fileAndParam))
+				{
+					Icon? extracted = RegisteredFileType.ExtractIconFromFile(fileAndParam, bLarge);
+
+					if (extracted != null && !ReferenceEquals(extracted, Resources.DefaultIcon))
+					{
+						return extracted;
+					}
+				}
+
+				return RegisteredFileType.ExtractShellIconForExtension(extension, bLarge);
+			}
+			catch
+			{
+				return null;
+			}
+		}
+
+		/// <summary>
+		/// Safely extracts an icon from a registered file type descriptor, falling back to the default icon.
+		/// </summary>
+		/// <param name="extension">The file extension including leading dot.</param>
+		/// <param name="fileAndParam">The registry icon descriptor.</param>
+		/// <param name="bLarge">Whether to extract the large icon.</param>
+		/// <returns>The extracted icon or fallback icon.</returns>
+		private static Icon SafeExtractIcon(string extension, string fileAndParam, bool bLarge)
+		{
+			return TryExtractIcon(extension, fileAndParam, bLarge) ?? Resources.DefaultIcon;
 		}
 
 		/// <summary>
@@ -58,7 +104,12 @@ namespace VSLauncher.DataModel
 		/// <returns>An Icon.</returns>
 		public Icon GetIcon(string name)
 		{
-			return iconsByName[name] ?? Resources.Warning;
+			if (name != null && iconsByName.TryGetValue(name, out Icon? icon) && icon != null)
+			{
+				return icon;
+			}
+
+			return Resources.Warning;
 		}
 
 		/// <summary>
@@ -76,9 +127,42 @@ namespace VSLauncher.DataModel
 	/// </summary>
 	public class RegisteredFileType
 	{
-		public static List<string> listExtensionsOfInterest = new List<string> { ".sln", ".csproj", ".tsproj", ".esproj", ".vcxproj", ".fsproj", ".vbproj", ".razor" };
+		public static List<string> listExtensionsOfInterest = new List<string> { ".sln", ".slnx", ".csproj", ".tsproj", ".esproj", ".vcxproj", ".fsproj", ".vbproj", ".razor" };
+
+		private const uint SHGFI_ICON              = 0x000000100u;
+		private const uint SHGFI_LARGEICON         = 0x000000000u;
+		private const uint SHGFI_SMALLICON         = 0x000000001u;
+		private const uint SHGFI_USEFILEATTRIBUTES = 0x000000010u;
+		private const uint FILE_ATTRIBUTE_NORMAL   = 0x000000080u;
 
 		#region APIs
+
+		/// <summary>
+		/// Receives information about a file object from SHGetFileInfo.
+		/// </summary>
+		[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+		private struct SHFILEINFO
+		{
+			public IntPtr hIcon;
+			public int iIcon;
+			public uint dwAttributes;
+			[MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)]
+			public string szDisplayName;
+			[MarshalAs(UnmanagedType.ByValTStr, SizeConst = 80)]
+			public string szTypeName;
+		}
+
+		/// <summary>
+		/// Retrieves information about an object in the file system, such as a file type icon.
+		/// </summary>
+		/// <param name="pszPath">The file path or dummy filename containing the extension.</param>
+		/// <param name="dwFileAttributes">File attribute flags.</param>
+		/// <param name="psfi">Receives the file information.</param>
+		/// <param name="cbFileInfo">Size of the <see cref="SHFILEINFO"/> structure in bytes.</param>
+		/// <param name="uFlags">Flags specifying the file information to retrieve.</param>
+		/// <returns>Non-zero on success; <see cref="IntPtr.Zero"/> on failure.</returns>
+		[DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+		private static extern IntPtr SHGetFileInfo(string pszPath, uint dwFileAttributes, out SHFILEINFO psfi, uint cbFileInfo, uint uFlags);
 
 		/// <summary>
 		/// Destroys the icon.
@@ -95,8 +179,8 @@ namespace VSLauncher.DataModel
 		/// <param name="lpszExeFileName">The lpsz exe file name.</param>
 		/// <param name="nIconIndex">The n icon index.</param>
 		/// <returns>An IntPtr.</returns>
-		[DllImport("shell32.dll", EntryPoint = "ExtractIconA", CharSet = CharSet.Ansi, SetLastError = true, ExactSpelling = true)]
-		private static extern IntPtr ExtractIcon(int hInst, string lpszExeFileName, int nIconIndex);
+		[DllImport("shell32.dll", EntryPoint = "ExtractIconW", CharSet = CharSet.Unicode, SetLastError = true, ExactSpelling = true)]
+		private static extern IntPtr ExtractIcon(IntPtr hInst, string lpszExeFileName, int nIconIndex);
 
 		/// <summary>
 		/// Extracts the icon.
@@ -121,21 +205,42 @@ namespace VSLauncher.DataModel
 		/// <returns>This method always returns the large size of the icon (may be 32x32 px).</returns>
 		public static Icon? ExtractIconFromFile(string fileAndParam)
 		{
+			IntPtr lIcon = IntPtr.Zero;
+
 			try
 			{
 				EmbeddedIconInfo embeddedIcon = getEmbeddedIconInfo(fileAndParam);
 
+				if (string.IsNullOrWhiteSpace(embeddedIcon.FileName))
+				{
+					return null;
+				}
+
 				//Gets the handle of the icon.
-				IntPtr lIcon = ExtractIcon(0, embeddedIcon.FileName, embeddedIcon.IconIndex);
+				lIcon = ExtractIcon(IntPtr.Zero, embeddedIcon.FileName, embeddedIcon.IconIndex);
+
+				if (lIcon == IntPtr.Zero || lIcon == (IntPtr)1)
+				{
+					return null;
+				}
 
 				//Gets the real icon.
-				return Icon.FromHandle(lIcon);
+				using (Icon tempIcon = Icon.FromHandle(lIcon))
+				{
+					return (Icon)tempIcon.Clone();
+				}
 			}
 			catch
 			{
+				return null;
 			}
-
-			return null;
+			finally
+			{
+				if (lIcon != IntPtr.Zero && lIcon != (IntPtr)1)
+				{
+					DestroyIcon(lIcon);
+				}
+			}
 		}
 
 		/// <summary>
@@ -153,46 +258,54 @@ namespace VSLauncher.DataModel
 				return Resources.DefaultIcon;
 			}
 
-			unsafe
+			IntPtr[] hDummy = new IntPtr[1] { IntPtr.Zero };
+			IntPtr[] hIconEx = new IntPtr[1] { IntPtr.Zero };
+
+			try
 			{
-				IntPtr[] hDummy = new IntPtr[1] { IntPtr.Zero };
-				IntPtr[] hIconEx = new IntPtr[1] { IntPtr.Zero };
+				EmbeddedIconInfo embeddedIcon = getEmbeddedIconInfo(fileAndParam);
 
-				try
+				if (string.IsNullOrWhiteSpace(embeddedIcon.FileName))
 				{
-					EmbeddedIconInfo embeddedIcon = getEmbeddedIconInfo(fileAndParam);
+					return Resources.DefaultIcon;
+				}
 
-					uint readIconCount = isLarge
-		? ExtractIconEx(embeddedIcon.FileName, 0, hIconEx, hDummy, 1)
-		: ExtractIconEx(embeddedIcon.FileName, 0, hDummy, hIconEx, 1);
+				uint readIconCount = isLarge
+					? ExtractIconEx(embeddedIcon.FileName, embeddedIcon.IconIndex, hIconEx, hDummy, 1)
+					: ExtractIconEx(embeddedIcon.FileName, embeddedIcon.IconIndex, hDummy, hIconEx, 1);
 
-					if (readIconCount > 0 && hIconEx[0] != IntPtr.Zero)
+				if (readIconCount > 0 && hIconEx[0] != IntPtr.Zero)
+				{
+					// Get first icon.
+					using (Icon tempIcon = Icon.FromHandle(hIconEx[0]))
 					{
-						// Get first icon.
-						Icon extractedIcon = (Icon)Icon.FromHandle(hIconEx[0]).Clone();
-
-						return extractedIcon;
-					}
-					else // No icon read
-					{
-						return null;
+						return (Icon)tempIcon.Clone();
 					}
 				}
-				catch (Exception exc)
-				{
-					// Extract icon error.
-					throw new ApplicationException("Could not extract icon", exc);
-				}
-				finally
-				{
-					// Release resources.
-					foreach (IntPtr ptr in hIconEx)
-						if (ptr != IntPtr.Zero)
-							DestroyIcon(ptr);
 
-					foreach (IntPtr ptr in hDummy)
-						if (ptr != IntPtr.Zero)
-							DestroyIcon(ptr);
+				return null;
+			}
+			catch
+			{
+				return null;
+			}
+			finally
+			{
+				// Release resources.
+				foreach (IntPtr ptr in hIconEx)
+				{
+					if (ptr != IntPtr.Zero)
+					{
+						DestroyIcon(ptr);
+					}
+				}
+
+				foreach (IntPtr ptr in hDummy)
+				{
+					if (ptr != IntPtr.Zero)
+					{
+						DestroyIcon(ptr);
+					}
 				}
 			}
 		}
@@ -203,75 +316,19 @@ namespace VSLauncher.DataModel
 		/// <returns>Returns a hash table which contains the file extension as keys, the icon file and param as values.</returns>
 		public static Dictionary<string, string> GetFileTypesAndIcon()
 		{
-			Dictionary<string, string> iconsInfo = new Dictionary<string, string>();
+			Dictionary<string, string> iconsInfo = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
 			try
 			{
 				// Create a registry key object to represent the HKEY_CLASSES_ROOT registry section
 				RegistryKey rkRoot = Registry.ClassesRoot;
 
-				//Gets all sub keys' names.
-				string[] keyNames = rkRoot.GetSubKeyNames();
-
-				//Find the file icon.
-				foreach (string keyName in keyNames)
+				//Find the file icon directly for each extension of interest.
+				foreach (string keyName in listExtensionsOfInterest)
 				{
-					if (String.IsNullOrEmpty(keyName))
-						continue;
-
-					if (!listExtensionsOfInterest.Contains(keyName))
-						continue;
-
-					RegistryKey? rkFileType = rkRoot.OpenSubKey(keyName);
-					if (rkFileType == null)
-						continue;
-
-					//Gets the default value of this key that contains the information of file type.
-					object? defaultValue = rkFileType.GetValue("");
-
-					if (defaultValue == null)
-					{
-						// now try the OpenWithProgids subkey
-						RegistryKey? rkOpenWithProgids = rkFileType.OpenSubKey("OpenWithProgids");
-
-						if (rkOpenWithProgids == null)
-						{
-							// not installed, but we still want to know about it
-							iconsInfo.Add(keyName, "");
-							continue;
-						}
-
-						string[] rkOpenWithProgidsNames = rkOpenWithProgids.GetValueNames();
-
-						if (rkOpenWithProgidsNames.Length > 0)
-						{
-							defaultValue = rkOpenWithProgidsNames[0];
-						}
-					}
-
-					//Go to the key that specifies the default icon associates with this file type.
-					string defaultIcon = defaultValue?.ToString() + "\\DefaultIcon";
-					RegistryKey? rkFileIcon = rkRoot.OpenSubKey(defaultIcon);
-
-					if (rkFileIcon != null)
-					{
-						//Get the file contains the icon and the index of the icon in that file.
-						object? value = rkFileIcon.GetValue("");
-						if (value != null)
-						{
-							//Clear all unecessary " sign in the string to avoid error.
-							string fileParam = value!.ToString()!.Replace("\"", "");
-
-							iconsInfo.Add(keyName, fileParam);
-						}
-
-						rkFileIcon.Close();
-					}
-
-					rkFileType.Close();
+					string fileParam = ResolveExtensionIconPath(rkRoot, keyName);
+					iconsInfo[keyName] = fileParam;
 				}
-
-				rkRoot.Close();
 			}
 			catch
 			{
@@ -279,6 +336,146 @@ namespace VSLauncher.DataModel
 			}
 
 			return iconsInfo;
+		}
+
+		/// <summary>
+		/// Extracts the shell-registered icon for a file extension, including extensions backed by ShellEx IconHandler.
+		/// </summary>
+		/// <param name="extension">The file extension including leading dot (e.g. ".slnx").</param>
+		/// <param name="isLarge">Determines whether to return the large (32x32 px) or small (16x16 px) icon.</param>
+		/// <returns>A cloned <see cref="Icon"/> if registered and resolved; otherwise <c>null</c>.</returns>
+		public static Icon? ExtractShellIconForExtension(string extension, bool isLarge)
+		{
+			if (string.IsNullOrWhiteSpace(extension) || !HasRegisteredIconSource(extension))
+			{
+				return null;
+			}
+
+			uint flags      = SHGFI_ICON | SHGFI_USEFILEATTRIBUTES | (isLarge ? SHGFI_LARGEICON : SHGFI_SMALLICON);
+			SHFILEINFO shfi = default;
+			IntPtr result   = SHGetFileInfo("dummy" + extension, FILE_ATTRIBUTE_NORMAL, out shfi, (uint)Marshal.SizeOf<SHFILEINFO>(), flags);
+
+			if (result == IntPtr.Zero || shfi.hIcon == IntPtr.Zero)
+			{
+				return null;
+			}
+
+			try
+			{
+				using Icon tempIcon = Icon.FromHandle(shfi.hIcon);
+
+				return (Icon)tempIcon.Clone();
+			}
+			catch
+			{
+				return null;
+			}
+			finally
+			{
+				DestroyIcon(shfi.hIcon);
+			}
+		}
+
+		/// <summary>
+		/// Checks whether a file extension has a registered DefaultIcon or ShellEx IconHandler in HKEY_CLASSES_ROOT.
+		/// </summary>
+		/// <param name="extension">The file extension to check.</param>
+		/// <returns><c>true</c> if a registered icon source exists; otherwise <c>false</c>.</returns>
+		private static bool HasRegisteredIconSource(string extension)
+		{
+			try
+			{
+				RegistryKey rkRoot = Registry.ClassesRoot;
+				string? progId     = ResolveProgId(rkRoot, extension);
+
+				if (string.IsNullOrWhiteSpace(progId))
+				{
+					return false;
+				}
+
+				using RegistryKey? rkIconHandler = rkRoot.OpenSubKey(progId + "\\ShellEx\\IconHandler");
+
+				if (!string.IsNullOrWhiteSpace(rkIconHandler?.GetValue("")?.ToString()))
+				{
+					return true;
+				}
+
+				using RegistryKey? rkDefaultIcon = rkRoot.OpenSubKey(progId + "\\DefaultIcon");
+
+				return !string.IsNullOrWhiteSpace(rkDefaultIcon?.GetValue("")?.ToString());
+			}
+			catch
+			{
+				return false;
+			}
+		}
+
+		/// <summary>
+		/// Resolves the ProgID associated with a file extension in HKEY_CLASSES_ROOT.
+		/// </summary>
+		/// <param name="rkRoot">The HKEY_CLASSES_ROOT registry key.</param>
+		/// <param name="extension">The file extension to query.</param>
+		/// <returns>The ProgID string, or <c>null</c> if none is registered.</returns>
+		private static string? ResolveProgId(RegistryKey rkRoot, string extension)
+		{
+			using RegistryKey? rkFileType = rkRoot.OpenSubKey(extension);
+
+			if (rkFileType == null)
+			{
+				return null;
+			}
+
+			//Gets the default value of this key that contains the information of file type.
+			string? progId = rkFileType.GetValue("")?.ToString();
+
+			if (!string.IsNullOrWhiteSpace(progId))
+			{
+				return progId;
+			}
+
+			// now try the OpenWithProgids subkey
+			using RegistryKey? rkOpenWithProgids = rkFileType.OpenSubKey("OpenWithProgids");
+
+			if (rkOpenWithProgids != null)
+			{
+				string[] rkOpenWithProgidsNames = rkOpenWithProgids.GetValueNames();
+
+				if (rkOpenWithProgidsNames.Length > 0)
+				{
+					return rkOpenWithProgidsNames[0];
+				}
+			}
+
+			return null;
+		}
+
+		/// <summary>
+		/// Resolves the DefaultIcon registry value for a single file extension.
+		/// </summary>
+		/// <param name="rkRoot">The HKEY_CLASSES_ROOT registry key.</param>
+		/// <param name="extension">The file extension to query.</param>
+		/// <returns>The icon path and optional index, or empty string if unavailable.</returns>
+		private static string ResolveExtensionIconPath(RegistryKey rkRoot, string extension)
+		{
+			string? progId = ResolveProgId(rkRoot, extension);
+
+			if (string.IsNullOrWhiteSpace(progId))
+			{
+				return string.Empty;
+			}
+
+			//Go to the key that specifies the default icon associates with this file type.
+			string defaultIcon = progId + "\\DefaultIcon";
+			using RegistryKey? rkFileIcon = rkRoot.OpenSubKey(defaultIcon);
+			object? value = rkFileIcon?.GetValue("");
+
+			if (value == null)
+			{
+				return string.Empty;
+			}
+
+			//Clear all unecessary " sign in the string to avoid error.
+			return value.ToString()!.Replace("\"", "");
 		}
 		#endregion CORE METHODS
 
@@ -295,7 +492,9 @@ namespace VSLauncher.DataModel
 			EmbeddedIconInfo embeddedIcon = new EmbeddedIconInfo();
 
 			if (String.IsNullOrEmpty(fileAndParam))
+			{
 				return embeddedIcon;
+			}
 
 			//Use to store the file contains icon.
 			string fileName = String.Empty;
@@ -304,22 +503,26 @@ namespace VSLauncher.DataModel
 			int iconIndex = 0;
 			string iconIndexString = String.Empty;
 
-			int commaIndex = fileAndParam.IndexOf(",");
+			int commaIndex = fileAndParam.LastIndexOf(',');
+
 			//if fileAndParam is some thing likes that: "C:\\Program Files\\NetMeeting\\conf.exe,1".
 			if (commaIndex > 0)
 			{
-				fileName = fileAndParam.Substring(0, commaIndex);
-				iconIndexString = fileAndParam.Substring(commaIndex + 1);
+				fileName = fileAndParam.Substring(0, commaIndex).Trim();
+				iconIndexString = fileAndParam.Substring(commaIndex + 1).Trim();
 			}
 			else
-				fileName = fileAndParam;
+			{
+				fileName = fileAndParam.Trim();
+			}
 
 			if (!String.IsNullOrEmpty(iconIndexString))
 			{
-				//Get the index of icon.
-				iconIndex = int.Parse(iconIndexString);
-				if (iconIndex < 0)
-					iconIndex = 0;  //To avoid the invalid index.
+				//Get the index or negative resource ID of icon.
+				if (!int.TryParse(iconIndexString, out iconIndex))
+				{
+					iconIndex = 0;
+				}
 			}
 
 			embeddedIcon.FileName = fileName;

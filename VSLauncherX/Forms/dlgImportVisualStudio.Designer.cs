@@ -1,4 +1,4 @@
-﻿using BrightIdeasSoftware;
+using BrightIdeasSoftware;
 
 namespace VSLauncher
 {
@@ -89,7 +89,7 @@ namespace VSLauncher
 			// btnRefresh
 			// 
 			btnRefresh.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-			btnRefresh.Enabled = false;
+			btnRefresh.Enabled = true;
 			btnRefresh.Image = Resources.Refresh;
 			btnRefresh.Location = new Point(743, 9);
 			btnRefresh.Name = "btnRefresh";

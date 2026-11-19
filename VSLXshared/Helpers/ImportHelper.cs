@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 
 using VSLauncher.DataModel;
 
@@ -19,7 +19,7 @@ namespace VSLauncher.Helpers
         {
             var ext = Path.GetExtension(path)?.ToLower();
 
-            if (ext == ".sln")
+            if (ext == ".sln" || ext == ".slnx")
             {
                 return new VsSolution(name, path);
             }

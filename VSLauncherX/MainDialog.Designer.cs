@@ -339,7 +339,6 @@ namespace VSLauncher
 			this.olvFiles.VirtualMode = true;
 			this.olvFiles.CellRightClick += olvFiles_CellRightClick;
 			this.olvFiles.CellToolTipShowing += olvFiles_CellToolTipShowing;
-			this.olvFiles.Dropped += olvFiles_Dropped;
 			this.olvFiles.HotItemChanged += olvFiles_HotItemChanged;
 			this.olvFiles.AfterLabelEdit += olvFiles_AfterLabelEdit;
 			this.olvFiles.SelectedIndexChanged += olvFiles_SelectedIndexChanged;
@@ -527,7 +526,6 @@ namespace VSLauncher
 			this.selectVisualStudioVersion.Size = new Size(232, 34);
 			this.selectVisualStudioVersion.TabIndex = 0;
 			this.tooltipForButtons.SetToolTip(this.selectVisualStudioVersion, "Visual Studio versions currently installed");
-			this.selectVisualStudioVersion.DrawItem += selectVisualStudioVersion_DrawItem;
 			this.selectVisualStudioVersion.SelectedIndexChanged += selectVisualStudioVersion_SelectedIndexChanged;
 			// 
 			// btnMainStartVisualStudio1

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -7,6 +7,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+
+using VSLauncher.Helpers;
 
 namespace VSLauncher
 {
@@ -21,6 +23,7 @@ namespace VSLauncher
 		public dlgNewInstance()
 		{
 			InitializeComponent();
+			ThemeHelper.ApplyCurrentTheme(this);
 		}
 
 		/// <summary>

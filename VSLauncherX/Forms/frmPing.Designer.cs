@@ -1,4 +1,4 @@
-﻿namespace VSLauncher.Forms
+namespace VSLauncher.Forms
 {
 	partial class frmPing
 	{
@@ -67,11 +67,10 @@
 			this.ShowIcon = false;
 			this.ShowInTaskbar = false;
 			this.SizeGripStyle = SizeGripStyle.Hide;
-			this.StartPosition = FormStartPosition.CenterScreen;
+			this.StartPosition = FormStartPosition.Manual;
 			this.Text = "frmPing";
 			this.TopMost = true;
 			this.TransparencyKey = Color.White;
-			this.WindowState = FormWindowState.Maximized;
 			Load += frmPing_Load;
 			ResumeLayout(false);
 		}

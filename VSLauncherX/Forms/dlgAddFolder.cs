@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 
 using VSLauncher.DataModel;
+using VSLauncher.Helpers;
 
 namespace VSLauncher
 {
@@ -28,6 +29,7 @@ namespace VSLauncher
 		public dlgAddFolder()
 		{
 			InitializeComponent();
+			ThemeHelper.ApplyCurrentTheme(this);
 			this.Solution = new VsFolder();
 		}
 

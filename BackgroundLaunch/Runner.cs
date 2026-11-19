@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+using System.ComponentModel;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Security.AccessControl;
 using System.Security.Principal;
@@ -47,8 +48,9 @@ namespace BackgroundLaunch
 		/// Runs a single item
 		/// </summary>
 		/// <param name="item">The item.</param>
+		/// <param name="allowWaitForCompletion">Whether <see cref="VsOptions.WaitForCompletion"/> waits for this process to exit.</param>
 		/// <returns>The process</returns>
-		private Process? RunItem(VsItem? item)
+		private Process? RunItem(VsItem? item, bool allowWaitForCompletion = true)
 		{
 			// dont do anything if empty
 			if (item is null)
@@ -56,12 +58,51 @@ namespace BackgroundLaunch
 				return null;
 			}
 
-			Process? process;
+			ProcessStartInfo? startInfo = BuildStartInfo(item);
+
+			if (startInfo is null)
+			{
+				return null;
+			}
+
+			Process? process = Process.Start(startInfo);
+
+			if ((process != null) && item.PreferredMonitor.HasValue)
+			{
+				// move process to the given monitor
+				MoveProcessToMonitor(process, item.PreferredMonitor.Value);
+			}
+
+			if (allowWaitForCompletion && item.WaitForCompletion)
+			{
+				WaitForExitSafe(process);
+				process?.Dispose();
+
+				return null;
+			}
+
+			if (process != null && IsExitedSafe(process))
+			{
+				process.Dispose();
+
+				return null;
+			}
+
+			return process;
+		}
+
+		/// <summary>
+		/// Builds a <see cref="ProcessStartInfo"/> for the given item.
+		/// </summary>
+		/// <param name="item">The item to launch.</param>
+		/// <returns>The configured start info, or <c>null</c> if the item is not directly launchable.</returns>
+		private ProcessStartInfo? BuildStartInfo(VsItem item)
+		{
 			ProcessStartInfo startInfo = new ProcessStartInfo();
 			string? workingPath = Path.GetDirectoryName(item.Path);
-			
+
 			// setup the working path
-			if(!string.IsNullOrWhiteSpace(workingPath))
+			if (!string.IsNullOrWhiteSpace(workingPath))
 			{
 				if (!PathHelper.PathIsValid(workingPath))
 				{
@@ -72,70 +113,80 @@ namespace BackgroundLaunch
 				{
 					throw new ExecutionException("Access denied: " + workingPath);
 				}
+
+				startInfo.WorkingDirectory = workingPath;
 			}
 
-			startInfo.Verb = item.RunAsAdmin ? "runas" : "run";
+			startInfo.Verb = item.RunAsAdmin ? "runas" : string.Empty;
 
 			// depending on item type, prepare executable and arguments
 			if ((item.ItemType == ItemTypeEnum.Solution) || (item.ItemType == ItemTypeEnum.Project))
 			{
-				if (item.RunAsAdmin)
+				string targetFilename = GetTargetFilename(item);
+
+				if (string.IsNullOrWhiteSpace(targetFilename))
 				{
-					startInfo.UseShellExecute = true;
-					startInfo.ErrorDialog = true;
-				}
-				else
-				{
-					startInfo.WorkingDirectory = workingPath;
+					throw new ExecutionException("No Visual Studio executable found.");
 				}
 
-				startInfo.FileName = GetTargetFilename(item);
-				startInfo.Arguments = "\"" + item.Path + "\"";
+				startInfo.UseShellExecute = item.RunAsAdmin;
+				startInfo.ErrorDialog     = item.RunAsAdmin;
+				startInfo.FileName        = targetFilename;
+				startInfo.Arguments       = BuildVisualStudioArguments(item);
+
+				return startInfo;
+			}
+
+			if (item.ItemType == ItemTypeEnum.Other)
+			{
+				if (string.IsNullOrWhiteSpace(item.Path))
+				{
+					return null;
+				}
+
+				startInfo.UseShellExecute = true;
+				startInfo.ErrorDialog     = item.RunAsAdmin;
+				startInfo.FileName        = item.Path;
+
 				if (!string.IsNullOrEmpty(item.Commands))
 				{
-					startInfo.Arguments += " " + item.Commands;
+					startInfo.Arguments = item.Commands;
 				}
 
-				if (!item.ShowSplash)
-				{
-					startInfo.Arguments += " /NoSplash";
-				}
-
-				if (item.Instance != null)
-				{
-					startInfo.Arguments += " /RootSuffix " + item.Instance;
-				}
+				return startInfo;
 			}
-			else if(item.ItemType == ItemTypeEnum.Other)
+
+			return null;
+		}
+
+		/// <summary>
+		/// Builds command-line arguments for launching a solution or project in Visual Studio.
+		/// </summary>
+		/// <param name="item">The item to launch.</param>
+		/// <returns>The formatted argument string.</returns>
+		private static string BuildVisualStudioArguments(VsItem item)
+		{
+			string arguments = "\"" + item.Path + "\"";
+
+			if (!string.IsNullOrEmpty(item.Commands))
 			{
-				// startInfo.FileName = "explorer.exe";
-				startInfo.FileName = item.Path;
-				if (!string.IsNullOrEmpty(item.Commands))
-				{
-					startInfo.Arguments += item.Commands;
-				}
+				arguments += " " + item.Commands;
 			}
-			else
+
+			if (!item.ShowSplash)
 			{
-				return null;
+				arguments += " /NoSplash";
 			}
 
-			process = Process.Start(startInfo);
-
-			if((process != null) && item.PreferredMonitor.HasValue)
+			if (!string.IsNullOrWhiteSpace(item.Instance))
 			{
-				// move process to the given monitor
-				MoveProcessToMonitor(process, item.PreferredMonitor.Value);
+				string trimmedInstance = item.Instance.Trim();
+				arguments += trimmedInstance.Contains(' ', StringComparison.Ordinal)
+					? $" /RootSuffix \"{trimmedInstance}\""
+					: $" /RootSuffix {trimmedInstance}";
 			}
 
-			if (item.WaitForCompletion)
-			{
-				process?.WaitForExit();
-				process?.Close();
-				process = null;
-			}
-
-			return process?.HasExited == true ? null : process;
+			return arguments;
 		}
 
 		/// <summary>
@@ -145,12 +196,12 @@ namespace BackgroundLaunch
 		/// <returns>A string.</returns>
 		private string GetTargetFilename(VsItem item)
 		{
-			if(item.VsVersion is null)
+			if (string.IsNullOrEmpty(item.VsVersion))
 			{
-				return this.launchInfo.Target;
+				return this.launchInfo.Target ?? this.visualStudioInstances.HighestVersion()?.Location ?? string.Empty;
 			}
 
-			return this.visualStudioInstances.GetByIdentifier(item.VsVersion).Location;
+			return this.visualStudioInstances.GetByIdentifier(item.VsVersion)?.Location ?? this.launchInfo.Target ?? string.Empty;
 		}
 
 		/// <summary>
@@ -160,24 +211,90 @@ namespace BackgroundLaunch
 		/// <param name="preferredMonitor">The preferred monitor.</param>
 		private static void MoveProcessToMonitor(Process process, int preferredMonitor)
 		{
-			while (!process.HasExited)
+			if (preferredMonitor < 0 || preferredMonitor >= Screen.AllScreens.Length)
 			{
-				process.WaitForInputIdle(500);
-				process.Refresh();
+				return;
+			}
 
-				if (process.MainWindowHandle != IntPtr.Zero)
+			var deadline = Stopwatch.StartNew();
+
+			while (deadline.Elapsed < TimeSpan.FromSeconds(30) && !IsExitedSafe(process))
+			{
+				try
 				{
-					if (Screen.AllScreens.Length >= preferredMonitor)
-					{
-						SetWindowPos(process.MainWindowHandle,
-							IntPtr.Zero,
-							Screen.AllScreens[preferredMonitor].WorkingArea.Left,
-							Screen.AllScreens[preferredMonitor].WorkingArea.Top,
-							0, 0, SWP_NOSIZE | SWP_NOZORDER);
-					}
-
+					process.WaitForInputIdle(500);
+				}
+				catch (InvalidOperationException)
+				{
+					Thread.Sleep(100);
+				}
+				catch (Win32Exception)
+				{
 					return;
 				}
+
+				try
+				{
+					process.Refresh();
+
+					if (process.MainWindowHandle != IntPtr.Zero)
+					{
+						var screens = Screen.AllScreens;
+
+						if (preferredMonitor >= 0 && preferredMonitor < screens.Length)
+						{
+							SetWindowPos(process.MainWindowHandle,
+								IntPtr.Zero,
+								screens[preferredMonitor].WorkingArea.Left,
+								screens[preferredMonitor].WorkingArea.Top,
+								0, 0, SWP_NOSIZE | SWP_NOZORDER);
+						}
+
+						return;
+					}
+				}
+				catch (Exception ex) when (ex is InvalidOperationException or Win32Exception)
+				{
+					return;
+				}
+			}
+		}
+
+		/// <summary>
+		/// Safely checks whether a process has exited.
+		/// </summary>
+		/// <param name="process">The process to check.</param>
+		/// <returns>True if exited or inaccessible.</returns>
+		private static bool IsExitedSafe(Process process)
+		{
+			try
+			{
+				return process.HasExited;
+			}
+			catch (Exception ex) when (ex is Win32Exception or InvalidOperationException)
+			{
+				return true;
+			}
+		}
+
+		/// <summary>
+		/// Safely waits for a process to exit.
+		/// </summary>
+		/// <param name="process">The process to wait for.</param>
+		private static void WaitForExitSafe(Process? process)
+		{
+			if (process is null)
+			{
+				return;
+			}
+
+			try
+			{
+				process.WaitForExit();
+			}
+			catch (Exception ex) when (ex is Win32Exception or InvalidOperationException)
+			{
+				Debug.WriteLine(ex);
 			}
 		}
 
@@ -216,10 +333,10 @@ namespace BackgroundLaunch
 				Environment.CurrentDirectory = workingPath;
 			}
 
-			var before = RunItem(item.RunBefore);
+			using var before = RunItem(item.RunBefore);
+			using var main = RunItem(item);
 
-			var main = RunItem(item);
-			if(item is VsFolder f)
+			if (item is VsFolder f)
 			{
 				foreach (var i in f.Items)
 				{
@@ -227,12 +344,12 @@ namespace BackgroundLaunch
 				}
 			}
 
-			if(item.RunAfter?.WaitForCompletion == true)
+			if (item.RunAfter?.WaitForCompletion == true)
 			{
-				main?.WaitForExit();
+				WaitForExitSafe(main);
 			}
 
-			RunItem(item.RunAfter);
+			using var after = RunItem(item.RunAfter, allowWaitForCompletion: false);
 		}
 	}
 }

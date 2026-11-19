@@ -1,4 +1,6 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
+using System.Text.RegularExpressions;
+using System.Xml.Linq;
 
 using Newtonsoft.Json;
 
@@ -11,6 +13,8 @@ namespace VSLauncher.DataModel
 	/// </summary>
 	public class VsSolution : VsItem
 	{
+		private const string SolutionFolderTypeGuid = "{2150E333-8FDC-42A3-9474-1A3956D46DE8}";
+		private static readonly Regex HeaderVersionRegex = new(@"\b(\d{2,4})\b", RegexOptions.Compiled);
 		/// <summary>
 		/// Initializes a new instance of the <see cref="VsSolution"/> class.
 		/// </summary>
@@ -71,40 +75,120 @@ namespace VSLauncher.DataModel
 
 			if (PathHelper.PathIsValidAndCanRead(System.IO.Path.GetDirectoryName(this.Path)))
 			{
-				try
+				if (IsSlnxPath(this.Path))
 				{
-					var sln = File.ReadLines(this.Path!);
-					foreach (var s in sln)
-					{
-						if (s.StartsWith("Project"))
-						{
-							try
-							{
-								var parts = s.Split(',');
-								var name = parts[0].Split('=')[1].Trim().Replace("\"", "");
-								var path = parts[1].Trim().Replace("\"", "");
-								var project = ImportHelper.GetItemFromExtension(name, System.IO.Path.Combine(System.IO.Path.GetDirectoryName(this.Path!) ?? "", path));
-								projects.Add(project);
-							}
-							catch
-							{
-								Debug.WriteLine($"Failed to parse '{s}' in file '{this.Path}'");
-							}
-						}
-						else if (s.StartsWith("\tProjectSection(SolutionItems)"))
-						{
-							// delete last item added from projects list
-							projects.RemoveAt(projects.Count - 1);
-						}
-					}
+					ParseSlnxProjects(projects);
 				}
-				catch (System.Exception ex)
+				else
 				{
-					Debug.WriteLine(ex);
+					ParseSlnProjects(projects);
 				}
 			}
 
 			return projects;
+		}
+
+		/// <summary>
+		/// Determines whether the specified path points to an XML-based .slnx solution file.
+		/// </summary>
+		/// <param name="path">The file path to inspect.</param>
+		/// <returns><c>true</c> if the file extension is .slnx; otherwise <c>false</c>.</returns>
+		private static bool IsSlnxPath(string? path)
+		{
+			return string.Equals(System.IO.Path.GetExtension(path), ".slnx", StringComparison.OrdinalIgnoreCase);
+		}
+
+		/// <summary>
+		/// Parses project entries from a classic text-based .sln solution file.
+		/// </summary>
+		/// <param name="projects">The destination list for discovered project items.</param>
+		private void ParseSlnProjects(VsItemList projects)
+		{
+			try
+			{
+				var sln = File.ReadLines(this.Path!);
+
+				foreach (var s in sln)
+				{
+					if (s.StartsWith("Project(", StringComparison.Ordinal))
+					{
+						if (s.Contains(SolutionFolderTypeGuid, StringComparison.OrdinalIgnoreCase))
+						{
+							continue;
+						}
+
+						try
+						{
+							var parts = s.Split(',');
+
+							if (parts.Length < 2)
+							{
+								continue;
+							}
+
+							var nameParts = parts[0].Split('=');
+
+							if (nameParts.Length < 2)
+							{
+								continue;
+							}
+
+							var name = nameParts[1].Trim().Replace("\"", "");
+							var path = parts[1].Trim().Replace("\"", "");
+							var project = ImportHelper.GetItemFromExtension(name, System.IO.Path.Combine(System.IO.Path.GetDirectoryName(this.Path!) ?? "", path));
+
+							projects.Add(project);
+						}
+						catch
+						{
+							Debug.WriteLine($"Failed to parse '{s}' in file '{this.Path}'");
+						}
+					}
+				}
+			}
+			catch (System.Exception ex)
+			{
+				Debug.WriteLine(ex);
+			}
+		}
+
+		/// <summary>
+		/// Parses project entries from an XML-based .slnx solution file.
+		/// </summary>
+		/// <param name="projects">The destination list for discovered project items.</param>
+		private void ParseSlnxProjects(VsItemList projects)
+		{
+			try
+			{
+				XDocument document = XDocument.Load(this.Path!);
+				string solutionDir = System.IO.Path.GetDirectoryName(this.Path!) ?? string.Empty;
+
+				foreach (XElement projectElement in document.Descendants())
+				{
+					if (!string.Equals(projectElement.Name.LocalName, "Project", StringComparison.OrdinalIgnoreCase))
+					{
+						continue;
+					}
+
+					string? relativePath = projectElement.Attributes()
+						.FirstOrDefault(a => string.Equals(a.Name.LocalName, "Path", StringComparison.OrdinalIgnoreCase))?.Value;
+
+					if (string.IsNullOrWhiteSpace(relativePath))
+					{
+						continue;
+					}
+
+					string fullPath = System.IO.Path.Combine(solutionDir, relativePath);
+					string name     = System.IO.Path.GetFileNameWithoutExtension(relativePath);
+					VsItem project  = ImportHelper.GetItemFromExtension(name, fullPath);
+
+					projects.Add(project);
+				}
+			}
+			catch (System.Exception ex)
+			{
+				Debug.WriteLine(ex);
+			}
 		}
 
 		/// <summary>
@@ -113,6 +197,11 @@ namespace VSLauncher.DataModel
 		/// <returns>A string.</returns>
 		public string GetRequiredVersion()
 		{
+			if (IsSlnxPath(this.Path))
+			{
+				return string.Empty;
+			}
+
 			string version = string.Empty;
 			// open the solution file, read the first 3 lines, parse the 3rd line
 
@@ -121,15 +210,42 @@ namespace VSLauncher.DataModel
 				try
 				{
 					var sln = File.ReadLines(this.Path!);
-					foreach (var s in sln)
+					string? headerFallback = null;
+
+					foreach (var rawLine in sln)
 					{
-						if (s.StartsWith('#'))
+						string s = rawLine.Trim();
+
+						if (s.StartsWith("VisualStudioVersion", StringComparison.OrdinalIgnoreCase))
 						{
-							version = s.Split(' ').Last();
-							return version;
+							int eqIndex = s.IndexOf('=');
+
+							if (eqIndex >= 0)
+							{
+								string verValue = s.Substring(eqIndex + 1).Trim();
+								string major = verValue.Split('.')[0];
+
+								if (!string.IsNullOrEmpty(major))
+								{
+									return major;
+								}
+							}
+						}
+						else if (headerFallback == null && s.StartsWith('#'))
+						{
+							var match = HeaderVersionRegex.Match(s);
+
+							if (match.Success)
+							{
+								headerFallback = match.Groups[1].Value;
+							}
 						}
 					}
-					// version = sln[2].Split(',')[1].Trim().Replace("VisualStudioVersion = ", "").Replace("\"", "");
+
+					if (!string.IsNullOrEmpty(headerFallback))
+					{
+						version = headerFallback;
+					}
 				}
 				catch (System.Exception ex)
 				{

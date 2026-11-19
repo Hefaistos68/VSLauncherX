@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -11,6 +11,7 @@ using System.Windows.Forms;
 
 using VSLauncher.DataModel;
 using VSLauncher.Forms;
+using VSLauncher.Helpers;
 
 using VSLXshared.Helpers;
 
@@ -29,8 +30,18 @@ namespace VSLauncher
 		public dlgExecuteVisualStudio(int index)
 		{
 			InitializeComponent();
-			
-			this.cbxVisualStudioVersion.SelectedIndex = 1 + index; // that is always the same as in the main dialog, but main has no default item
+			ThemeHelper.ApplyCurrentTheme(this);
+
+			int targetIndex = 1 + index;
+
+			if (targetIndex >= 0 && targetIndex < this.cbxVisualStudioVersion.Items.Count)
+			{
+				this.cbxVisualStudioVersion.SelectedIndex = targetIndex; // that is always the same as in the main dialog, but main has no default item
+			}
+			else if (this.cbxVisualStudioVersion.Items.Count > 0)
+			{
+				this.cbxVisualStudioVersion.SelectedIndex = 0;
+			}
 			
 			this.Item = new VsItem();
 			this.bIsListItem = false;
@@ -42,6 +53,7 @@ namespace VSLauncher
 		public dlgExecuteVisualStudio(object item)
 		{
 			InitializeComponent();
+			ThemeHelper.ApplyCurrentTheme(this);
 
 			this.Item = (VsItem)item;
 			this.bIsListItem = true;
@@ -72,20 +84,31 @@ namespace VSLauncher
 			if (this.bIsListItem && this.Item is not null)
 			{
 				this.txtName.Text = this.Item.Name;
-				this.cbxVisualStudioVersion.SelectFromVersion(this.Item.VsVersion);
+
+				if (!string.IsNullOrEmpty(this.Item.VsVersion))
+				{
+					this.cbxVisualStudioVersion.SelectFromVersion(this.Item.VsVersion);
+				}
+				else
+				{
+					this.cbxVisualStudioVersion.SelectDefault();
+				}
+
 				this.txtFoldername.Text = this.Item.Path;
-				this.txtCommand.Text = this.Item.Commands;
-				this.cbxInstance.Text = string.IsNullOrWhiteSpace(this.Item.Instance) ? "<default>" : this.Item.Instance;
-				this.chkAdmin.Checked = this.Item.RunAsAdmin;
-				this.chkSplash.Checked = this.Item.ShowSplash;
-				this.cbxMonitors.SelectedItem = this.Item.PreferredMonitor.HasValue ? this.Item.PreferredMonitor : 0;
+				this.txtCommand.Text    = this.Item.Commands;
+				this.cbxInstance.Text   = string.IsNullOrWhiteSpace(this.Item.Instance) ? "<default>" : this.Item.Instance;
+				this.chkAdmin.Checked   = this.Item.RunAsAdmin;
+				this.chkSplash.Checked  = this.Item.ShowSplash;
+
+				int monitorIndex = this.Item.PreferredMonitor.HasValue ? this.Item.PreferredMonitor.Value + 1 : 0;
+				this.cbxMonitors.SelectedIndex = (monitorIndex >= 0 && monitorIndex < this.cbxMonitors.Items.Count) ? monitorIndex : 0;
 			}
 		}
 
 		/// <summary>
 		/// Gets the vs version.
 		/// </summary>
-		public VisualStudioInstance VsVersion { get; private set; }
+		public VisualStudioInstance? VsVersion { get; private set; }
 
 		/// <summary>
 		/// Gets or sets the item.
@@ -158,27 +181,14 @@ namespace VSLauncher
 				this.Item.Commands = txtCommand.Text;
 				this.Item.PreferredMonitor = cbxMonitors.SelectedIndex > 0 ? cbxMonitors.SelectedIndex - 1 : null;
 
-				string? vsVersionIdentifier = null;
+				string vsVersionIdentifier = string.Empty;
 
-				if (!cbxVisualStudioVersion.IsDefaultSelected)
+				if (!cbxVisualStudioVersion.IsDefaultSelected && cbxVisualStudioVersion.SelectedItem is not null)
 				{
 					vsVersionIdentifier = cbxVisualStudioVersion.SelectedItem.Identifier;
 				}
-				else
-				{
-					vsVersionIdentifier = "";
-				}
 
 				this.Item.VsVersion = vsVersionIdentifier;
-
-				if (this.Item is VsProject p)
-				{
-					p.VsVersion = vsVersionIdentifier;
-				}
-				else if (this.Item is VsSolution s)
-				{
-					s.RequiredVersion = vsVersionIdentifier;
-				}
 			}
 		}
 
@@ -251,7 +261,12 @@ namespace VSLauncher
 		/// <param name="e">The e.</param>
 		private void btnBeforeAfter_Click(object sender, EventArgs e)
 		{
-			var dlg = new dlgBeforeAfter(this.Item, this.Item.Name);
+			if (this.Item is null)
+			{
+				return;
+			}
+
+			using var dlg = new dlgBeforeAfter(this.Item, this.Item.Name ?? string.Empty);
 
 			if (dlg.ShowDialog() == DialogResult.OK)
 			{
@@ -288,30 +303,13 @@ namespace VSLauncher
 			{
 				if (this.Item is VsProject p)
 				{
-					if (p.VsVersion == null)
-					{
-						version = p.GetRequiredVersion();
-						this.cbxVisualStudioVersion.SelectFromVersion(version);
-					}
-					else
-					{
-						this.cbxVisualStudioVersion.SelectDefault();
-					}
+					version = p.VsVersion;
 				}
 				else if (this.Item is VsSolution s)
 				{
-					if (s.RequiredVersion == null)
-					{
-						version = s.GetRequiredVersion();
-						this.cbxVisualStudioVersion.SelectFromVersion(version);
-					}
-					// the required version can also be "", then it was set to be default instead of specific
-					else
-					{
-						this.cbxVisualStudioVersion.SelectDefault();
-					}
+					version = string.IsNullOrEmpty(s.VsVersion) ? s.RequiredVersion : s.VsVersion;
 				}
-				else if (this.Item is VsFolder f)
+				else if (this.Item is VsFolder)
 				{
 					// this.cbxVisualStudioVersion.Enabled = false;
 					this.cbxInstance.Enabled = false;
@@ -333,6 +331,9 @@ namespace VSLauncher
 				txtFoldername.Select();
 			}
 
+			SetupMultiMonitor();
+			UpdateControlsFromData();
+
 			if (this.cbxVisualStudioVersion.SelectedIndex == -1)
 			{
 				if (string.IsNullOrEmpty(version))
@@ -344,9 +345,6 @@ namespace VSLauncher
 					this.txtInfo.Text = $"VS {version} not found";
 				}
 			}
-
-			SetupMultiMonitor();
-			UpdateControlsFromData();
 		}
 
 		/// <summary>

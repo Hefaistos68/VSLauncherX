@@ -1,4 +1,4 @@
-﻿using LibGit2Sharp;
+using LibGit2Sharp;
 
 using VSLauncher.DataModel;
 
@@ -135,6 +135,24 @@ namespace VSLauncher.Helpers
 			return string.Empty;
 		}
 		/// <summary>
+		/// Gets the icon for a solution item, selecting the .slnx icon when applicable.
+		/// </summary>
+		/// <param name="icons">The icon set to query.</param>
+		/// <param name="item">The solution item.</param>
+		/// <returns>The resolved <see cref="Icon"/>.</returns>
+		private static Icon GetSolutionIcon(FileIcons icons, VsItem item)
+		{
+			if (item.Warning)
+			{
+				return icons.GetIcon("Warning");
+			}
+
+			bool isSlnx = string.Equals(Path.GetExtension(item.Path), ".slnx", StringComparison.OrdinalIgnoreCase);
+
+			return icons.GetIcon(isSlnx ? "SolutionX" : "Solution");
+		}
+
+		/// <summary>
 		/// Gets the image name for file.
 		/// </summary>
 		/// <param name="row">The row.</param>
@@ -143,18 +161,24 @@ namespace VSLauncher.Helpers
 		{
 			if (row is VsFolder)
 			{
-				return Program.VisualStudioFileIcons32.GetIcon("Folder");
+				return ThemeHelper.GetFolderIcon(large: true);
 			}
 
 			if (row is VsSolution s)
 			{
-				return s.Warning ? Program.VisualStudioFileIcons32.GetIcon("Warning") : Program.VisualStudioFileIcons32.GetIcon("Solution");
+				return GetSolutionIcon(Program.VisualStudioFileIcons32, s);
 			}
 
 			if (row is VsProject p)
 			{
 				return p.Warning ? Program.VisualStudioFileIcons32.GetIcon("Warning") : Program.VisualStudioFileIcons32.GetIcon(p.ProjectType);
 			}
+
+			if (row is VsItem item && string.Equals(Path.GetExtension(item.Path), ".slnx", StringComparison.OrdinalIgnoreCase))
+			{
+				return GetSolutionIcon(Program.VisualStudioFileIcons32, item);
+			}
+
 			return string.Empty;
 		}
 
@@ -167,18 +191,24 @@ namespace VSLauncher.Helpers
 		{
 			if (row is VsFolder)
 			{
-				return Program.VisualStudioFileIcons16.GetIcon("Folder");
+				return ThemeHelper.GetFolderIcon(large: false);
 			}
 
 			if (row is VsSolution s)
 			{
-				return s.Warning ? Program.VisualStudioFileIcons16.GetIcon("Warning") : Program.VisualStudioFileIcons16.GetIcon("Solution");
+				return GetSolutionIcon(Program.VisualStudioFileIcons16, s);
 			}
 
 			if (row is VsProject p)
 			{
 				return p.Warning ? Program.VisualStudioFileIcons16.GetIcon("Warning") : Program.VisualStudioFileIcons16.GetIcon(p.ProjectType);
 			}
+
+			if (row is VsItem item && string.Equals(Path.GetExtension(item.Path), ".slnx", StringComparison.OrdinalIgnoreCase))
+			{
+				return GetSolutionIcon(Program.VisualStudioFileIcons16, item);
+			}
+
 			return string.Empty;
 		}
 
@@ -191,17 +221,22 @@ namespace VSLauncher.Helpers
 		{
 			if (row is VsFolder f)
 			{
-				return f.Icon is null ? Program.VisualStudioFileIcons32.GetIcon(name: "Folder") : f.Icon;
+				return f.Icon is null ? ThemeHelper.GetFolderIcon(large: true) : f.Icon;
 			}
 
 			if (row is VsSolution s)
 			{
-				return s.Warning ? Program.VisualStudioFileIcons32.GetIcon("Warning") : Program.VisualStudioFileIcons32.GetIcon("Solution");
+				return GetSolutionIcon(Program.VisualStudioFileIcons32, s);
 			}
 
 			if (row is VsProject p)
 			{
 				return p.Warning ? Program.VisualStudioFileIcons32.GetIcon("Warning") : Program.VisualStudioFileIcons32.GetIcon(p.ProjectType);
+			}
+
+			if (row is VsItem item && string.Equals(Path.GetExtension(item.Path), ".slnx", StringComparison.OrdinalIgnoreCase))
+			{
+				return GetSolutionIcon(Program.VisualStudioFileIcons32, item);
 			}
 
 			return string.Empty;
@@ -224,7 +259,12 @@ namespace VSLauncher.Helpers
 				else
 					return CheckState.Indeterminate;
 			}
-			return ((VsItem)rowObject).Checked ? CheckState.Checked : CheckState.Unchecked;
+			if (rowObject is VsItem item)
+			{
+				return item.Checked ? CheckState.Checked : CheckState.Unchecked;
+			}
+
+			return CheckState.Unchecked;
 		}
 
 		/// <summary>
@@ -241,9 +281,9 @@ namespace VSLauncher.Helpers
 			{
 				f.Checked = b;
 			}
-			else
+			else if (rowObject is VsItem item)
 			{
-				((VsItem)rowObject).Checked = b;
+				item.Checked = b;
 			}
 
 			return newValue;
@@ -345,9 +385,13 @@ namespace VSLauncher.Helpers
 					desc = "Could not find " + f.Path;
 				}
 			}
+			else if (rowObject is VsItem item)
+			{
+				desc = item.Path ?? string.Empty;
+			}
 			else
 			{
-				desc = ((VsItem)rowObject)?.Path ?? string.Empty;
+				desc = string.Empty;
 			}
 
 			return desc;
@@ -373,11 +417,11 @@ namespace VSLauncher.Helpers
 				}
 				if (s.Status == "*")
 				{
-					return Resources.GitDirty2;
+					return ThemeHelper.GetGitStatusIcon(isDirty: true);
 				}
 				else if (s.Status == "!")
 				{
-					return Resources.GitClean2;
+					return ThemeHelper.GetGitStatusIcon(isDirty: false);
 				}
 			}
 

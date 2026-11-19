@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Management;
 using System.Text.RegularExpressions;
+using System.Xml;
 using System.Xml.Linq;
 
 using Newtonsoft.Json;
@@ -18,7 +19,7 @@ namespace VSLauncher.DataModel
 	/// </summary>
 	public class VisualStudioInstanceManager
 	{
-		private static string vsDirectory_pattern = "(\\d\\d\\.\\d)_(........)(.*)";
+		private static readonly Regex vsDirectoryRegex = new(@"^(\d+\.\d+)_([0-9a-fA-F]{8})(.*)$", RegexOptions.Compiled);
 
 		private static Dictionary<string, string> vsVersions = new Dictionary<string, string>()
 		{
@@ -31,7 +32,8 @@ namespace VSLauncher.DataModel
 			{ "14", "2015" },
 			{ "15", "2017" },
 			{ "16", "2019" },
-			{ "17", "2022" }
+			{ "17", "2022" },
+			{ "18", "2026" }
 		};
 
 		private List<VisualStudioInstance> allInstances;
@@ -106,11 +108,11 @@ namespace VSLauncher.DataModel
 		/// <summary>
 		/// Access an instance by its version number
 		/// </summary>
-		public VisualStudioInstance this[string version]
+		public VisualStudioInstance? this[string version]
 		{
 			get
 			{
-				return allInstances.Where(x => x.Version.StartsWith(version)).Single();
+				return allInstances.FirstOrDefault(x => x.Version.StartsWith(version, StringComparison.OrdinalIgnoreCase));
 			}
 		}
 
@@ -131,7 +133,7 @@ namespace VSLauncher.DataModel
 				Debug.WriteLine($"Original MSFT_VSInstance WMi class not found or not able to read. ({ex.Message})");
 			}
 
-			if (list is null)
+			if (list is null || list.Count == 0)
 			{
 				try
 				{
@@ -143,7 +145,7 @@ namespace VSLauncher.DataModel
 				}
 			}
 
-			if (list is null)
+			if (list is null || list.Count == 0)
 			{
 				try
 				{
@@ -164,80 +166,62 @@ namespace VSLauncher.DataModel
 		/// <returns>A list of VisualStudioInstances.</returns>
 		public static List<VisualStudioInstance> ReadAllInstancesFromWMI1()
 		{
-			var list = new List<VisualStudioInstance>();
 			// read all data from WMI using CimInstance MSFT_VSInstance
 			// https://docs.microsoft.com/en-us/windows/win32/wmisdk/msft-vsinstance
-
-			ManagementObjectSearcher searcher = new ManagementObjectSearcher
+			using ManagementObjectSearcher searcher = new ManagementObjectSearcher
 			{
 				Query = new SelectQuery("MSFT_VSInstance ", "", new[] { "Name", "Version", "ProductLocation", "IdentifyingNumber" })
 			};
-			ManagementObjectCollection collection = searcher.Get();
-			ManagementObjectCollection.ManagementObjectEnumerator em = collection.GetEnumerator();
 
-			while (em.MoveNext())
-			{
-				ManagementBaseObject baseObj = em.Current;
-				if (baseObj.Properties["Version"].Value != null)
-				{
-					try
-					{
-						string? name = baseObj.Properties["Name"].Value.ToString();
-						string? version = baseObj.Properties["Version"].Value.ToString();
-						string? location = baseObj.Properties["ProductLocation"].Value.ToString();
-						string? identifier = baseObj.Properties["IdentifyingNumber"].Value.ToString();
-
-						if (name != null && version != null && location != null && identifier != null)
-						{
-							list.Add(new VisualStudioInstance(name, version, location, identifier, VisualStudioInstanceManager.YearFromVersion(version[..2])));
-						}
-					}
-					catch (Exception ex)
-					{
-						Debug.WriteLine(ex.ToString());
-					}
-				}
-			}
-
-			em?.Dispose();
-			collection?.Dispose();
-			searcher?.Dispose();
-
-
-			list.Sort((x, y) => x.Version.CompareTo(y.Version));
-
-			return list;
+			return ReadInstancesFromSearcher(searcher);
 		}
 
+		/// <summary>
+		/// Reads all installed Visual Studio instances from the root/cimv2/vs WMI namespace.
+		/// </summary>
+		/// <returns>A list of VisualStudioInstances.</returns>
 		public static List<VisualStudioInstance> ReadAllInstancesFromWMI2()
 		{
-			var list = new List<VisualStudioInstance>();
 			// read all data from WMI using CimInstance MSFT_VSInstance but in the new VS namespace
-
 			ManagementScope scope = new ManagementScope("root/cimv2/vs");
-			ManagementObjectSearcher searcher = new ManagementObjectSearcher
+			using ManagementObjectSearcher searcher = new ManagementObjectSearcher
 			{
 				Query = new SelectQuery("MSFT_VSInstance ", "", new[] { "Name", "Version", "ProductLocation", "IdentifyingNumber" }),
 				Scope = scope
 			};
-			ManagementObjectCollection collection = searcher.Get();
-			ManagementObjectCollection.ManagementObjectEnumerator em = collection.GetEnumerator();
+
+			return ReadInstancesFromSearcher(searcher);
+		}
+
+		/// <summary>
+		/// Enumerates WMI query results into sorted <see cref="VisualStudioInstance"/> items.
+		/// </summary>
+		/// <param name="searcher">The configured WMI searcher.</param>
+		/// <returns>A sorted list of instances.</returns>
+		private static List<VisualStudioInstance> ReadInstancesFromSearcher(ManagementObjectSearcher searcher)
+		{
+			var list = new List<VisualStudioInstance>();
+
+			using ManagementObjectCollection collection = searcher.Get();
+			using ManagementObjectCollection.ManagementObjectEnumerator em = collection.GetEnumerator();
 
 			while (em.MoveNext())
 			{
 				ManagementBaseObject baseObj = em.Current;
+
 				if (baseObj.Properties["Version"].Value != null)
 				{
 					try
 					{
-						string? name = baseObj.Properties["Name"].Value.ToString();
-						string? version = baseObj.Properties["Version"].Value.ToString();
-						string? location = baseObj.Properties["ProductLocation"].Value.ToString();
-						string? identifier = baseObj.Properties["IdentifyingNumber"].Value.ToString();
+						string? name = baseObj.Properties["Name"].Value?.ToString();
+						string? version = baseObj.Properties["Version"].Value?.ToString();
+						string? location = baseObj.Properties["ProductLocation"].Value?.ToString();
+						string? identifier = baseObj.Properties["IdentifyingNumber"].Value?.ToString();
 
 						if (name != null && version != null && location != null && identifier != null)
 						{
-							list.Add(new VisualStudioInstance(name, version, location, identifier, VisualStudioInstanceManager.YearFromVersion(version[..2])));
+							string year = VisualStudioInstanceManager.YearFromVersion(ExtractMajorVersion(version));
+							list.Add(new VisualStudioInstance(name, version, location, identifier, year));
 						}
 					}
 					catch (Exception ex)
@@ -247,11 +231,7 @@ namespace VSLauncher.DataModel
 				}
 			}
 
-			em?.Dispose();
-			collection?.Dispose();
-			searcher?.Dispose();
-
-			list.Sort((x, y) => x.Version.CompareTo(y.Version));
+			list.Sort((x, y) => CompareVersionStrings(x.Version, y.Version));
 
 			return list;
 		}
@@ -272,17 +252,15 @@ namespace VSLauncher.DataModel
 				var query2 = (ISetupConfiguration2)query;
 				var e = query2.EnumAllInstances();
 
-				var helper = (ISetupHelper)query;
-
 				int fetched;
 				var instances = new ISetupInstance[1];
 				do
 				{
 					e.Next(1, instances, out fetched);
+
 					if (fetched > 0)
 					{
 						var instance = instances[0];
-
 						var instance2 = (ISetupInstance2)instance;
 						var state = instance2.GetState();
 
@@ -294,15 +272,13 @@ namespace VSLauncher.DataModel
 						if (name != null && version != null && location != null && identifier != null)
 						{
 							location = Path.Combine(location, "Common7", "IDE", "devenv.exe");
-							var year = VisualStudioInstanceManager.YearFromVersion(version[..2]);
+							string year = VisualStudioInstanceManager.YearFromVersion(ExtractMajorVersion(version));
 							name = NormalizeName(name, year);
 							list.Add(new VisualStudioInstance(name, version, location, identifier, year));
 						}
-
 					}
 				}
 				while (fetched > 0);
-
 			}
 			catch (COMException ex) when (ex.HResult == REGDB_E_CLASSNOTREG)
 			{
@@ -313,7 +289,40 @@ namespace VSLauncher.DataModel
 				Debug.WriteLine($"Error 0x{ex.HResult:x8}: {ex.Message}");
 			}
 
+			list.Sort((x, y) => CompareVersionStrings(x.Version, y.Version));
+
 			return list;
+		}
+
+		/// <summary>
+		/// Compares two Visual Studio version strings numerically when possible.
+		/// </summary>
+		/// <param name="x">The first version string.</param>
+		/// <param name="y">The second version string.</param>
+		/// <returns>Comparison result suitable for sorting.</returns>
+		private static int CompareVersionStrings(string x, string y)
+		{
+			bool parsedX = Version.TryParse(x, out Version? vx);
+			bool parsedY = Version.TryParse(y, out Version? vy);
+
+			if (parsedX && parsedY && vx != null && vy != null)
+			{
+				return vx.CompareTo(vy);
+			}
+
+			return string.Compare(x, y, StringComparison.OrdinalIgnoreCase);
+		}
+
+		/// <summary>
+		/// Extracts the major version segment from a dotted version string.
+		/// </summary>
+		/// <param name="version">The version string.</param>
+		/// <returns>The major version segment.</returns>
+		private static string ExtractMajorVersion(string version)
+		{
+			int dotIndex = version.IndexOf('.');
+
+			return dotIndex > 0 ? version.Substring(0, dotIndex) : version;
 		}
 
 		private static string NormalizeName(string name, string year)
@@ -328,7 +337,7 @@ namespace VSLauncher.DataModel
 		/// <returns>A string.</returns>
 		public static string VersionFromYear(string year)
 		{
-			return vsVersions.Where(x => x.Value == year).FirstOrDefault().Key;
+			return vsVersions.Where(x => x.Value == year).FirstOrDefault().Key ?? string.Empty;
 		}
 
 		/// <summary>
@@ -338,7 +347,14 @@ namespace VSLauncher.DataModel
 		/// <returns>A string.</returns>
 		public static string YearFromVersion(string version)
 		{
-			return vsVersions.Where(x => x.Key.StartsWith(version)).FirstOrDefault().Value;
+			if (string.IsNullOrWhiteSpace(version))
+			{
+				return string.Empty;
+			}
+
+			string major = ExtractMajorVersion(version.Trim());
+
+			return vsVersions.TryGetValue(major, out string? year) ? year : major;
 		}
 
 		/// <summary>
@@ -349,131 +365,226 @@ namespace VSLauncher.DataModel
 		public VsItemList GetRecentProjects(bool bOnlyDefaultInstances)
 		{
 			VsFolder solutionList = new VsFolder();
-
 			var vsDir = new DirectoryInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Microsoft", "VisualStudio"));
 
-			foreach (var dir in vsDir.GetDirectories("*", SearchOption.AllDirectories))
+			if (!vsDir.Exists)
 			{
-				try
+				return solutionList.Items;
+			}
+
+			var enumOptions = new System.IO.EnumerationOptions
+			{
+				IgnoreInaccessible    = true,
+				RecurseSubdirectories = true
+			};
+
+			try
+			{
+				foreach (var dir in vsDir.EnumerateDirectories("*", enumOptions))
 				{
-					foreach (var file in dir.GetFiles("ApplicationPrivateSettings.xml"))
-					{
-						var xdoc = XDocument.Load(file.FullName);
-						XElement codeContainersOffline = xdoc.Descendants("collection").FirstOrDefault(c => c.Attribute("name")?.Value == "CodeContainers.Offline");
-						string codeContainersOfflineValue = codeContainersOffline?.Descendants("value").FirstOrDefault(v => v.Attribute("name")?.Value == "value")?.Value;
-
-						List<MruEntry>? recentProjects = null;
-						try
-						{
-							recentProjects = JsonConvert.DeserializeObject<List<MruEntry>>(codeContainersOfflineValue);
-						}
-						catch
-						{
-						}
-
-						if (recentProjects != null)
-						{
-							// build Visual Studio name and version as a string from the directory name, parse the string with regex into version and instance
-							(string? groupName, string? vsName) = ParseDirectoryNameIntoVsVersion(dir.Name);
-
-							if (!string.IsNullOrEmpty(groupName))
-							{
-								if (bOnlyDefaultInstances && groupName.Contains('/'))
-									continue;
-
-								var group = new VsFolder(groupName, string.Empty) { ItemType = ItemTypeEnum.VisualStudio };        // keep the path empty for VS groups
-								group.Icon = this.GetByName(vsName!)?.AppIcon;
-
-								// add the projects to the solution
-								foreach (var s in recentProjects)
-								{
-									VsItem item;
-
-									if (s.Value.LocalProperties.Type == 1)
-									{
-										item = new VsFolder(Path.GetFileNameWithoutExtension(s.Key), s.Value.LocalProperties.FullPath) { ItemType = ItemTypeEnum.Project };
-									}
-									else
-									{
-										item = ImportHelper.GetItemFromExtension(Path.GetFileNameWithoutExtension(s.Key), s.Value.LocalProperties.FullPath);
-									}
-
-									if (item != null)
-									{
-										item.Warning = item is VsFolder ? !Directory.Exists(item.Path) : !File.Exists(item.Path);
-										group.Items.Add(item);
-									}
-								}
-
-								solutionList.Items.Add(group);
-							}
-						}
-					}
+					TryLoadRecentProjectsFromDirectory(dir, bOnlyDefaultInstances, solutionList);
 				}
-				catch (DirectoryNotFoundException)
-				{
-				}
-				catch (NullReferenceException)
-				{
-					// possibly invalid file
-				}
+			}
+			catch (Exception ex) when (ex is DirectoryNotFoundException or UnauthorizedAccessException or IOException)
+			{
+				Debug.WriteLine(ex);
 			}
 
 			return solutionList.Items;
 		}
 
 		/// <summary>
+		/// Attempts to read Visual Studio MRU entries from a single Visual Studio profile directory.
+		/// </summary>
+		/// <param name="dir">The directory to inspect.</param>
+		/// <param name="bOnlyDefaultInstances">Whether to skip non-default named instances.</param>
+		/// <param name="solutionList">Target folder receiving discovered groups.</param>
+		private void TryLoadRecentProjectsFromDirectory(DirectoryInfo dir, bool bOnlyDefaultInstances, VsFolder solutionList)
+		{
+			try
+			{
+				foreach (var file in dir.GetFiles("ApplicationPrivateSettings.xml"))
+				{
+					List<MruEntry>? recentProjects = ReadMruEntries(file.FullName);
+
+					if (recentProjects == null)
+					{
+						continue;
+					}
+
+					// build Visual Studio name and version as a string from the directory name, parse the string with regex into version and instance
+					(string? groupName, string? vsName) = ParseDirectoryNameIntoVsVersion(dir.Name);
+
+					if (string.IsNullOrEmpty(groupName))
+					{
+						continue;
+					}
+
+					if (bOnlyDefaultInstances && groupName.Contains('/'))
+					{
+						continue;
+					}
+
+					var group = new VsFolder(groupName, string.Empty) { ItemType = ItemTypeEnum.VisualStudio };        // keep the path empty for VS groups
+					group.Icon = this.GetByName(vsName!)?.AppIcon;
+					PopulateMruGroup(group, recentProjects);
+					solutionList.Items.Add(group);
+				}
+			}
+			catch (Exception ex) when (ex is DirectoryNotFoundException or UnauthorizedAccessException or IOException or XmlException or NullReferenceException)
+			{
+				// possibly invalid or locked file
+				Debug.WriteLine(ex);
+			}
+		}
+
+		/// <summary>
+		/// Reads offline MRU entries from an ApplicationPrivateSettings.xml file.
+		/// </summary>
+		/// <param name="filePath">Full path to ApplicationPrivateSettings.xml.</param>
+		/// <returns>Deserialized MRU entries or <c>null</c>.</returns>
+		private static List<MruEntry>? ReadMruEntries(string filePath)
+		{
+			var xdoc = XDocument.Load(filePath);
+			XElement? codeContainersOffline = xdoc.Descendants("collection").FirstOrDefault(c => c.Attribute("name")?.Value == "CodeContainers.Offline");
+			string? codeContainersOfflineValue = codeContainersOffline?.Descendants("value").FirstOrDefault(v => v.Attribute("name")?.Value == "value")?.Value;
+
+			if (string.IsNullOrWhiteSpace(codeContainersOfflineValue))
+			{
+				return null;
+			}
+
+			try
+			{
+				return JsonConvert.DeserializeObject<List<MruEntry>>(codeContainersOfflineValue);
+			}
+			catch
+			{
+				return null;
+			}
+		}
+
+		/// <summary>
+		/// Populates a group folder with items parsed from Visual Studio MRU entries.
+		/// </summary>
+		/// <param name="group">The destination group.</param>
+		/// <param name="recentProjects">The MRU entries to convert.</param>
+		private static void PopulateMruGroup(VsFolder group, List<MruEntry> recentProjects)
+		{
+			foreach (var s in recentProjects)
+			{
+				if (s?.Value?.LocalProperties == null || string.IsNullOrEmpty(s.Value.LocalProperties.FullPath))
+				{
+					continue;
+				}
+
+				VsItem item;
+
+				if (s.Value.LocalProperties.Type == 1)
+				{
+					item = new VsFolder(Path.GetFileNameWithoutExtension(s.Key), s.Value.LocalProperties.FullPath) { ItemType = ItemTypeEnum.Project };
+				}
+				else
+				{
+					item = ImportHelper.GetItemFromExtension(Path.GetFileNameWithoutExtension(s.Key), s.Value.LocalProperties.FullPath);
+				}
+
+				if (item != null)
+				{
+					item.Warning = item is VsFolder ? !Directory.Exists(item.Path) : !File.Exists(item.Path);
+					group.Items.Add(item);
+				}
+			}
+		}
+
+		/// <summary>
 		/// Get the highest installed version
 		/// </summary>
-		/// <returns>A string.</returns>
-		public VisualStudioInstance HighestVersion()
+		/// <returns>The highest installed <see cref="VisualStudioInstance"/>, or <c>null</c> if none are installed.</returns>
+		public VisualStudioInstance? HighestVersion()
 		{
-			return this.allInstances.Last();
+			return this.allInstances.LastOrDefault();
+		}
+
+		/// <summary>
+		/// Finds the visual studio instance by identifier without falling back to the highest version.
+		/// </summary>
+		/// <param name="identifier">The VS identifier.</param>
+		/// <returns>The matching <see cref="VisualStudioInstance"/> or <c>null</c>.</returns>
+		public VisualStudioInstance? FindByIdentifier(string? identifier)
+		{
+			if (string.IsNullOrEmpty(identifier))
+			{
+				return null;
+			}
+
+			return this.allInstances.FirstOrDefault(x => x.Identifier.Equals(identifier, StringComparison.OrdinalIgnoreCase));
+		}
+
+		/// <summary>
+		/// Finds the visual studio instance by version prefix without falling back to the highest version.
+		/// </summary>
+		/// <param name="version">The version string or prefix.</param>
+		/// <returns>The matching <see cref="VisualStudioInstance"/> or <c>null</c>.</returns>
+		public VisualStudioInstance? FindByVersion(string? version)
+		{
+			if (string.IsNullOrEmpty(version))
+			{
+				return null;
+			}
+
+			return this.allInstances.FirstOrDefault(x => x.Version.StartsWith(version, StringComparison.OrdinalIgnoreCase));
 		}
 
 		/// <summary>
 		/// Gets the visual studio instance by identifier
 		/// </summary>
 		/// <param name="identifier">The VS identifer</param>
-		/// <returns>A VisualStudioInstance.</returns>
-		public VisualStudioInstance GetByIdentifier(string identifier)
+		/// <returns>A VisualStudioInstance or <c>null</c> if none are installed.</returns>
+		public VisualStudioInstance? GetByIdentifier(string? identifier)
 		{
 			if (string.IsNullOrEmpty(identifier))
+			{
 				return HighestVersion();
+			}
 
-			var vsi = this.allInstances.Where(x => x.Identifier == identifier).FirstOrDefault();
+			var vsi = FindByIdentifier(identifier);
 
-			return vsi is null ? HighestVersion() : vsi;
+			return vsi ?? HighestVersion();
 		}
 
 		/// <summary>
 		/// Gets the visual studio instance by name.
 		/// </summary>
 		/// <param name="name">The name.</param>
-		/// <returns>A VisualStudioInstance.</returns>
-		public VisualStudioInstance GetByName(string name)
+		/// <returns>A VisualStudioInstance or <c>null</c> if none are installed.</returns>
+		public VisualStudioInstance? GetByName(string? name)
 		{
 			if (string.IsNullOrEmpty(name))
+			{
 				return HighestVersion();
+			}
 
-			var vsi = this.allInstances.Where(x => x.ShortName.Equals(name, StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault();
+			var vsi = this.allInstances.FirstOrDefault(x => x.ShortName.Equals(name, StringComparison.InvariantCultureIgnoreCase));
 
-			return vsi is null ? HighestVersion() : vsi;
+			return vsi ?? HighestVersion();
 		}
 
 		/// <summary>
 		/// Gets the visual studio instance by version.
 		/// </summary>
 		/// <param name="version">The version.</param>
-		/// <returns>A VisualStudioInstance.</returns>
-		public VisualStudioInstance GetByVersion(string? version)
+		/// <returns>A VisualStudioInstance or <c>null</c> if none are installed.</returns>
+		public VisualStudioInstance? GetByVersion(string? version)
 		{
 			if (string.IsNullOrEmpty(version))
+			{
 				return HighestVersion();
+			}
 
-			var vsi = this.allInstances.Where(x => x.Version.StartsWith(version, StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault();
+			var vsi = FindByVersion(version);
 
-			return vsi is null ? HighestVersion() : vsi;
+			return vsi ?? HighestVersion();
 		}
 
 		/// <summary>
@@ -483,8 +594,8 @@ namespace VSLauncher.DataModel
 		/// <returns>A (string?, string?) .</returns>
 		private (string?, string?) ParseDirectoryNameIntoVsVersion(string name)
 		{
-			var regex = new Regex(vsDirectory_pattern);
-			var match = regex.Match(name);
+			var match = vsDirectoryRegex.Match(name);
+
 			if (match.Success)
 			{
 				string versionNumber = match.Groups[1].Value;
@@ -492,13 +603,16 @@ namespace VSLauncher.DataModel
 				string instance = match.Groups[3].Value;
 
 				// parse the version string into the correct visual studio version
-				string mainVersion = versionNumber.Substring(0, 2);
+				string mainVersion = ExtractMajorVersion(versionNumber);
+
 				if (vsVersions.ContainsKey(mainVersion))
 				{
 					version = vsVersions[mainVersion];
 				}
+
 				string vsName = $"Visual Studio {version}";
 				string groupName = $"{vsName} ({versionNumber})";
+
 				if (!string.IsNullOrEmpty(instance))
 				{
 					groupName += $" /{instance}";

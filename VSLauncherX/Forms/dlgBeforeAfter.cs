@@ -1,4 +1,5 @@
-﻿using VSLauncher.DataModel;
+using VSLauncher.DataModel;
+using VSLauncher.Helpers;
 
 using VSLXshared.Helpers;
 
@@ -15,9 +16,9 @@ namespace VSLauncher
 		public dlgBeforeAfter(VsOptions options, string title)
 		{
 			InitializeComponent();
+			ThemeHelper.ApplyCurrentTheme(this);
 			this.Options = options;
 			this.txtTitle.Text = title;
-			;
 		}
 
 		/// <summary>
@@ -95,13 +96,16 @@ namespace VSLauncher
 		private void dlgBeforeAfter_Load(object sender, EventArgs e)
 		{
 			txtRunBefore.Text = this.Options.RunBefore?.Path ?? string.Empty;
-			txtRunAfter.Text = this.Options.RunAfter?.Path ?? string.Empty;
+			txtRunAfter.Text  = this.Options.RunAfter?.Path ?? string.Empty;
 
 			txtArgumentsBefore.Text = this.Options.RunBefore?.Commands ?? string.Empty;
-			txtArgumentsAfter.Text = this.Options.RunAfter?.Commands ?? string.Empty;
+			txtArgumentsAfter.Text  = this.Options.RunAfter?.Commands ?? string.Empty;
 
 			chkWaitExitBefore.Checked = this.Options.RunBefore?.WaitForCompletion ?? false;
-			chkWaitExitAfter.Checked = this.Options.RunAfter?.WaitForCompletion ?? false;
+			chkWaitExitAfter.Checked  = this.Options.RunAfter?.WaitForCompletion ?? false;
+
+			txtRunBefore_TextChanged(sender, e);
+			txtRunAfter_TextChanged(sender, e);
 		}
 
 		/// <summary>

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -9,6 +9,8 @@ using System.Threading.Tasks;
 using Newtonsoft.Json;
 
 using VSLauncher.DataModel;
+
+using VSLXshared.Helpers;
 
 namespace VSLauncher.Helpers
 {
@@ -57,7 +59,7 @@ namespace VSLauncher.Helpers
         /// <summary>
         /// Gets the last exception.
         /// </summary>
-        public Exception LastException { get; private set; }
+        public Exception? LastException { get; private set; }
 
         /// <summary>
         /// Launches the.
@@ -71,25 +73,26 @@ namespace VSLauncher.Helpers
                 string s = CreateLaunchInfoString();
 
                 Debug.WriteLine(s);
+
                 if (Solution is null && SingleItem is null)
                 {
-                    throw new NullReferenceException();
+                    throw new InvalidOperationException("No item or folder specified to launch.");
                 }
 
-                bool bRequireAdmin = bForceAdmin | (Solution is null ? SingleItem!.RunAsAdmin : Solution.RunAsAdmin);
+                bool bRequireAdmin = bForceAdmin || (Solution is null ? SingleItem!.RunAsAdmin : Solution.RunAsAdmin);
                 var psi = new ProcessStartInfo
                 {
-                    FileName = GetLauncherPath(),
-                    Arguments = s,
-                    ErrorDialog = false,
+                    FileName        = GetLauncherPath(),
+                    Arguments       = s,
+                    ErrorDialog     = false,
                     UseShellExecute = bRequireAdmin,
-                    Verb = bRequireAdmin ? "runas" : "run",
-                    WindowStyle = ProcessWindowStyle.Hidden,
+                    Verb            = bRequireAdmin ? "runas" : string.Empty,
+                    WindowStyle     = ProcessWindowStyle.Hidden,
                 };
 
                 try
                 {
-                    var p = Process.Start(psi);
+                    using var p = Process.Start(psi);
                 }
                 catch (Exception ex)
                 {
@@ -121,20 +124,14 @@ namespace VSLauncher.Helpers
         {
             var li = new LaunchInfo()
             {
-                Solution = Solution ?? new VsFolder(SingleItem ?? throw new NullReferenceException()),
-                Target = Target.Location
+                Solution = Solution ?? new VsFolder(SingleItem ?? throw new InvalidOperationException("No item specified to launch.")),
+                Target   = Target?.Location
             };
 
-            JsonSerializerSettings settings = new JsonSerializerSettings()
-            {
-                Formatting = Formatting.None,
-            };
-
+            JsonSerializerSettings settings = FileHelper.CreateSafeJsonSettings(indented: false);
             string s = JsonConvert.SerializeObject(li, settings);
 
-            s = s.Replace('\"', '«').Replace(' ', '»');
-
-            return s;
+            return "b64:" + Convert.ToBase64String(Encoding.UTF8.GetBytes(s));
         }
     }
 }

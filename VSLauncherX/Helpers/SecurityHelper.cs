@@ -1,5 +1,6 @@
-﻿using System;
+using System;
 using System.Linq;
+using System.Security.Claims;
 using System.Security.Principal;
 using VSLauncher.Helpers.Tokens;
 using VSLauncher.Helpers.Native;
@@ -13,9 +14,11 @@ namespace VSLauncherX.Helpers
     {
         public static bool IsMemberOfLocalAdmins()
         {
-            var principal = new WindowsPrincipal(WindowsIdentity.GetCurrent());
+            using WindowsIdentity identity = WindowsIdentity.GetCurrent();
+            var principal = new WindowsPrincipal(identity);
             var claims = principal.Claims;
-            return claims.Any(c => c.Value == "S-1-5-32-544");
+
+            return claims.Any(c => c.Type == ClaimTypes.GroupSid && c.Value == "S-1-5-32-544");
         }
 
         private static int? _cacheGetCurrentIntegrityLevelCache;
@@ -62,7 +65,7 @@ namespace VSLauncherX.Helpers
 
             try
             {
-                WindowsIdentity identity = WindowsIdentity.GetCurrent();
+                using WindowsIdentity identity = WindowsIdentity.GetCurrent();
                 WindowsPrincipal principal = new WindowsPrincipal(identity);
                 _cacheIsAdmin = principal.IsInRole(WindowsBuiltInRole.Administrator);
                 

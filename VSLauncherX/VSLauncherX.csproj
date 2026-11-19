@@ -60,6 +60,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\BackgroundLaunch\BackgroundLaunch.csproj" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\ObjectListView\ObjectListView2022.csproj" />
     <ProjectReference Include="..\VSLXshared\VSLXshared.csproj" />
   </ItemGroup>
@@ -67,9 +68,6 @@
   <ItemGroup>
     <Compile Update="Forms\dlgImportVisualStudio.cs" />
     <Compile Update="Forms\dlgImportFolder.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Update="dlgNewInstance - Copy.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Update="Forms\dlgWarnMultiple.cs">

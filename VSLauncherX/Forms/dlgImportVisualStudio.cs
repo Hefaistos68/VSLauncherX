@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
@@ -21,6 +21,8 @@ namespace VSLauncher
 
 		private VisualStudioInstanceManager visualStudioVersions = new VisualStudioInstanceManager();
 
+		private bool isInitializing;
+
 		/// <summary>
 		/// Initializes a new instance of the <see cref="dlgImportVisualStudio"/> class.
 		/// </summary>
@@ -28,7 +30,13 @@ namespace VSLauncher
 		{
 			InitializeComponent();
 			InitializeList();
+			ThemeHelper.ApplyCurrentTheme(this);
+
+			this.Solution = new VsFolder();
+			this.isInitializing = true;
 			this.OnlyDefaultInstances = Properties.Settings.Default.OnlyDefaultInstances;
+			this.chkDefaultInstance.Checked = this.OnlyDefaultInstances;
+			this.isInitializing = false;
 		}
 
 		/// <summary>
@@ -48,6 +56,7 @@ namespace VSLauncher
 		/// <param name="e">The e.</param>
 		private void btnOk_Click(object sender, EventArgs e)
 		{
+			this.Solution ??= new VsFolder();
 			this.Solution.Name = "";
 
 			// remove not selected items from the solutions list
@@ -59,13 +68,13 @@ namespace VSLauncher
 		}
 
 		/// <summary>
-		/// Handles Click events for the btnSelectAfter button.
+		/// Handles Click events for the btnRefresh button.
 		/// </summary>
 		/// <param name="sender">The sender.</param>
 		/// <param name="e">The e.</param>
 		private void btnRefresh_Click(object sender, EventArgs e)
 		{
-
+			this.UpdateList();
 		}
 
 		/// <summary>
@@ -75,6 +84,11 @@ namespace VSLauncher
 		/// <param name="e">The e.</param>
 		private void chkDefaultInstance_CheckedChanged(object sender, EventArgs e)
 		{
+			if (this.isInitializing)
+			{
+				return;
+			}
+
 			this.OnlyDefaultInstances = chkDefaultInstance.Checked;
 			Properties.Settings.Default.OnlyDefaultInstances = this.OnlyDefaultInstances;
 			this.UpdateList();
@@ -159,11 +173,11 @@ namespace VSLauncher
 		{
 			if (e.Model is VsFolder)
 			{
-				e.Text = e.Item.Text;
+				e.Text = e.Item?.Text;
 			}
 			else
 			{
-				e.Text = e.SubItem.Text;
+				e.Text = e.SubItem?.Text;
 			}
 		}
 
@@ -173,19 +187,26 @@ namespace VSLauncher
 		private void UpdateList()
 		{
 			this.Cursor = Cursors.WaitCursor;
-			this.olvFiles.Items.Clear();
-			this.olvFiles.ClearObjects();
 
-			var items = this.visualStudioVersions.GetRecentProjects(this.OnlyDefaultInstances);
-
-			this.Solution = new VsFolder
+			try
 			{
-				Items = items
-			};
+				this.olvFiles.Items.Clear();
+				this.olvFiles.ClearObjects();
 
-			this.olvFiles.SetObjects(items);
-			this.olvFiles.ExpandAll();
-			this.Cursor = Cursors.Default;
+				var items = this.visualStudioVersions.GetRecentProjects(this.OnlyDefaultInstances);
+
+				this.Solution = new VsFolder
+				{
+					Items = items
+				};
+
+				this.olvFiles.SetObjects(items);
+				this.olvFiles.ExpandAll();
+			}
+			finally
+			{
+				this.Cursor = Cursors.Default;
+			}
 		}
 
 		/// <summary>

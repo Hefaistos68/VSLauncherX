@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
@@ -33,6 +33,7 @@ namespace VSLauncher.Helpers.Tokens
             if (!OpenThreadToken(GetCurrentThread(), TokenAccessLevels.Query | TokenAccessLevels.AdjustPrivileges, true, out var token))
             {
                 var error = Marshal.GetLastWin32Error();
+
                 if (error != ERROR_NO_TOKEN)
                 {
                     throw new Win32Exception(error);
@@ -44,32 +45,44 @@ namespace VSLauncher.Helpers.Tokens
                     throw new Win32Exception();
                 }
 
-                if (!DuplicateTokenEx(processToken, (uint)(TokenAccessLevels.Impersonate | TokenAccessLevels.Query | TokenAccessLevels.AdjustPrivileges),
-                    IntPtr.Zero, SECURITY_IMPERSONATION_LEVEL.SecurityImpersonation, TOKEN_TYPE.TokenImpersonation, out token))
+                try
                 {
-                    throw new Win32Exception();
+                    if (!DuplicateTokenEx(processToken, (uint)(TokenAccessLevels.Impersonate | TokenAccessLevels.Query | TokenAccessLevels.AdjustPrivileges),
+                        IntPtr.Zero, SECURITY_IMPERSONATION_LEVEL.SecurityImpersonation, TOKEN_TYPE.TokenImpersonation, out token))
+                    {
+                        throw new Win32Exception();
+                    }
+                }
+                finally
+                {
+                    CloseHandle(processToken);
                 }
 
                 if (!SetThreadToken(IntPtr.Zero, token))
                 {
+                    token.Dispose();
                     throw new Win32Exception();
                 }
             }
 
-            var tp = new TOKEN_PRIVILEGES();
-            tp.PrivilegeCount = 1;
+            using (token)
+            {
+                var tp = new TOKEN_PRIVILEGES
+                {
+                    PrivilegeCount = 1,
+                    Privileges     = new LUID_AND_ATTRIBUTES[1]
+                };
+                tp.Privileges[0].Attributes = (uint)(enabled ? NativeMethods.SE_PRIVILEGE_ENABLED : SE_PRIVILEGE_DISABLED);
+                tp.Privileges[0].Luid       = locallyUniqueIdentifier;
 
-            tp.Privileges = new LUID_AND_ATTRIBUTES[1];
-            tp.Privileges[0].Attributes = (uint)(enabled ? NativeMethods.SE_PRIVILEGE_ENABLED : SE_PRIVILEGE_DISABLED);
-            tp.Privileges[0].Luid = locallyUniqueIdentifier;
+                if (!AdjustTokenPrivileges(token.DangerousGetHandle(), false, ref tp, (uint)Marshal.SizeOf(tp),
+                    IntPtr.Zero, IntPtr.Zero))
+                {
+                    throw new Win32Exception();
+                }
 
-            if (!AdjustTokenPrivileges(token.DangerousGetHandle(), false, ref tp, (uint)Marshal.SizeOf(tp),
-                IntPtr.Zero, IntPtr.Zero))
-                throw new Win32Exception();
-
-            Debug.WriteLine($"Privilege {securityEntity} was {(enabled ? "ENABLED" : "DISABLED")}");
-            token.Close();
-            // todo: proper close.            
+                Debug.WriteLine($"Privilege {securityEntity} was {(enabled ? "ENABLED" : "DISABLED")}");
+            }
         }
     }
 }
