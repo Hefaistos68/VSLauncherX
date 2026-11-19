@@ -574,8 +574,9 @@ namespace VSLauncher
 
 		private void ApplyTheme(bool useDarkMode)
 		{
-			this.currentTheme = ThemeHelper.ApplyDarkMode(this, useDarkMode);
+			this.currentTheme = ThemeHelper.GetPalette(useDarkMode);
 
+			ThemeHelper.ApplyTheme(this, this.currentTheme);
 			ThemeHelper.ApplyTheme(this.ctxMenu, this.currentTheme);
 			this.olvFiles.Invalidate();
 		}

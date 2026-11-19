@@ -125,19 +125,23 @@ namespace VSLauncher
 		/// <param name="target">Destination list of items.</param>
 		private static void CollectGitItems(VsFolder folder, List<VsItem> target)
 		{
-			List<VsItem> items = new();
 			Stack<VsFolder> stack = new();
 			stack.Push(folder);
 
 			while (stack.Count > 0)
 			{
-				if (item is VsFolder subFolder)
+				VsFolder current = stack.Pop();
+
+				foreach (VsItem item in current.Items)
 				{
-					CollectGitItems(subFolder, target);
-				}
-				else
-				{
-					target.Add(item);
+					if (item is VsFolder subFolder)
+					{
+						stack.Push(subFolder);
+					}
+					else
+					{
+						target.Add(item);
+					}
 				}
 			}
 		}

@@ -45,8 +45,6 @@ namespace VSLauncher
 			
 			this.Item = new VsItem();
 			this.bIsListItem = false;
-
-			ThemeHelper.ApplyDarkMode(this, Properties.Settings.Default.DarkMode);
 		}
 
 		/// <summary>
@@ -59,8 +57,6 @@ namespace VSLauncher
 
 			this.Item = (VsItem)item;
 			this.bIsListItem = true;
-
-			ThemeHelper.ApplyDarkMode(this, Properties.Settings.Default.DarkMode);
 		}
 
 		/// <summary>

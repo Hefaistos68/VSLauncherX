@@ -1,3 +1,5 @@
+using Microsoft.Win32;
+
 namespace VSLauncher.Properties {
     
     
@@ -98,39 +100,30 @@ namespace VSLauncher.Properties {
 			}
 		}
 
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("")]
-        public Size AppSize
-        {
-            get
-            {
-                return ((Size)(this["AppSize"]));
-            }
-            set
-            {
-                this["AppSize"] = value;
-            }
-        }
+		/// <summary>
+		/// Detects whether Windows is currently configured to use dark app mode.
+		/// </summary>
+		/// <returns><c>true</c> if Windows dark mode is enabled; otherwise <c>false</c>.</returns>
+		public static bool IsSystemInDarkMode()
+		{
+			const string keyPath = @"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize";
 
-        public static bool IsSystemInDarkMode()
-        {
-            const string keyPath = @"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize";
-            using (RegistryKey key = Registry.CurrentUser.OpenSubKey(keyPath))
-            {
-                if (key != null)
-                {
-                    object registryValueObject = key.GetValue("AppsUseLightTheme");
-                    if (registryValueObject != null)
-                    {
-                        int registryValue = (int)registryValueObject;
-                        // If value is 0, system is in dark mode; if 1, light mode
-                        return registryValue == 0;
-                    }
-                }
-            }
-            // Default to light mode if key is missing
-            return false;
-        }
-    }
+			using (RegistryKey? key = Registry.CurrentUser.OpenSubKey(keyPath))
+			{
+				if (key != null)
+				{
+					object? registryValueObject = key.GetValue("AppsUseLightTheme");
+
+					if (registryValueObject is int registryValue)
+					{
+						// If value is 0, system is in dark mode; if 1, light mode
+						return registryValue == 0;
+					}
+				}
+			}
+
+			// Default to light mode if key is missing
+			return false;
+		}
+	}
 }

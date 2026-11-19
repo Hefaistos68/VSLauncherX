@@ -3,6 +3,8 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
+
+using BrightIdeasSoftware;
 using VSLauncher.Controls;
 
 namespace VSLauncher.Helpers
@@ -17,6 +19,12 @@ namespace VSLauncher.Helpers
 
 		[DllImport("dwmapi.dll", PreserveSig = true)]
 		private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
+
+		[DllImport("uxtheme.dll", EntryPoint = "#135", SetLastError = true, CharSet = CharSet.Unicode)]
+		private static extern int SetPreferredAppMode(int preferredAppMode);
+
+		[DllImport("uxtheme.dll", EntryPoint = "#136", SetLastError = true, CharSet = CharSet.Unicode)]
+		private static extern void FlushMenuThemes();
 
 		private static readonly ThemePalette LightPalette = new ThemePalette
 		{
@@ -319,6 +327,9 @@ namespace VSLauncher.Helpers
 				{
 					_ = DwmSetWindowAttribute(handle, DwmwaUseImmersiveDarkModeBefore20H1, ref darkFlag, sizeof(int));
 				}
+
+				_ = SetPreferredAppMode(useDarkMode ? 2 : 0);
+				FlushMenuThemes();
 			}
 			catch (Exception ex) when (ex is DllNotFoundException or EntryPointNotFoundException)
 			{
