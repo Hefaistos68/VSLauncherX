@@ -25,6 +25,7 @@ namespace VSLXshared.Helpers
 																"All files (*.*)|*.*";
 
 		public static readonly string SolutionFilterString    = "Solutions (*.sln, *.slnx)|*.sln;*.slnx|" +
+																"VS Code Workspaces (*.code-workspace)|*.code-workspace|" +
 																"C# Projects (*.csproj)|*.csproj|" +
 																"VB Projects (*.vbproj)|*.vbproj|" +
 																"F# Projects (*.fsproj)|*.fsproj|" +
@@ -60,17 +61,24 @@ namespace VSLXshared.Helpers
 
 			private static readonly Dictionary<string, Type> AllowedTypes = new(StringComparer.Ordinal)
 			{
-				[typeof(LaunchInfo).FullName!]       = typeof(LaunchInfo),
-				[typeof(VsFolder).FullName!]         = typeof(VsFolder),
-				[typeof(VsSolution).FullName!]       = typeof(VsSolution),
-				[typeof(VsProject).FullName!]        = typeof(VsProject),
-				[typeof(VsItem).FullName!]           = typeof(VsItem),
-				[typeof(VsOptions).FullName!]        = typeof(VsOptions),
-				[typeof(VsItemList).FullName!]       = typeof(VsItemList),
-				[typeof(ItemTypeEnum).FullName!]     = typeof(ItemTypeEnum),
-				[typeof(ProjectTypeEnum).FullName!]  = typeof(ProjectTypeEnum),
-				[typeof(SolutionTypeEnum).FullName!] = typeof(SolutionTypeEnum),
-				[typeof(OptionsEnum).FullName!]      = typeof(OptionsEnum)
+				[typeof(LaunchInfo).FullName!]          = typeof(LaunchInfo),
+				[typeof(VsFolder).FullName!]            = typeof(VsFolder),
+				[typeof(VsSolution).FullName!]          = typeof(VsSolution),
+				[typeof(VsProject).FullName!]           = typeof(VsProject),
+				[typeof(VsItem).FullName!]              = typeof(VsItem),
+				[typeof(VsOptions).FullName!]           = typeof(VsOptions),
+				[typeof(VsItemList).FullName!]          = typeof(VsItemList),
+				[typeof(ItemTypeEnum).FullName!]        = typeof(ItemTypeEnum),
+				[typeof(ProjectTypeEnum).FullName!]     = typeof(ProjectTypeEnum),
+				[typeof(SolutionTypeEnum).FullName!]    = typeof(SolutionTypeEnum),
+				[typeof(OptionsEnum).FullName!]         = typeof(OptionsEnum),
+				[typeof(IdeType).FullName!]             = typeof(IdeType),
+				[typeof(VsCodeProject).FullName!]       = typeof(VsCodeProject),
+				[typeof(VsCodeProjectKind).FullName!]   = typeof(VsCodeProjectKind),
+				[typeof(VsCodeWindowMode).FullName!]    = typeof(VsCodeWindowMode),
+				[typeof(VsCodeLaunchOptions).FullName!] = typeof(VsCodeLaunchOptions),
+				[typeof(IdeDefaultTarget).FullName!]    = typeof(IdeDefaultTarget),
+				[typeof(IdeDefaultTarget[]).FullName!]  = typeof(IdeDefaultTarget[])
 			};
 
 			/// <inheritdoc/>

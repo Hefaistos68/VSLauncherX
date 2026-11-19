@@ -124,6 +124,11 @@ namespace VSLauncher.DataModel
 		/// </summary>
 		public bool Expanded { get; set; }
 
+		/// <summary>
+		/// Gets or sets the Visual Studio Code launch options associated with this folder.
+		/// </summary>
+		public VsCodeLaunchOptions? VsCodeOptions { get; set; }
+
 		/// <inheritdoc/>
 		public override VsItem Clone()
 		{
@@ -138,9 +143,10 @@ namespace VSLauncher.DataModel
 		{
 			var f = (VsFolder)this.MemberwiseClone();
 
-			f.RunBefore = this.RunBefore?.Clone();
-			f.RunAfter  = this.RunAfter?.Clone();
-			f.items     = new VsItemList(f);
+			f.RunBefore     = this.RunBefore?.Clone();
+			f.RunAfter      = this.RunAfter?.Clone();
+			f.VsCodeOptions = this.VsCodeOptions?.Clone();
+			f.items         = new VsItemList(f);
 
 			if (withItems)
 			{
@@ -166,13 +172,47 @@ namespace VSLauncher.DataModel
 				{
 					n += f.ContainedProjectsCount();
 				}
-				else if (i is VsProject)
+				else if (i is VsProject or VsCodeProject)
 				{
 					n++;
 				}
 			}
 
 			return n;
+		}
+
+		/// <summary>
+		/// Determines whether this folder represents a disk-backed folder with a <c>.code-workspace</c> file or workspace child.
+		/// </summary>
+		/// <returns><c>true</c> if this folder is workspace-backed; otherwise <c>false</c>.</returns>
+		public bool IsWorkspaceBacked()
+		{
+			if (this.ItemType != ItemTypeEnum.Folder)
+			{
+				return false;
+			}
+
+			if (string.IsNullOrWhiteSpace(this.Path) || !Directory.Exists(this.Path))
+			{
+				return false;
+			}
+
+			foreach (var item in this.Items)
+			{
+				if (item is VsCodeProject codeProject && codeProject.ProjectKind == VsCodeProjectKind.Workspace)
+				{
+					return true;
+				}
+			}
+
+			try
+			{
+				return Directory.EnumerateFiles(this.Path, "*.code-workspace", SearchOption.TopDirectoryOnly).Any();
+			}
+			catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+			{
+				return false;
+			}
 		}
 
 		/// <summary>
