@@ -2,6 +2,8 @@ using System.Runtime.InteropServices;
 
 using Microsoft.Win32;
 
+using VSLauncher.Ide;
+
 using VSLXshared;
 
 namespace VSLauncher.DataModel
@@ -52,8 +54,31 @@ namespace VSLauncher.DataModel
 			iconsByName.Add("SolutionX", TryExtractIcon(".slnx", all[".slnx"], bLarge) ?? solutionIcon);
 			iconsByName.Add("None", Resources.DefaultIcon);
 
+			Icon codeWorkspaceIcon = TryExtractIcon(".code-workspace", all[".code-workspace"], bLarge)
+				?? TryGetInstalledVsCodeIcon()
+				?? Resources.DefaultIcon;
+
+			iconsByName.Add("CodeWorkspace", codeWorkspaceIcon);
+			iconsByName.Add("VsCodeProject", codeWorkspaceIcon);
+
 			iconsByName.Add("Warning", Resources.Warning);
 			iconsByName.Add("Folder", Resources.Folder);
+		}
+
+		/// <summary>
+		/// Attempts to retrieve the application icon from the default installed Visual Studio Code instance.
+		/// </summary>
+		/// <returns>The VS Code <see cref="Icon"/>, or <c>null</c> if unavailable.</returns>
+		private static Icon? TryGetInstalledVsCodeIcon()
+		{
+			try
+			{
+				return new VsCodeIdeProvider().DefaultInstance?.AppIcon;
+			}
+			catch
+			{
+				return null;
+			}
 		}
 
 		/// <summary>
@@ -109,7 +134,7 @@ namespace VSLauncher.DataModel
 				return icon;
 			}
 
-			return Resources.Warning;
+			return Resources.DefaultIcon;
 		}
 
 		/// <summary>
@@ -127,7 +152,7 @@ namespace VSLauncher.DataModel
 	/// </summary>
 	public class RegisteredFileType
 	{
-		public static List<string> listExtensionsOfInterest = new List<string> { ".sln", ".slnx", ".csproj", ".tsproj", ".esproj", ".vcxproj", ".fsproj", ".vbproj", ".razor" };
+		public static List<string> listExtensionsOfInterest = new List<string> { ".sln", ".slnx", ".code-workspace", ".csproj", ".tsproj", ".esproj", ".vcxproj", ".fsproj", ".vbproj", ".razor" };
 
 		private const uint SHGFI_ICON              = 0x000000100u;
 		private const uint SHGFI_LARGEICON         = 0x000000000u;
