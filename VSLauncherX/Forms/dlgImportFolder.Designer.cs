@@ -188,7 +188,7 @@ namespace VSLauncher
 			chkSolutionOnly.Name = "chkSolutionOnly";
 			chkSolutionOnly.Size = new Size(152, 19);
 			chkSolutionOnly.TabIndex = 4;
-			chkSolutionOnly.Text = "Show only Solution files";
+			chkSolutionOnly.Text = "Solutions & Workspaces only";
 			chkSolutionOnly.UseVisualStyleBackColor = true;
 			chkSolutionOnly.CheckedChanged += chkSolutionOnly_CheckedChanged;
 			// 

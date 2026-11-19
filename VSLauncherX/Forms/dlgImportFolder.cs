@@ -21,7 +21,7 @@ namespace VSLauncher
 	/// </summary>
 	public partial class dlgImportFolder : Form
 	{
-		private readonly List<string> extensionsHandled  = new List<string>() { ".sln", ".slnx", ".csproj", ".tsproj", ".esproj", ".vcxproj", ".fsproj", ".vbproj"};
+		private readonly ProjectScanner projectScanner = new ProjectScanner();
 		private bool bSolutionOnly;
 		private bool bFlat;
 
@@ -130,127 +130,6 @@ namespace VSLauncher
 
 
 		/// <summary>
-		/// Iterates the folder.
-		/// </summary>
-		/// <param name="folderPath">The folder path.</param>
-		/// <returns>An IEnumerable.</returns>
-		private VsFolder IterateFolder(string folderPath, bool bOnlySolutions, bool bFlat)
-		{
-			var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-			return IterateFolderInternal(folderPath, bOnlySolutions, bFlat, visited);
-		}
-
-		/// <summary>
-		/// Recursively iterates a directory while guarding against inaccessible paths and symlink cycles.
-		/// </summary>
-		/// <param name="folderPath">The folder path.</param>
-		/// <param name="bOnlySolutions">Whether to include only solution files.</param>
-		/// <param name="bFlat">Whether to flatten the hierarchy.</param>
-		/// <param name="visited">Set of already visited canonical paths.</param>
-		/// <returns>A populated <see cref="VsFolder"/>.</returns>
-		private VsFolder IterateFolderInternal(string folderPath, bool bOnlySolutions, bool bFlat, HashSet<string> visited)
-		{
-			string fullPath = Path.GetFullPath(folderPath);
-			string folderName = Path.GetFileName(folderPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
-			var root = new VsFolder(string.IsNullOrEmpty(folderName) ? folderPath : folderName, folderPath);
-
-			if (!visited.Add(fullPath) || !Directory.Exists(folderPath))
-			{
-				return root;
-			}
-
-			// iterate through all subdirectories, skipping hidden/dot directories and reparse points
-			try
-			{
-				foreach (var folder in Directory.GetDirectories(folderPath))
-				{
-					string dirName = Path.GetFileName(folder);
-
-					if (string.IsNullOrEmpty(dirName) || dirName.StartsWith('.'))
-					{
-						continue;
-					}
-
-					try
-					{
-						var attributes = File.GetAttributes(folder);
-
-						if (attributes.HasFlag(FileAttributes.Hidden) || attributes.HasFlag(FileAttributes.ReparsePoint))
-						{
-							continue;
-						}
-					}
-					catch (Exception ex) when (ex is UnauthorizedAccessException or IOException)
-					{
-						continue;
-					}
-
-					var subItem = IterateFolderInternal(folder, bOnlySolutions, bFlat, visited);
-
-					if (subItem.Items.Count > 0)
-					{
-						if (!bFlat)
-						{
-							root.Items.Add(subItem);
-						}
-						else
-						{
-							subItem.Items.ForEach(x => root.Items.Add(x));
-						}
-					}
-				}
-			}
-			catch (Exception ex) when (ex is UnauthorizedAccessException or DirectoryNotFoundException or IOException or PathTooLongException)
-			{
-			}
-
-			try
-			{
-				foreach (var file in Directory.GetFiles(folderPath))
-				{
-					string fileName = Path.GetFileName(file);
-
-					if (string.IsNullOrEmpty(fileName) || fileName.StartsWith('.'))
-					{
-						continue;
-					}
-
-					if (IsOfInterest(file, bOnlySolutions))
-					{
-						var item = ImportHelper.GetItemFromExtension(Path.GetFileNameWithoutExtension(file), file);
-						item.LastModified = new FileInfo(file).LastWriteTime;
-
-						root.Items.Add(item);
-					}
-				}
-			}
-			catch (Exception ex) when (ex is UnauthorizedAccessException or DirectoryNotFoundException or IOException or PathTooLongException)
-			{
-			}
-
-			return root;
-		}
-
-		/// <summary>
-		/// Are the of interest.
-		/// </summary>
-		/// <param name="file">The file.</param>
-		/// <param name="bOnlySolutions">If true, b only solutions.</param>
-		/// <returns>A bool.</returns>
-		private bool IsOfInterest(string file, bool bOnlySolutions)
-		{
-			string ext = Path.GetExtension(file).ToLower();
-
-			if (bOnlySolutions)
-			{
-				return ext == ".sln" || ext == ".slnx";
-			}
-
-			return this.extensionsHandled.Contains(ext);
-		}
-
-		/// <summary>
 		/// Handles text changes
 		/// </summary>
 		/// <param name="sender">The sender.</param>
@@ -354,7 +233,8 @@ namespace VSLauncher
 				try
 				{
 					this.Solution.Items.Clear();
-					var items = IterateFolder(txtFoldername.Text, this.bSolutionOnly, this.bFlat);
+
+					VsFolder items = this.projectScanner.Scan(txtFoldername.Text, this.bSolutionOnly, this.bFlat);
 
 					if (!this.bFlat)
 					{
