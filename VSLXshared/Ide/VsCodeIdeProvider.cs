@@ -589,9 +589,9 @@ namespace VSLauncher.Ide
 
 				CopyFileShared(dbPath, tempDbPath);
 				CopySidecarIfExists(dbPath + "-wal", tempDbPath + "-wal");
-				CopySidecarIfExists(dbPath + "-shm", tempDbPath + "-shm");
+				TryCopyOptionalSidecar(dbPath + "-shm", tempDbPath + "-shm");
 
-				return ReadRecentlyOpenedJsonFromDatabase(tempDbPath);
+				return ReadTempCopyWithWalRecovery(tempDbPath);
 			}
 			catch (Exception ex) when (ex is SqliteException or IOException or UnauthorizedAccessException)
 			{
@@ -606,14 +606,31 @@ namespace VSLauncher.Ide
 		}
 
 		/// <summary>
-		/// Executes the read-only SQLite query against <c>ItemTable</c> and clears the connection pool before closing.
+		/// Reads MRU JSON from a disposable temporary copy, allowing SQLite to regenerate an unlocked <c>-shm</c> index from <c>-wal</c> if <c>-shm</c> was locked or unavailable.
 		/// </summary>
-		private static string? ReadRecentlyOpenedJsonFromDatabase(string dbPath)
+		private static string? ReadTempCopyWithWalRecovery(string tempDbPath)
+		{
+			try
+			{
+				return ReadRecentlyOpenedJsonFromDatabase(tempDbPath, SqliteOpenMode.ReadOnly);
+			}
+			catch (SqliteException ex)
+			{
+				Debug.WriteLine(ex);
+
+				return ReadRecentlyOpenedJsonFromDatabase(tempDbPath, SqliteOpenMode.ReadWrite);
+			}
+		}
+
+		/// <summary>
+		/// Executes the SQLite query against <c>ItemTable</c> using the requested open mode and clears the connection pool before closing.
+		/// </summary>
+		private static string? ReadRecentlyOpenedJsonFromDatabase(string dbPath, SqliteOpenMode openMode = SqliteOpenMode.ReadOnly)
 		{
 			string connectionString = new SqliteConnectionStringBuilder
 			{
 				DataSource     = dbPath,
-				Mode           = SqliteOpenMode.ReadOnly,
+				Mode           = openMode,
 				Pooling        = false,
 				DefaultTimeout = 1
 			}.ToString();
@@ -1042,6 +1059,45 @@ namespace VSLauncher.Ide
 			if (File.Exists(sourcePath))
 			{
 				CopyFileShared(sourcePath, destinationPath);
+			}
+		}
+
+		/// <summary>
+		/// Attempts to copy an optional sidecar file such as <c>-shm</c>, cleaning any partial copy if a lock prevents reading it.
+		/// </summary>
+		private static void TryCopyOptionalSidecar(string sourcePath, string destinationPath)
+		{
+			if (!File.Exists(sourcePath))
+			{
+				return;
+			}
+
+			try
+			{
+				CopyFileShared(sourcePath, destinationPath);
+			}
+			catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+			{
+				Debug.WriteLine(ex);
+				TryDeleteFile(destinationPath);
+			}
+		}
+
+		/// <summary>
+		/// Best-effort deletion of a single temporary file.
+		/// </summary>
+		private static void TryDeleteFile(string filePath)
+		{
+			try
+			{
+				if (File.Exists(filePath))
+				{
+					File.Delete(filePath);
+				}
+			}
+			catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+			{
+				Debug.WriteLine(ex);
 			}
 		}
 

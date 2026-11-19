@@ -261,11 +261,12 @@ namespace VSLXshared.Tests.Ide
 				entry.Warning.ShouldBeFalse();
 			}
 
+			env.Verify(e => e.GetTempPath(), Times.Once);
 			Directory.GetFileSystemEntries(tempCopyRoot).ShouldBeEmpty();
 		}
 
 		/// <summary>
-		/// Verifies that when <c>state.vscdb</c> uses WAL mode with uncheckpointed <c>-wal</c>/<c>-shm</c> sidecars and is locked, temp-copy fallback still reads the latest MRU entries and cleans up.
+		/// Verifies that when <c>state.vscdb</c> uses WAL mode with uncheckpointed <c>-wal</c>/<c>-shm</c> sidecars and is exclusively locked, temp-copy fallback still reads the latest MRU entries and cleans up.
 		/// </summary>
 		[Test]
 		public void GetRecentProjects_WhenWalModeStateDbLockedWithUncheckpointedChanges_ReadsViaTempCopyWithSidecarsAndCleansUp()
@@ -303,7 +304,7 @@ namespace VSLXshared.Tests.Ide
 
 				using (SqliteCommand modeCmd = walWriter.CreateCommand())
 				{
-					modeCmd.CommandText = "PRAGMA journal_mode=WAL;";
+					modeCmd.CommandText = "PRAGMA journal_mode=WAL; PRAGMA locking_mode=EXCLUSIVE;";
 					modeCmd.ExecuteNonQuery();
 				}
 
@@ -312,12 +313,6 @@ namespace VSLXshared.Tests.Ide
 					updateCmd.CommandText = "UPDATE ItemTable SET value = $val WHERE key = 'history.recentlyOpenedPathsList';";
 					updateCmd.Parameters.AddWithValue("$val", updatedPayload);
 					updateCmd.ExecuteNonQuery();
-				}
-
-				using (SqliteCommand lockCmd = walWriter.CreateCommand())
-				{
-					lockCmd.CommandText = "BEGIN EXCLUSIVE;";
-					lockCmd.ExecuteNonQuery();
 				}
 
 				VsItemList groups   = provider.GetRecentProjects(false);
@@ -329,6 +324,83 @@ namespace VSLXshared.Tests.Ide
 				entry.Warning.ShouldBeFalse();
 			}
 
+			env.Verify(e => e.GetTempPath(), Times.Once);
+			Directory.GetFileSystemEntries(tempCopyRoot).ShouldBeEmpty();
+		}
+
+		/// <summary>
+		/// Verifies that when <c>state.vscdb-shm</c> holds an active byte-range lock during WAL fallback, reading still recovers MRU entries from the copied DB and <c>-wal</c> and cleans up.
+		/// </summary>
+		[Test]
+		public void GetRecentProjects_WhenWalShmSidecarHasByteRangeLock_RecoversFromTempCopyAndCleansUp()
+		{
+			string appData      = Path.Combine(tempDir, "AppData");
+			string exePath      = Path.Combine(tempDir, "Programs", "Code.exe");
+			string userDataDir  = Path.Combine(appData, "Code");
+			string dbPath       = Path.Combine(userDataDir, "User", "globalStorage", "state.vscdb");
+			string shmPath      = dbPath + "-shm";
+			string tempCopyRoot = Path.Combine(tempDir, "TempCopyRoot");
+			string projDir      = Path.Combine(tempDir, "WalShmProj");
+
+			Directory.CreateDirectory(tempCopyRoot);
+			Directory.CreateDirectory(projDir);
+			File.WriteAllText(Path.Combine(projDir, "Cargo.toml"), "[package]");
+
+			CreateStateDb(dbPath, "{\"entries\":[]}");
+
+			string walConnStr = new SqliteConnectionStringBuilder
+			{
+				DataSource = dbPath,
+				Pooling    = false
+			}.ToString();
+
+			string updatedPayload = JsonConvert.SerializeObject(new
+			{
+				entries = new[] { new { folderUri = new Uri(projDir).AbsoluteUri } }
+			});
+
+			Mock<IVsCodeEnvironment> env = CreateEnvironmentForSingleStable(appData, exePath, tempCopyRoot);
+			var provider                 = new VsCodeIdeProvider(env.Object);
+
+			using (var walWriter = new SqliteConnection(walConnStr))
+			{
+				walWriter.Open();
+
+				using (SqliteCommand modeCmd = walWriter.CreateCommand())
+				{
+					modeCmd.CommandText = "PRAGMA journal_mode=WAL;";
+					modeCmd.ExecuteNonQuery();
+				}
+
+				using (SqliteCommand updateCmd = walWriter.CreateCommand())
+				{
+					updateCmd.CommandText = "UPDATE ItemTable SET value = $val WHERE key = 'history.recentlyOpenedPathsList';";
+					updateCmd.Parameters.AddWithValue("$val", updatedPayload);
+					updateCmd.ExecuteNonQuery();
+				}
+
+				using (var shmLock = new FileStream(shmPath, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite | FileShare.Delete))
+				{
+					shmLock.Lock(120, 8);
+
+					try
+					{
+						VsItemList groups   = provider.GetRecentProjects(false);
+						VsFolder group      = groups.ShouldHaveSingleItem().ShouldBeOfType<VsFolder>();
+						VsCodeProject entry = group.Items.ShouldHaveSingleItem().ShouldBeOfType<VsCodeProject>();
+
+						entry.ProjectKind.ShouldBe(VsCodeProjectKind.Rust);
+						entry.ManifestFile.ShouldBe("Cargo.toml");
+						entry.Warning.ShouldBeFalse();
+					}
+					finally
+					{
+						shmLock.Unlock(120, 8);
+					}
+				}
+			}
+
+			env.Verify(e => e.GetTempPath(), Times.Once);
 			Directory.GetFileSystemEntries(tempCopyRoot).ShouldBeEmpty();
 		}
 

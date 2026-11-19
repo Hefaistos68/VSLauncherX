@@ -307,7 +307,7 @@ namespace VSLauncher.Ide
 		/// <returns>The configured <see cref="ProcessStartInfo"/>.</returns>
 		private ProcessStartInfo BuildQuickStartInfo(string arguments, bool runAsAdmin)
 		{
-			return new ProcessStartInfo
+			var startInfo = new ProcessStartInfo
 			{
 				FileName        = this.Location,
 				Arguments       = arguments,
@@ -315,6 +315,13 @@ namespace VSLauncher.Ide
 				UseShellExecute = runAsAdmin,
 				ErrorDialog     = runAsAdmin
 			};
+
+			if (!runAsAdmin)
+			{
+				startInfo.Environment.Remove("ELECTRON_RUN_AS_NODE");
+			}
+
+			return startInfo;
 		}
 
 		/// <summary>

@@ -252,35 +252,50 @@ namespace VSLXshared.Tests.Ide
 		[Test]
 		public void VsCodeInstance_DirectQuickActionBuilders_ProduceExpectedStartInfo()
 		{
-			VsCodeInstance instance = CreateInstance(CreateEnvironment(cliJsExists: false).Object);
+			string? originalElectronEnv = Environment.GetEnvironmentVariable("ELECTRON_RUN_AS_NODE");
 
-			ProcessStartInfo startPsi      = instance.BuildStartInfo();
-			ProcessStartInfo adminPsi      = instance.BuildAdminStartInfo();
-			ProcessStartInfo newWindowPsi  = instance.BuildNewWindowStartInfo();
-			ProcessStartInfo noExtPsi      = instance.BuildWithoutExtensionsStartInfo();
-			ProcessStartInfo openPathPsi   = instance.BuildOpenPathStartInfo(@"C:\src\demo\");
+			Environment.SetEnvironmentVariable("ELECTRON_RUN_AS_NODE", "1");
 
-			startPsi.FileName.ShouldBe(CodeExePath);
-			startPsi.Arguments.ShouldBe(string.Empty);
-			startPsi.UseShellExecute.ShouldBeFalse();
-			startPsi.Verb.ShouldBe(string.Empty);
+			try
+			{
+				VsCodeInstance instance = CreateInstance(CreateEnvironment(cliJsExists: false).Object);
 
-			adminPsi.FileName.ShouldBe(CodeExePath);
-			adminPsi.Arguments.ShouldBe(string.Empty);
-			adminPsi.Verb.ShouldBe("runas");
-			adminPsi.UseShellExecute.ShouldBeTrue();
+				ProcessStartInfo startPsi     = instance.BuildStartInfo();
+				ProcessStartInfo adminPsi     = instance.BuildAdminStartInfo();
+				ProcessStartInfo newWindowPsi = instance.BuildNewWindowStartInfo();
+				ProcessStartInfo noExtPsi     = instance.BuildWithoutExtensionsStartInfo();
+				ProcessStartInfo openPathPsi  = instance.BuildOpenPathStartInfo(@"C:\src\demo\");
 
-			newWindowPsi.FileName.ShouldBe(CodeExePath);
-			newWindowPsi.Arguments.ShouldBe("--new-window");
-			newWindowPsi.UseShellExecute.ShouldBeFalse();
+				startPsi.FileName.ShouldBe(CodeExePath);
+				startPsi.Arguments.ShouldBe(string.Empty);
+				startPsi.UseShellExecute.ShouldBeFalse();
+				startPsi.Verb.ShouldBe(string.Empty);
+				startPsi.Environment.ContainsKey("ELECTRON_RUN_AS_NODE").ShouldBeFalse();
 
-			noExtPsi.FileName.ShouldBe(CodeExePath);
-			noExtPsi.Arguments.ShouldBe("--disable-extensions");
-			noExtPsi.UseShellExecute.ShouldBeFalse();
+				adminPsi.FileName.ShouldBe(CodeExePath);
+				adminPsi.Arguments.ShouldBe(string.Empty);
+				adminPsi.Verb.ShouldBe("runas");
+				adminPsi.UseShellExecute.ShouldBeTrue();
 
-			openPathPsi.FileName.ShouldBe(CodeExePath);
-			openPathPsi.Arguments.ShouldBe("\"C:\\src\\demo\"");
-			openPathPsi.UseShellExecute.ShouldBeFalse();
+				newWindowPsi.FileName.ShouldBe(CodeExePath);
+				newWindowPsi.Arguments.ShouldBe("--new-window");
+				newWindowPsi.UseShellExecute.ShouldBeFalse();
+				newWindowPsi.Environment.ContainsKey("ELECTRON_RUN_AS_NODE").ShouldBeFalse();
+
+				noExtPsi.FileName.ShouldBe(CodeExePath);
+				noExtPsi.Arguments.ShouldBe("--disable-extensions");
+				noExtPsi.UseShellExecute.ShouldBeFalse();
+				noExtPsi.Environment.ContainsKey("ELECTRON_RUN_AS_NODE").ShouldBeFalse();
+
+				openPathPsi.FileName.ShouldBe(CodeExePath);
+				openPathPsi.Arguments.ShouldBe("\"C:\\src\\demo\"");
+				openPathPsi.UseShellExecute.ShouldBeFalse();
+				openPathPsi.Environment.ContainsKey("ELECTRON_RUN_AS_NODE").ShouldBeFalse();
+			}
+			finally
+			{
+				Environment.SetEnvironmentVariable("ELECTRON_RUN_AS_NODE", originalElectronEnv);
+			}
 		}
 
 		/// <summary>
