@@ -14,6 +14,8 @@ namespace BackgroundLaunch
 	/// </summary>
 	public class Runner
 	{
+		private static readonly IdeType[] LegacyTargetLookupOrder = { IdeType.VisualStudio, IdeType.VsCode };
+
 		private readonly IdeManager ideManager;
 		private readonly Func<ProcessStartInfo, Process?> processStarter;
 		private readonly LaunchInfo launchInfo;
@@ -52,7 +54,7 @@ namespace BackgroundLaunch
 			this.launchInfo     = item;
 			this.ideManager     = ideManager ?? new IdeManager();
 			this.processStarter = processStarter ?? Process.Start;
-			this.defaultTargets = BuildDefaultTargetsDictionary(item.DefaultTargets);
+			this.defaultTargets = BuildDefaultTargetsDictionary(item, this.ideManager);
 		}
 
 		/// <summary>
@@ -158,28 +160,67 @@ namespace BackgroundLaunch
 		}
 
 		/// <summary>
-		/// Converts serialized per-IDE default targets into a lookup dictionary.
+		/// Converts serialized per-IDE default targets into a lookup dictionary, applying legacy <see cref="LaunchInfo.Target"/> fallback where missing.
 		/// </summary>
-		/// <param name="targets">The serialized default targets array.</param>
+		/// <param name="launchInfo">The launch configuration containing explicit and legacy target settings.</param>
+		/// <param name="ideManager">The IDE manager used to match a legacy target path against installed instances.</param>
 		/// <returns>A dictionary mapping each IDE family to its default instance identifier.</returns>
-		private static Dictionary<IdeType, string> BuildDefaultTargetsDictionary(IdeDefaultTarget[]? targets)
+		private static Dictionary<IdeType, string> BuildDefaultTargetsDictionary(LaunchInfo launchInfo, IdeManager ideManager)
 		{
 			var map = new Dictionary<IdeType, string>();
 
-			if (targets is null)
+			if (launchInfo.DefaultTargets is not null)
 			{
-				return map;
-			}
-
-			foreach (IdeDefaultTarget target in targets)
-			{
-				if (target is not null && !string.IsNullOrWhiteSpace(target.TargetIdentifier))
+				foreach (IdeDefaultTarget target in launchInfo.DefaultTargets)
 				{
-					map[target.IdeType] = target.TargetIdentifier;
+					if (target is not null && !string.IsNullOrWhiteSpace(target.TargetIdentifier))
+					{
+						map[target.IdeType] = target.TargetIdentifier;
+					}
 				}
 			}
 
+			ApplyLegacyTargetFallback(map, launchInfo.Target, ideManager);
+
 			return map;
+		}
+
+		/// <summary>
+		/// Populates an IDE default target identifier from a legacy <see cref="LaunchInfo.Target"/> path when no explicit default target exists for the matching IDE.
+		/// </summary>
+		/// <param name="map">The default targets map to populate.</param>
+		/// <param name="legacyTarget">The optional legacy executable path.</param>
+		/// <param name="ideManager">The IDE manager providing installed instances.</param>
+		private static void ApplyLegacyTargetFallback(
+			Dictionary<IdeType, string> map,
+			string? legacyTarget,
+			IdeManager ideManager)
+		{
+			if (string.IsNullOrWhiteSpace(legacyTarget))
+			{
+				return;
+			}
+
+			string trimmedTarget = legacyTarget.Trim();
+
+			foreach (IdeType ideType in LegacyTargetLookupOrder)
+			{
+				if (map.ContainsKey(ideType))
+				{
+					continue;
+				}
+
+				IIdeInstance? matched = ideManager
+					.GetInstances(ideType)
+					.FirstOrDefault(i => string.Equals(i.Location, trimmedTarget, StringComparison.OrdinalIgnoreCase));
+
+				if (matched is not null && !string.IsNullOrWhiteSpace(matched.Identifier))
+				{
+					map[ideType] = matched.Identifier;
+
+					return;
+				}
+			}
 		}
 
 		/// <summary>
@@ -419,7 +460,7 @@ namespace BackgroundLaunch
 		/// <returns>The launched main process, if any.</returns>
 		private Process? ExecuteMainOrChildren(VsItem item, bool waitForRunAfter)
 		{
-			if (item is VsFolder folder && folder.ItemType == ItemTypeEnum.Folder)
+			if (item is VsFolder folder && folder.ItemType is ItemTypeEnum.Folder or ItemTypeEnum.VisualStudio)
 			{
 				if (ShouldLaunchFolderAsWorkspace(folder))
 				{

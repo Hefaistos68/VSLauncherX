@@ -373,6 +373,120 @@ namespace BackgroundLaunch.Tests
 		}
 
 		/// <summary>
+		/// Verifies that a legacy <see cref="LaunchInfo.Target"/> path resolves the matching Visual Studio instance when <see cref="LaunchInfo.DefaultTargets"/> is null.
+		/// </summary>
+		[Test]
+		public void RunAll_LegacyLaunchInfoTargetWithoutDefaultTargets_ResolvesMatchingVisualStudioInstance()
+		{
+			string slnPath = Path.Combine(tempDir, "LegacyApp.sln");
+
+			File.WriteAllText(slnPath, string.Empty);
+
+			var launched = new List<ProcessStartInfo>();
+			var vs1      = new VisualStudioInstance("VS 2019", "16.11.0", @"C:\VS19\devenv.exe", "vs19", "2019");
+			var vs2      = new VisualStudioInstance("VS 2022", "17.10.0", @"C:\VS22\devenv.exe", "vs22", "2022");
+			var launchInfo = new LaunchInfo
+			{
+				Solution       = new VsFolder(new VsSolution { Name = "LegacyApp", Path = slnPath }),
+				Target         = @"c:\vs19\devenv.exe",
+				DefaultTargets = null
+			};
+
+			var runner = new Runner(
+				launchInfo,
+				new IdeManager(new IIdeProvider[] { new VisualStudioIdeProvider(new[] { vs1, vs2 }) }),
+				psi => { launched.Add(psi); return null; });
+
+			runner.Run();
+
+			launched.Count.ShouldBe(1);
+			launched[0].FileName.ShouldBe(@"C:\VS19\devenv.exe");
+
+			var explicitLaunched = new List<ProcessStartInfo>();
+			var explicitRunner   = new Runner(
+				new LaunchInfo
+				{
+					Solution       = new VsFolder(new VsSolution { Name = "LegacyApp", Path = slnPath }),
+					Target         = @"c:\vs19\devenv.exe",
+					DefaultTargets = new[] { new IdeDefaultTarget(IdeType.VisualStudio, "vs22") }
+				},
+				new IdeManager(new IIdeProvider[] { new VisualStudioIdeProvider(new[] { vs1, vs2 }) }),
+				psi => { explicitLaunched.Add(psi); return null; });
+
+			explicitRunner.Run();
+
+			explicitLaunched.Count.ShouldBe(1);
+			explicitLaunched[0].FileName.ShouldBe(@"C:\VS22\devenv.exe");
+		}
+
+		/// <summary>
+		/// Verifies that <see cref="VsFolder"/> MRU group containers with <see cref="ItemTypeEnum.VisualStudio"/> recurse into their children.
+		/// </summary>
+		[Test]
+		public void RunAll_VisualStudioGroupFolder_RecursesIntoChildren()
+		{
+			string slnPath = Path.Combine(tempDir, "MruApp.sln");
+			string codeDir = Path.Combine(tempDir, "mru-web");
+
+			File.WriteAllText(slnPath, string.Empty);
+			Directory.CreateDirectory(codeDir);
+
+			var launched     = new List<ProcessStartInfo>();
+			var vsProvider   = CreateCapturingVsProvider(out IIdeInstance vsInstance);
+			var codeProvider = CreateCapturingVsCodeProvider(out IIdeInstance codeInstance);
+			var vsGroup      = new VsFolder("Visual Studio 2022 (17.10)", string.Empty) { ItemType = ItemTypeEnum.VisualStudio };
+			var codeGroup    = new VsFolder("Visual Studio Code", string.Empty) { ItemType = ItemTypeEnum.VisualStudio };
+			var rootGroup    = new VsFolder("Root", string.Empty);
+
+			vsGroup.Items.Add(new VsSolution { Name = "MruApp", Path = slnPath });
+			codeGroup.Items.Add(new VsCodeProject("mru-web", codeDir, VsCodeProjectKind.Folder));
+			rootGroup.Items.Add(vsGroup);
+			rootGroup.Items.Add(codeGroup);
+
+			var runner = new Runner(
+				new LaunchInfo { Solution = rootGroup },
+				new IdeManager(new[] { vsProvider, codeProvider }),
+				psi => { launched.Add(psi); return null; });
+
+			runner.BuildStartInfo(vsGroup).ShouldBeNull();
+
+			runner.Run();
+
+			launched.Count.ShouldBe(2);
+			launched[0].FileName.ShouldBe(vsInstance.Location);
+			launched[0].Arguments.ShouldContain($"\"{slnPath}\"");
+			launched[1].FileName.ShouldBe(codeInstance.Location);
+			launched[1].Arguments.ShouldContain($"\"{codeDir}\"");
+		}
+
+		/// <summary>
+		/// Verifies that an MRU open-folder <see cref="VsFolder"/> with <see cref="ItemTypeEnum.Project"/> launches directly rather than being treated as an empty container.
+		/// </summary>
+		[Test]
+		public void RunAll_OpenFolderWithProjectItemType_LaunchesDirectly()
+		{
+			string repoDir = Path.Combine(tempDir, "open-repo");
+
+			Directory.CreateDirectory(repoDir);
+
+			var launched   = new List<ProcessStartInfo>();
+			var vsProvider = CreateCapturingVsProvider(out IIdeInstance vsInstance);
+			var openFolder = new VsFolder("open-repo", repoDir) { ItemType = ItemTypeEnum.Project };
+
+			var runner = new Runner(
+				new LaunchInfo { Solution = openFolder },
+				new IdeManager(new[] { vsProvider }),
+				psi => { launched.Add(psi); return null; });
+
+			runner.Run();
+
+			launched.Count.ShouldBe(1);
+			launched[0].FileName.ShouldBe(vsInstance.Location);
+			launched[0].Arguments.ShouldContain($"\"{repoDir}\"");
+			launched[0].WorkingDirectory.ShouldBe(repoDir);
+		}
+
+		/// <summary>
 		/// Verifies <see cref="Runner.ResolveWorkingDirectory"/> for directory, file, and empty paths.
 		/// </summary>
 		[Test]
