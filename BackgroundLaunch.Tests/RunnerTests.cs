@@ -501,6 +501,52 @@ namespace BackgroundLaunch.Tests
 		}
 
 		/// <summary>
+		/// Verifies that <see cref="Runner.ShouldMoveProcessToMonitor"/> skips monitor polling when <c>ELECTRON_RUN_AS_NODE</c> is set, while permitting normal GUI launches with a preferred monitor.
+		/// </summary>
+		[Test]
+		public void ShouldMoveProcessToMonitor_SkipsHeadlessNodeLaunchAndAllowsGuiLaunch()
+		{
+			string cliJsPath = Path.Combine(tempDir, "resources", "app", "out", "cli.js");
+			string codeExe   = Path.Combine(tempDir, "Code.exe");
+
+			Mock<IVsCodeEnvironment> envMock = CreateDefaultVsCodeEnvironmentMock();
+
+			envMock.Setup(e => e.FileExists(cliJsPath)).Returns(true);
+
+			var provider = new VsCodeIdeProvider(envMock.Object);
+			var instance = new VsCodeInstance("Visual Studio Code", "1.95.0", codeExe, "vscode-stable-user", Path.Combine(tempDir, "userdata"), false, envMock.Object);
+
+			var waitItem = new VsCodeProject("app", tempDir, VsCodeProjectKind.Folder)
+			{
+				PreferredMonitor  = 0,
+				WaitForCompletion = true
+			};
+
+			var guiItem = new VsCodeProject("app", tempDir, VsCodeProjectKind.Folder)
+			{
+				PreferredMonitor  = 0,
+				WaitForCompletion = false
+			};
+
+			var itemWithoutMonitor = new VsCodeProject("app", tempDir, VsCodeProjectKind.Folder)
+			{
+				PreferredMonitor = null
+			};
+
+			ProcessStartInfo nodeStartInfo  = provider.BuildStartInfo(waitItem, instance)!;
+			ProcessStartInfo guiStartInfo   = provider.BuildStartInfo(guiItem, instance)!;
+			ProcessStartInfo adminStartInfo = provider.BuildStartInfo(waitItem, instance, forceAdmin: true)!;
+
+			nodeStartInfo.Environment.ContainsKey("ELECTRON_RUN_AS_NODE").ShouldBeTrue();
+			guiStartInfo.Environment.ContainsKey("ELECTRON_RUN_AS_NODE").ShouldBeFalse();
+
+			Runner.ShouldMoveProcessToMonitor(waitItem, nodeStartInfo).ShouldBeFalse();
+			Runner.ShouldMoveProcessToMonitor(guiItem, guiStartInfo).ShouldBeTrue();
+			Runner.ShouldMoveProcessToMonitor(waitItem, adminStartInfo).ShouldBeTrue();
+			Runner.ShouldMoveProcessToMonitor(itemWithoutMonitor, guiStartInfo).ShouldBeFalse();
+		}
+
+		/// <summary>
 		/// Creates a subdirectory containing an empty <c>.code-workspace</c> file.
 		/// </summary>
 		private static string CreateWorkspaceDir(string rootTempDir, string folderName)

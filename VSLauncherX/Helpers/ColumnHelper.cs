@@ -429,7 +429,7 @@ namespace VSLauncher.Helpers
 			int pr        = folder.ContainedProjectsCount();
 			string counts = FormatContainedCounts(pr, so);
 
-			if (!folder.IsWorkspaceBacked())
+			if (!folder.IsWorkspaceBacked(allowDiskProbe: false))
 			{
 				return counts;
 			}

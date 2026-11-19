@@ -22,6 +22,8 @@ namespace VSLauncher.DataModel
 	/// </summary>
 	public class FileIcons
 	{
+		private static readonly Lazy<Icon?> InstalledVsCodeIcon = new(TryGetInstalledVsCodeIcon);
+
 		private Dictionary<string, Icon?> iconsByName = new Dictionary<string, Icon?>();
 
 		/// <summary>
@@ -55,7 +57,7 @@ namespace VSLauncher.DataModel
 			iconsByName.Add("None", Resources.DefaultIcon);
 
 			Icon codeWorkspaceIcon = TryExtractIcon(".code-workspace", all[".code-workspace"], bLarge)
-				?? TryGetInstalledVsCodeIcon()
+				?? InstalledVsCodeIcon.Value
 				?? Resources.DefaultIcon;
 
 			iconsByName.Add("CodeWorkspace", codeWorkspaceIcon);

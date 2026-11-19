@@ -9,6 +9,9 @@ namespace VSLauncher.DataModel
 	{
 		private VsItemList? items;
 
+		[JsonIgnore]
+		private bool hasDiskWorkspaceCache;
+
 		/// <summary>
 		/// Initializes a new instance of the <see cref="VsFolder"/> class.
 		/// </summary>
@@ -184,25 +187,64 @@ namespace VSLauncher.DataModel
 		/// <summary>
 		/// Determines whether this folder represents a disk-backed folder with a <c>.code-workspace</c> file or workspace child.
 		/// </summary>
+		/// <param name="allowDiskProbe">If <c>true</c>, probes the filesystem when validating disk state and refreshes the cached disk workspace flag; if <c>false</c>, evaluates only in-memory children and the cached flag without performing disk I/O.</param>
 		/// <returns><c>true</c> if this folder is workspace-backed; otherwise <c>false</c>.</returns>
-		public bool IsWorkspaceBacked()
+		public bool IsWorkspaceBacked(bool allowDiskProbe = true)
 		{
-			if (this.ItemType != ItemTypeEnum.Folder)
+			if (this.ItemType != ItemTypeEnum.Folder || string.IsNullOrWhiteSpace(this.Path))
 			{
+				if (allowDiskProbe)
+				{
+					this.hasDiskWorkspaceCache = false;
+				}
+
 				return false;
 			}
 
-			if (string.IsNullOrWhiteSpace(this.Path) || !Directory.Exists(this.Path))
+			if (!allowDiskProbe)
 			{
+				return this.hasDiskWorkspaceCache || HasDirectWorkspaceChild();
+			}
+
+			if (!Directory.Exists(this.Path))
+			{
+				this.hasDiskWorkspaceCache = false;
+
 				return false;
 			}
 
+			bool hasDiskWorkspace      = ProbeDiskWorkspaceFile();
+			this.hasDiskWorkspaceCache = hasDiskWorkspace;
+
+			return HasDirectWorkspaceChild() || hasDiskWorkspace;
+		}
+
+		/// <summary>
+		/// Determines whether <see cref="Items"/> directly contains a <see cref="VsCodeProject"/> with <see cref="VsCodeProjectKind.Workspace"/>.
+		/// </summary>
+		/// <returns><c>true</c> if a direct workspace child exists; otherwise <c>false</c>.</returns>
+		private bool HasDirectWorkspaceChild()
+		{
 			foreach (var item in this.Items)
 			{
 				if (item is VsCodeProject codeProject && codeProject.ProjectKind == VsCodeProjectKind.Workspace)
 				{
 					return true;
 				}
+			}
+
+			return false;
+		}
+
+		/// <summary>
+		/// Probes <see cref="VsItem.Path"/> on disk for at least one top-level <c>.code-workspace</c> file.
+		/// </summary>
+		/// <returns><c>true</c> if a <c>.code-workspace</c> file exists; otherwise <c>false</c>.</returns>
+		private bool ProbeDiskWorkspaceFile()
+		{
+			if (this.ItemType != ItemTypeEnum.Folder || string.IsNullOrWhiteSpace(this.Path) || !Directory.Exists(this.Path))
+			{
+				return false;
 			}
 
 			try
@@ -240,6 +282,8 @@ namespace VSLauncher.DataModel
 		/// <inheritdoc/>
 		public override void Refresh()
 		{
+			this.hasDiskWorkspaceCache = ProbeDiskWorkspaceFile();
+
 			foreach (var i in this.Items)
 			{
 				i.Refresh();

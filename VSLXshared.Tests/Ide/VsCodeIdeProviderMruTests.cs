@@ -439,6 +439,42 @@ namespace VSLXshared.Tests.Ide
 		}
 
 		/// <summary>
+		/// Verifies that UNC <c>file://</c> URIs containing <c>%2520</c> are unescaped once into literal <c>%20</c> rather than double-unescaped into a space.
+		/// </summary>
+		[Test]
+		public void GetRecentProjects_WhenUncUriContainsPercent2520_PreservesLiteralPercent20WithoutDoubleUnescaping()
+		{
+			string appData     = Path.Combine(tempDir, "AppData");
+			string exePath     = Path.Combine(tempDir, "Programs", "Code.exe");
+			string userDataDir = Path.Combine(appData, "Code");
+			string dbPath      = Path.Combine(userDataDir, "User", "globalStorage", "state.vscdb");
+
+			string payload = JsonConvert.SerializeObject(new
+			{
+				entries = new object[]
+				{
+					new { workspace = new { configPath = "file://127.0.0.1/share/My%2520Workspaces/demo.code-workspace" } },
+					new { folderUri = "file://127.0.0.1/share/My%2520Folder" }
+				}
+			});
+
+			CreateStateDb(dbPath, payload);
+
+			Mock<IVsCodeEnvironment> env = CreateEnvironmentForSingleStable(appData, exePath, Path.Combine(tempDir, "TempCopyRoot"));
+			var provider                 = new VsCodeIdeProvider(env.Object);
+
+			VsItemList groups     = provider.GetRecentProjects(onlyDefaultProfiles: false);
+			VsFolder group        = groups.ShouldHaveSingleItem().ShouldBeOfType<VsFolder>();
+			VsCodeProject wsItem  = group.Items[0].ShouldBeOfType<VsCodeProject>();
+			VsCodeProject dirItem = group.Items[1].ShouldBeOfType<VsCodeProject>();
+
+			wsItem.Path.ShouldBe(@"\\127.0.0.1\share\My%20Workspaces\demo.code-workspace");
+			wsItem.ProjectKind.ShouldBe(VsCodeProjectKind.Workspace);
+			dirItem.Path.ShouldBe(@"\\127.0.0.1\share\My%20Folder");
+			dirItem.ProjectKind.ShouldBe(VsCodeProjectKind.Folder);
+		}
+
+		/// <summary>
 		/// Creates a mock <see cref="IVsCodeEnvironment"/> exposing a single User Stable VS Code instance backed by <paramref name="appData"/>.
 		/// </summary>
 		private static Mock<IVsCodeEnvironment> CreateEnvironmentForSingleStable(string appData, string exePath, string tempCopyRoot)

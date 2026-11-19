@@ -8,6 +8,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 using VSLauncher.DataModel;
+using VSLauncher.Helpers;
 
 namespace VSLauncher.Ide
 {
@@ -24,20 +25,6 @@ namespace VSLauncher.Ide
 		private const string StableIdentifierSystem   = "vscode-stable-system";
 		private const string InsidersIdentifierUser   = "vscode-insiders-user";
 		private const string InsidersIdentifierSystem = "vscode-insiders-system";
-
-		private static readonly (string FileName, VsCodeProjectKind Kind)[] ManifestMarkers =
-		{
-			("package.json", VsCodeProjectKind.NodeJs),
-			("pyproject.toml", VsCodeProjectKind.Python),
-			("Cargo.toml", VsCodeProjectKind.Rust),
-			("go.mod", VsCodeProjectKind.Go),
-			("pom.xml", VsCodeProjectKind.Java),
-			("build.gradle", VsCodeProjectKind.Java),
-			("build.gradle.kts", VsCodeProjectKind.Java),
-			("CMakeLists.txt", VsCodeProjectKind.CMake),
-			("pubspec.yaml", VsCodeProjectKind.Flutter),
-			("composer.json", VsCodeProjectKind.Php)
-		};
 
 		private readonly IVsCodeEnvironment environment;
 		private readonly IReadOnlyList<VsCodeInstance> instances;
@@ -785,10 +772,11 @@ namespace VSLauncher.Ide
 				dirName = decodedPath;
 			}
 
-			bool exists = Directory.Exists(decodedPath);
-			(VsCodeProjectKind kind, string? manifestFile) = exists
-				? DetectDirectoryProjectKind(decodedPath)
-				: (VsCodeProjectKind.Folder, null);
+			bool exists            = Directory.Exists(decodedPath);
+			string? manifestFile   = null;
+			VsCodeProjectKind kind = exists
+				? (ProjectScanner.DetectDirectoryManifest(decodedPath, out manifestFile) ?? VsCodeProjectKind.Folder)
+				: VsCodeProjectKind.Folder;
 
 			var project = new VsCodeProject(dirName, decodedPath, kind, manifestFile)
 			{
@@ -798,22 +786,6 @@ namespace VSLauncher.Ide
 			project.Warning = !exists;
 
 			return project;
-		}
-
-		/// <summary>
-		/// Detects the highest-priority VS Code project manifest inside an existing directory.
-		/// </summary>
-		private static (VsCodeProjectKind Kind, string? ManifestFile) DetectDirectoryProjectKind(string directoryPath)
-		{
-			foreach ((string fileName, VsCodeProjectKind kind) in ManifestMarkers)
-			{
-				if (File.Exists(Path.Combine(directoryPath, fileName)))
-				{
-					return (kind, fileName);
-				}
-			}
-
-			return (VsCodeProjectKind.Folder, null);
 		}
 
 		/// <summary>
@@ -827,7 +799,7 @@ namespace VSLauncher.Ide
 			}
 
 			string rawPath = uri.IsUnc
-				? Uri.UnescapeDataString(uri.LocalPath)
+				? uri.LocalPath
 				: DecodeLocalAbsolutePath(uri);
 
 			if (string.IsNullOrWhiteSpace(rawPath))

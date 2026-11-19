@@ -202,7 +202,7 @@ namespace VSLauncher
 				return FormatVsCodeEditionLabel(codeProject.VsVersion, "<default>");
 			}
 
-			if (rowObject is VsFolder folder && folder.IsWorkspaceBacked() && this.ideManager.HasInstalled(IdeType.VsCode))
+			if (rowObject is VsFolder folder && folder.IsWorkspaceBacked(allowDiskProbe: false) && this.ideManager.HasInstalled(IdeType.VsCode))
 			{
 				return FormatVsCodeEditionLabel(folder.VsCodeOptions?.Edition, "VS Code");
 			}
@@ -412,6 +412,7 @@ namespace VSLauncher
 
 			return this.tabVisualStudio;
 		}
+
 		/// <summary>
 		/// Handles the load event.
 		/// </summary>
@@ -735,7 +736,17 @@ namespace VSLauncher
 
 			using dlgExecuteVisualStudio vsDlg = new dlgExecuteVisualStudio(item);
 
-			return vsDlg.ShowDialog(this) == DialogResult.OK;
+			if (vsDlg.ShowDialog(this) != DialogResult.OK)
+			{
+				return false;
+			}
+
+			if (item is VsFolder folder)
+			{
+				folder.Refresh();
+			}
+
+			return true;
 		}
 		/// <summary>
 		/// Handles the refresh button.
@@ -878,45 +889,35 @@ namespace VSLauncher
 		/// <param name="e">The event parameters</param>
 		private void olvFiles_SelectedIndexChanged(object? sender, EventArgs e)
 		{
-			bool enableOpenInExplorer = false;
+			VsItem? selectedItem = this.olvFiles.SelectedItem?.RowObject as VsItem;
 
 			// update status bar text with info on selected item
-			if (this.olvFiles.SelectedItem != null)
+			if (selectedItem is VsSolution s)
 			{
-				object item = this.olvFiles.SelectedItem.RowObject;
-
-				if (item is VsSolution s)
-				{
-					this.mainStatusLabel.Text = $"Visual Studio Solution: {s.Projects?.Count} Projects, {s.TypeAsName()}";
-					enableOpenInExplorer      = !string.IsNullOrWhiteSpace(s.Path);
-				}
-				else if (item is VsProject p)
-				{
-					this.mainStatusLabel.Text = $"Visual Studio Project: {p.TypeAsName()}, .NET {p.FrameworkVersion}";
-					enableOpenInExplorer      = !string.IsNullOrWhiteSpace(p.Path);
-				}
-				else if (item is VsCodeProject cp)
-				{
-					this.mainStatusLabel.Text = $"VS Code: {cp.TypeAsName()}";
-					enableOpenInExplorer      = !string.IsNullOrWhiteSpace(cp.Path);
-				}
-				else if (item is VsFolder sg)
-				{
-					this.mainStatusLabel.Text = FormatFolderStatusText(sg);
-					enableOpenInExplorer      = !string.IsNullOrWhiteSpace(sg.Path) && Directory.Exists(sg.Path);
-				}
-				else if (item is VsItem other)
-				{
-					this.mainStatusLabel.Text = other.Path ?? string.Empty;
-					enableOpenInExplorer      = !string.IsNullOrWhiteSpace(other.Path);
-				}
+				this.mainStatusLabel.Text = $"Visual Studio Solution: {s.Projects?.Count} Projects, {s.TypeAsName()}";
+			}
+			else if (selectedItem is VsProject p)
+			{
+				this.mainStatusLabel.Text = $"Visual Studio Project: {p.TypeAsName()}, .NET {p.FrameworkVersion}";
+			}
+			else if (selectedItem is VsCodeProject cp)
+			{
+				this.mainStatusLabel.Text = $"VS Code: {cp.TypeAsName()}";
+			}
+			else if (selectedItem is VsFolder sg)
+			{
+				this.mainStatusLabel.Text = FormatFolderStatusText(sg);
+			}
+			else if (selectedItem is not null)
+			{
+				this.mainStatusLabel.Text = selectedItem.Path ?? string.Empty;
 			}
 			else
 			{
 				this.mainStatusLabel.Text = string.Empty;
 			}
 
-			btnExplorer.Enabled = enableOpenInExplorer;
+			this.btnExplorer.Enabled = HasExistingDiskPath(selectedItem);
 		}
 
 		/// <summary>

@@ -102,10 +102,10 @@ namespace BackgroundLaunch
 
 			Process? process = this.processStarter(startInfo);
 
-			if ((process != null) && item.PreferredMonitor.HasValue)
+			if ((process != null) && ShouldMoveProcessToMonitor(item, startInfo))
 			{
 				// move process to the given monitor
-				MoveProcessToMonitor(process, item.PreferredMonitor.Value);
+				MoveProcessToMonitor(process, item.PreferredMonitor!.Value);
 			}
 
 			if (allowWaitForCompletion && item.WaitForCompletion)
@@ -316,6 +316,18 @@ namespace BackgroundLaunch
 			{
 				startInfo.WorkingDirectory = workingPath;
 			}
+		}
+
+		/// <summary>
+		/// Determines whether a launched process should be polled for window placement on <see cref="VsOptions.PreferredMonitor"/>.
+		/// </summary>
+		/// <param name="item">The launched item.</param>
+		/// <param name="startInfo">The start info used to launch the process.</param>
+		/// <returns><c>true</c> if monitor placement applies and the process is not a headless <c>ELECTRON_RUN_AS_NODE</c> launch; otherwise <c>false</c>.</returns>
+		internal static bool ShouldMoveProcessToMonitor(VsItem item, ProcessStartInfo startInfo)
+		{
+			return item.PreferredMonitor.HasValue
+				&& (startInfo.UseShellExecute || !startInfo.Environment.ContainsKey("ELECTRON_RUN_AS_NODE"));
 		}
 
 		/// <summary>

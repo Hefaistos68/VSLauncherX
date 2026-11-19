@@ -40,6 +40,7 @@ namespace VSLauncher
 			Label lblPath;
 			Label lblMonitor;
 			this.txtName = new TextBox();
+			this.lblMissingEdition = new Label();
 			this.cbxVsCodeEdition = new IdeCombobox();
 			this.cbxProfile = new ComboBox();
 			this.cbxWindowMode = new ComboBox();
@@ -90,6 +91,16 @@ namespace VSLauncher
 			lblEdition.Size = new Size(46, 15);
 			lblEdition.TabIndex = 2;
 			lblEdition.Text = "Edition:";
+			//
+			// lblMissingEdition
+			//
+			this.lblMissingEdition.AutoEllipsis = true;
+			this.lblMissingEdition.Location = new Point(64, 62);
+			this.lblMissingEdition.Name = "lblMissingEdition";
+			this.lblMissingEdition.Size = new Size(335, 15);
+			this.lblMissingEdition.TabIndex = 23;
+			this.lblMissingEdition.TextAlign = ContentAlignment.MiddleRight;
+			this.lblMissingEdition.Visible = false;
 			//
 			// cbxVsCodeEdition
 			//
@@ -328,6 +339,7 @@ namespace VSLauncher
 			this.Controls.Add(this.cbxProfile);
 			this.Controls.Add(lblProfile);
 			this.Controls.Add(this.cbxVsCodeEdition);
+			this.Controls.Add(this.lblMissingEdition);
 			this.Controls.Add(lblEdition);
 			this.Controls.Add(this.txtName);
 			this.Controls.Add(lblName);
@@ -348,6 +360,7 @@ namespace VSLauncher
 		#endregion
 
 		private TextBox txtName;
+		private Label lblMissingEdition;
 		private IdeCombobox cbxVsCodeEdition;
 		private ComboBox cbxProfile;
 		private ComboBox cbxWindowMode;

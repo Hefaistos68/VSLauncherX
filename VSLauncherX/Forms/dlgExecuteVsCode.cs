@@ -63,10 +63,11 @@ namespace VSLauncher
 
 			try
 			{
-				this.initialPath      = this.Item.Path;
-				this.txtName.Text     = this.Item.Name ?? string.Empty;
-				this.txtPath.Text     = this.Item.Path ?? string.Empty;
-				this.chkAdmin.Checked = this.Item.RunAsAdmin;
+				this.initialPath           = this.Item.Path;
+				this.txtName.Text          = this.Item.Name ?? string.Empty;
+				this.txtPath.Text          = this.Item.Path ?? string.Empty;
+				this.chkAdmin.Checked      = this.Item.RunAsAdmin;
+				this.btnBrowseFile.Enabled = this.Item is not VsFolder;
 
 				SetupMultiMonitor();
 				LoadLaunchOptions();
@@ -95,6 +96,7 @@ namespace VSLauncher
 				this.missingEditionIdentifier = null;
 			}
 
+			UpdateMissingEditionHint();
 			PopulateProfiles();
 		}
 
@@ -105,6 +107,23 @@ namespace VSLauncher
 		/// <param name="e">The event arguments.</param>
 		private void btnOk_Click(object? sender, EventArgs e)
 		{
+			string trimmedPath = this.txtPath.Text.Trim();
+
+			if (this.Item is VsFolder && IsInvalidFolderFilePath(trimmedPath))
+			{
+				_ = MessageBox.Show(
+					this,
+					"A folder item cannot target a file. Enter a directory path or leave the path empty.",
+					"Invalid Folder Path",
+					MessageBoxButtons.OK,
+					MessageBoxIcon.Warning);
+
+				this.DialogResult = DialogResult.None;
+				this.txtPath.Focus();
+
+				return;
+			}
+
 			string? edition        = ResolveSelectedEdition();
 			string? profile        = ResolveProfileValue(this.cbxProfile.Text);
 			VsCodeWindowMode mode  = GetSelectedWindowMode();
@@ -112,7 +131,7 @@ namespace VSLauncher
 			string? commands       = string.IsNullOrWhiteSpace(this.txtCommand.Text) ? null : this.txtCommand.Text.Trim();
 
 			this.Item.Name             = this.txtName.Text.Trim();
-			this.Item.Path             = this.txtPath.Text.Trim();
+			this.Item.Path             = trimmedPath;
 			this.Item.RunAsAdmin       = this.chkAdmin.Checked;
 			this.Item.PreferredMonitor = this.cbxMonitors.SelectedIndex > 0 ? this.cbxMonitors.SelectedIndex - 1 : null;
 			this.Item.RunBefore        = this.pendingBeforeAfterOptions.RunBefore;
@@ -283,6 +302,7 @@ namespace VSLauncher
 				? edition
 				: null;
 
+			UpdateMissingEditionHint();
 			PopulateProfiles(profile);
 			SelectWindowMode(windowMode);
 
@@ -356,6 +376,8 @@ namespace VSLauncher
 				folder.VsCodeOptions.DisableExtensions = disableExtensions;
 				folder.VsCodeOptions.Commands          = commands;
 
+				folder.Refresh();
+
 				return;
 			}
 
@@ -392,6 +414,48 @@ namespace VSLauncher
 				project.ProjectKind  = detectedKind ?? VsCodeProjectKind.Folder;
 				project.ManifestFile = manifestFile;
 			}
+		}
+
+		/// <summary>
+		/// Updates visibility, text, and warning color of <see cref="lblMissingEdition"/> when the saved edition is not installed.
+		/// </summary>
+		private void UpdateMissingEditionHint()
+		{
+			bool hasMissing = !string.IsNullOrWhiteSpace(this.missingEditionIdentifier);
+
+			this.lblMissingEdition.Visible = hasMissing;
+
+			if (!hasMissing)
+			{
+				this.lblMissingEdition.Text = string.Empty;
+				this.toolTip1.SetToolTip(this.lblMissingEdition, null);
+
+				return;
+			}
+
+			string message = $"Edition '{this.missingEditionIdentifier}' not found";
+
+			this.lblMissingEdition.Text      = message;
+			this.lblMissingEdition.ForeColor = Properties.Settings.Default.DarkMode
+				? Color.FromArgb(255, 175, 90)
+				: Color.FromArgb(196, 82, 0);
+			this.toolTip1.SetToolTip(this.lblMissingEdition, message);
+		}
+
+		/// <summary>
+		/// Determines whether <paramref name="trimmedPath"/> points to an existing file or looks like a file path instead of a directory.
+		/// </summary>
+		/// <param name="trimmedPath">The trimmed path text entered by the user.</param>
+		/// <returns><c>true</c> if the path represents a file and should be rejected for a <see cref="VsFolder"/>; otherwise <c>false</c>.</returns>
+		private static bool IsInvalidFolderFilePath(string trimmedPath)
+		{
+			if (string.IsNullOrWhiteSpace(trimmedPath) || Directory.Exists(trimmedPath))
+			{
+				return false;
+			}
+
+			return File.Exists(trimmedPath)
+				|| (!Path.EndsInDirectorySeparator(trimmedPath) && Path.HasExtension(trimmedPath));
 		}
 
 		/// <summary>

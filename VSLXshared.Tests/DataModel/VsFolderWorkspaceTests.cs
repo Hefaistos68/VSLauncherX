@@ -86,6 +86,49 @@ namespace VSLXshared.Tests.DataModel
 		}
 
 		/// <summary>
+		/// Verifies that <see cref="VsFolder.IsWorkspaceBacked(bool)"/> with <c>allowDiskProbe: false</c> returns <c>false</c> before <see cref="VsFolder.Refresh"/> for disk-only workspaces, returns <c>true</c> after <see cref="VsFolder.Refresh"/>, and updates if the file is removed.
+		/// </summary>
+		[Test]
+		public void IsWorkspaceBacked_WhenAllowDiskProbeFalse_UsesCachedDiskFlagRefreshedByRefresh()
+		{
+			string wsFile = Path.Combine(tempDir, "disk-only.code-workspace");
+
+			File.WriteAllText(wsFile, "{}");
+
+			var folder = new VsFolder("app", tempDir);
+
+			folder.IsWorkspaceBacked(allowDiskProbe: false).ShouldBeFalse();
+
+			folder.Refresh();
+
+			folder.IsWorkspaceBacked(allowDiskProbe: false).ShouldBeTrue();
+
+			VsFolder clone = folder.Clone(withItems: false);
+
+			clone.IsWorkspaceBacked(allowDiskProbe: false).ShouldBeTrue();
+
+			File.Delete(wsFile);
+			folder.Refresh();
+
+			folder.IsWorkspaceBacked(allowDiskProbe: false).ShouldBeFalse();
+		}
+
+		/// <summary>
+		/// Verifies that <see cref="VsFolder.IsWorkspaceBacked(bool)"/> with <c>allowDiskProbe: false</c> returns <c>true</c> immediately when a direct <see cref="VsCodeProjectKind.Workspace"/> child is present without touching the filesystem.
+		/// </summary>
+		[Test]
+		public void IsWorkspaceBacked_WhenAllowDiskProbeFalseAndWorkspaceChildPresent_ReturnsTrueImmediately()
+		{
+			string missingPath = Path.Combine(tempDir, "nonexistent-unc-or-folder");
+			var folder         = new VsFolder("app", missingPath);
+
+			folder.Items.Add(new VsCodeProject("app", Path.Combine(missingPath, "app.code-workspace"), VsCodeProjectKind.Workspace));
+
+			folder.IsWorkspaceBacked(allowDiskProbe: false).ShouldBeTrue();
+			folder.IsWorkspaceBacked(allowDiskProbe: true).ShouldBeFalse();
+		}
+
+		/// <summary>
 		/// Verifies that <see cref="VsFolder.Clone(bool)"/> deep-copies <see cref="VsFolder.VsCodeOptions"/>.
 		/// </summary>
 		[Test]
