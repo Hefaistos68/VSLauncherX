@@ -12,7 +12,7 @@ namespace VSLauncher.Ide
 		/// <summary>
 		/// Initializes a new instance of the <see cref="IdeManager"/> class with the default IDE providers.
 		/// </summary>
-		public IdeManager() : this(new IIdeProvider[] { new VisualStudioIdeProvider() })
+		public IdeManager() : this(new IIdeProvider[] { new VisualStudioIdeProvider(), new VsCodeIdeProvider() })
 		{
 		}
 
