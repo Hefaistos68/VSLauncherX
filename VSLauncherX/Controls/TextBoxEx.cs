@@ -20,6 +20,8 @@ namespace VSLauncher.Controls
 		/// <summary>
 		/// Gets or sets a value indicating whether show clear button.
 		/// </summary>
+		[DefaultValue(true)]
+		[DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
 		public bool ShowClearButton { get; set; } = true;
 
 		/// <summary>

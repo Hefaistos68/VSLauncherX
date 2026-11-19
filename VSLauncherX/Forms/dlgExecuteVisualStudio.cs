@@ -113,6 +113,8 @@ namespace VSLauncher
 		/// <summary>
 		/// Gets or sets the item.
 		/// </summary>
+		[System.ComponentModel.Browsable(false)]
+		[System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
 		public VsItem? Item
 		{
 			get

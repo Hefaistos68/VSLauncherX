@@ -1,3 +1,5 @@
+using System.ComponentModel;
+
 using VSLauncher.DataModel;
 using VSLauncher.Helpers;
 using ThemePalette = VSLauncher.Helpers.ThemeHelper.ThemePalette;
@@ -30,6 +32,8 @@ namespace VSLauncher.Controls
         /// <summary>
         /// Gets or sets a value indicating whether to show default.
         /// </summary>
+        [DefaultValue(false)]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         public bool ShowDefault
         {
             get => showDefault;
@@ -62,6 +66,8 @@ namespace VSLauncher.Controls
         /// <summary>
         /// Gets the selected item.
         /// </summary>
+        [Browsable(false)]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public new VisualStudioInstance? SelectedItem
         {
             get
@@ -82,6 +88,8 @@ namespace VSLauncher.Controls
         /// <summary>
         /// Gets or sets the selected index, accounting for the default item which will result in -1
         /// </summary>
+        [Browsable(false)]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public new int SelectedIndex
         {
             get

@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Runtime.InteropServices;
@@ -553,8 +554,13 @@ namespace VSLauncher.Helpers
 		/// </summary>
 		private sealed class ThemedTreeRenderer : TreeListView.TreeRenderer
 		{
+			[DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
 			internal bool UseDarkGlyphs { get; set; }
+
+			[DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
 			internal Color GlyphColor { get; set; } = Color.Gainsboro;
+
+			[DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
 			internal Color GlyphHotColor { get; set; } = Color.White;
 
 			/// <inheritdoc/>
