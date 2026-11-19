@@ -39,6 +39,7 @@ namespace VSLauncher
 			TableLayoutPanel leftSubPanel;
 			Label titleLabel;
 			Label label2;
+			Label lblVsCodeEdition;
 			txtFilter = new TextBoxEx();
 			btnAddFolder = new Button();
 			btnImportFolder = new Button();
@@ -61,6 +62,8 @@ namespace VSLauncher
 			toolStripSeparator1 = new ToolStripSeparator();
 			toolStripSeparator2 = new ToolStripSeparator();
 			mainPanel = new TableLayoutPanel();
+			tabControlIdes = new TabControl();
+			tabVisualStudio = new TabPage();
 			flowLayoutPanel1 = new FlowLayoutPanel();
 			selectVisualStudioVersion = new VisualStudioCombobox();
 			btnMainStartVisualStudio1 = new Button();
@@ -70,6 +73,14 @@ namespace VSLauncher
 			btnMainStartVisualStudio5 = new Button();
 			btnMainOpenActivityLog = new Button();
 			btnVsInstaller = new Button();
+			tabVsCode = new TabPage();
+			flowLayoutPanelVsCode = new FlowLayoutPanel();
+			selectVsCodeEdition = new IdeCombobox();
+			btnVsCodeStart = new Button();
+			btnVsCodeStartAdmin = new Button();
+			btnVsCodeStartNewWindow = new Button();
+			btnVsCodeStartNoExt = new Button();
+			btnVsCodeDownload = new Button();
 			imageListMainIcons = new ImageList(components);
 			toolStripStatusLabel3 = new ToolStripStatusLabel();
 			tooltipForButtons = new ToolTip(components);
@@ -102,11 +113,16 @@ namespace VSLauncher
 			leftSubPanel = new TableLayoutPanel();
 			titleLabel = new Label();
 			label2 = new Label();
+			lblVsCodeEdition = new Label();
 			flowLayoutPanel2.SuspendLayout();
 			leftSubPanel.SuspendLayout();
 			((System.ComponentModel.ISupportInitialize)olvFiles).BeginInit();
 			mainPanel.SuspendLayout();
+			tabControlIdes.SuspendLayout();
+			tabVisualStudio.SuspendLayout();
 			flowLayoutPanel1.SuspendLayout();
+			tabVsCode.SuspendLayout();
+			flowLayoutPanelVsCode.SuspendLayout();
 			ctxMenu.SuspendLayout();
 			statusStrip1.SuspendLayout();
 			SuspendLayout();
@@ -199,7 +215,7 @@ namespace VSLauncher
 			btnImportVS.Name = "btnImportVS";
 			btnImportVS.Size = new Size(32, 32);
 			btnImportVS.TabIndex = 2;
-			tooltipForButtons.SetToolTip(btnImportVS, "Import Visual Studio Recents");
+			tooltipForButtons.SetToolTip(btnImportVS, "Import Recent Projects");
 			btnImportVS.UseVisualStyleBackColor = true;
 			btnImportVS.Click += mainImportVS_Click;
 			// 
@@ -457,12 +473,22 @@ namespace VSLauncher
 			// label2
 			// 
 			label2.AutoSize = true;
-			label2.Location = new Point(3, 25);
-			label2.Margin = new Padding(3, 25, 3, 0);
+			label2.Location = new Point(3, 6);
+			label2.Margin = new Padding(3, 6, 3, 0);
 			label2.Name = "label2";
 			label2.Size = new Size(119, 15);
 			label2.TabIndex = 6;
 			label2.Text = "Visual Studio version:";
+			// 
+			// lblVsCodeEdition
+			// 
+			lblVsCodeEdition.AutoSize = true;
+			lblVsCodeEdition.Location = new Point(3, 6);
+			lblVsCodeEdition.Margin = new Padding(3, 6, 3, 0);
+			lblVsCodeEdition.Name = "lblVsCodeEdition";
+			lblVsCodeEdition.Size = new Size(94, 15);
+			lblVsCodeEdition.TabIndex = 0;
+			lblVsCodeEdition.Text = "VS Code edition:";
 			// 
 			// toolStripSeparator1
 			// 
@@ -479,23 +505,48 @@ namespace VSLauncher
 			mainPanel.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
 			mainPanel.ColumnCount = 2;
 			mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
-			mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 234F));
+			mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 250F));
 			mainPanel.Controls.Add(leftSubPanel, 0, 0);
-			mainPanel.Controls.Add(flowLayoutPanel1, 1, 0);
-			mainPanel.Controls.Add(btnVsInstaller, 1, 1);
+			mainPanel.Controls.Add(tabControlIdes, 1, 0);
 			mainPanel.Location = new Point(0, 0);
 			mainPanel.Margin = new Padding(4, 3, 3, 3);
 			mainPanel.Name = "mainPanel";
 			mainPanel.RowCount = 2;
 			mainPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
 			mainPanel.RowStyles.Add(new RowStyle());
-			mainPanel.Size = new Size(933, 497);
+			mainPanel.SetRowSpan(tabControlIdes, 2);
+			mainPanel.Size = new Size(949, 497);
 			mainPanel.TabIndex = 0;
 			mainPanel.Resize += mainPanel_Resize;
 			// 
+			// tabControlIdes
+			// 
+			tabControlIdes.Controls.Add(tabVisualStudio);
+			tabControlIdes.Controls.Add(tabVsCode);
+			tabControlIdes.Dock = DockStyle.Fill;
+			tabControlIdes.Location = new Point(699, 0);
+			tabControlIdes.Margin = new Padding(0);
+			tabControlIdes.Name = "tabControlIdes";
+			tabControlIdes.SelectedIndex = 0;
+			tabControlIdes.Size = new Size(250, 497);
+			tabControlIdes.TabIndex = 1;
+			tabControlIdes.SelectedIndexChanged += tabControlIdes_SelectedIndexChanged;
+			// 
+			// tabVisualStudio
+			// 
+			tabVisualStudio.Controls.Add(flowLayoutPanel1);
+			tabVisualStudio.Controls.Add(btnVsInstaller);
+			tabVisualStudio.Location = new Point(4, 24);
+			tabVisualStudio.Name = "tabVisualStudio";
+			tabVisualStudio.Padding = new Padding(3);
+			tabVisualStudio.Size = new Size(242, 469);
+			tabVisualStudio.TabIndex = 0;
+			tabVisualStudio.Text = "Visual Studio";
+			tabVisualStudio.UseVisualStyleBackColor = true;
+			// 
 			// flowLayoutPanel1
 			// 
-			flowLayoutPanel1.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+			flowLayoutPanel1.AutoScroll = true;
 			flowLayoutPanel1.Controls.Add(label2);
 			flowLayoutPanel1.Controls.Add(selectVisualStudioVersion);
 			flowLayoutPanel1.Controls.Add(btnMainStartVisualStudio1);
@@ -504,12 +555,14 @@ namespace VSLauncher
 			flowLayoutPanel1.Controls.Add(btnMainStartVisualStudio4);
 			flowLayoutPanel1.Controls.Add(btnMainStartVisualStudio5);
 			flowLayoutPanel1.Controls.Add(btnMainOpenActivityLog);
+			flowLayoutPanel1.Dock = DockStyle.Fill;
 			flowLayoutPanel1.FlowDirection = FlowDirection.TopDown;
-			flowLayoutPanel1.Location = new Point(699, 0);
+			flowLayoutPanel1.Location = new Point(3, 3);
 			flowLayoutPanel1.Margin = new Padding(0);
 			flowLayoutPanel1.Name = "flowLayoutPanel1";
-			flowLayoutPanel1.Size = new Size(234, 445);
-			flowLayoutPanel1.TabIndex = 1;
+			flowLayoutPanel1.Size = new Size(236, 415);
+			flowLayoutPanel1.TabIndex = 0;
+			flowLayoutPanel1.WrapContents = false;
 			// 
 			// selectVisualStudioVersion
 			// 
@@ -518,7 +571,7 @@ namespace VSLauncher
 			this.selectVisualStudioVersion.DropDownStyle = ComboBoxStyle.DropDownList;
 			this.selectVisualStudioVersion.IntegralHeight = false;
 			this.selectVisualStudioVersion.ItemHeight = 28;
-			this.selectVisualStudioVersion.Location = new Point(0, 40);
+			this.selectVisualStudioVersion.Location = new Point(0, 21);
 			this.selectVisualStudioVersion.Margin = new Padding(0, 0, 0, 6);
 			this.selectVisualStudioVersion.Name = "selectVisualStudioVersion";
 			this.selectVisualStudioVersion.SelectedItem = null;
@@ -533,7 +586,7 @@ namespace VSLauncher
 			btnMainStartVisualStudio1.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
 			btnMainStartVisualStudio1.Image = (Image)resources.GetObject("btnMainStartVisualStudio1.Image");
 			btnMainStartVisualStudio1.ImageAlign = ContentAlignment.MiddleLeft;
-			btnMainStartVisualStudio1.Location = new Point(0, 80);
+			btnMainStartVisualStudio1.Location = new Point(0, 61);
 			btnMainStartVisualStudio1.Margin = new Padding(0);
 			btnMainStartVisualStudio1.Name = "btnMainStartVisualStudio1";
 			btnMainStartVisualStudio1.Padding = new Padding(4);
@@ -552,7 +605,7 @@ namespace VSLauncher
 			btnMainStartVisualStudio2.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
 			btnMainStartVisualStudio2.Image = (Image)resources.GetObject("btnMainStartVisualStudio2.Image");
 			btnMainStartVisualStudio2.ImageAlign = ContentAlignment.MiddleLeft;
-			btnMainStartVisualStudio2.Location = new Point(0, 144);
+			btnMainStartVisualStudio2.Location = new Point(0, 125);
 			btnMainStartVisualStudio2.Margin = new Padding(0);
 			btnMainStartVisualStudio2.Name = "btnMainStartVisualStudio2";
 			btnMainStartVisualStudio2.Padding = new Padding(4);
@@ -571,7 +624,7 @@ namespace VSLauncher
 			btnMainStartVisualStudio3.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
 			btnMainStartVisualStudio3.Image = (Image)resources.GetObject("btnMainStartVisualStudio3.Image");
 			btnMainStartVisualStudio3.ImageAlign = ContentAlignment.MiddleLeft;
-			btnMainStartVisualStudio3.Location = new Point(0, 208);
+			btnMainStartVisualStudio3.Location = new Point(0, 189);
 			btnMainStartVisualStudio3.Margin = new Padding(0);
 			btnMainStartVisualStudio3.Name = "btnMainStartVisualStudio3";
 			btnMainStartVisualStudio3.Padding = new Padding(4);
@@ -590,7 +643,7 @@ namespace VSLauncher
 			btnMainStartVisualStudio4.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
 			btnMainStartVisualStudio4.Image = (Image)resources.GetObject("btnMainStartVisualStudio4.Image");
 			btnMainStartVisualStudio4.ImageAlign = ContentAlignment.MiddleLeft;
-			btnMainStartVisualStudio4.Location = new Point(0, 272);
+			btnMainStartVisualStudio4.Location = new Point(0, 253);
 			btnMainStartVisualStudio4.Margin = new Padding(0);
 			btnMainStartVisualStudio4.Name = "btnMainStartVisualStudio4";
 			btnMainStartVisualStudio4.Padding = new Padding(4);
@@ -609,7 +662,7 @@ namespace VSLauncher
 			btnMainStartVisualStudio5.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
 			btnMainStartVisualStudio5.Image = (Image)resources.GetObject("btnMainStartVisualStudio5.Image");
 			btnMainStartVisualStudio5.ImageAlign = ContentAlignment.MiddleLeft;
-			btnMainStartVisualStudio5.Location = new Point(0, 336);
+			btnMainStartVisualStudio5.Location = new Point(0, 317);
 			btnMainStartVisualStudio5.Margin = new Padding(0);
 			btnMainStartVisualStudio5.Name = "btnMainStartVisualStudio5";
 			btnMainStartVisualStudio5.Padding = new Padding(4);
@@ -627,7 +680,7 @@ namespace VSLauncher
 			// 
 			btnMainOpenActivityLog.Font = new Font("Segoe UI", 9F);
 			btnMainOpenActivityLog.ImageAlign = ContentAlignment.MiddleLeft;
-			btnMainOpenActivityLog.Location = new Point(0, 400);
+			btnMainOpenActivityLog.Location = new Point(0, 381);
 			btnMainOpenActivityLog.Margin = new Padding(0);
 			btnMainOpenActivityLog.Name = "btnMainOpenActivityLog";
 			btnMainOpenActivityLog.Padding = new Padding(4);
@@ -643,14 +696,15 @@ namespace VSLauncher
 			// 
 			// btnVsInstaller
 			// 
+			btnVsInstaller.Dock = DockStyle.Bottom;
 			btnVsInstaller.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
 			btnVsInstaller.Image = Resources.ImportVS1;
 			btnVsInstaller.ImageAlign = ContentAlignment.MiddleLeft;
-			btnVsInstaller.Location = new Point(699, 445);
+			btnVsInstaller.Location = new Point(3, 418);
 			btnVsInstaller.Margin = new Padding(0, 0, 0, 4);
 			btnVsInstaller.Name = "btnVsInstaller";
 			btnVsInstaller.Padding = new Padding(4, 0, 4, 0);
-			btnVsInstaller.Size = new Size(232, 48);
+			btnVsInstaller.Size = new Size(236, 48);
 			btnVsInstaller.TabIndex = 5;
 			btnVsInstaller.Tag = "";
 			btnVsInstaller.Text = "Visual Studio Installer";
@@ -658,6 +712,138 @@ namespace VSLauncher
 			btnVsInstaller.TextImageRelation = TextImageRelation.ImageBeforeText;
 			btnVsInstaller.UseVisualStyleBackColor = true;
 			btnVsInstaller.Click += btnVsInstaller_Click;
+			// 
+			// tabVsCode
+			// 
+			tabVsCode.Controls.Add(flowLayoutPanelVsCode);
+			tabVsCode.Controls.Add(btnVsCodeDownload);
+			tabVsCode.Location = new Point(4, 24);
+			tabVsCode.Name = "tabVsCode";
+			tabVsCode.Padding = new Padding(3);
+			tabVsCode.Size = new Size(242, 469);
+			tabVsCode.TabIndex = 1;
+			tabVsCode.Text = "VS Code";
+			tabVsCode.UseVisualStyleBackColor = true;
+			// 
+			// flowLayoutPanelVsCode
+			// 
+			flowLayoutPanelVsCode.AutoScroll = true;
+			flowLayoutPanelVsCode.Controls.Add(lblVsCodeEdition);
+			flowLayoutPanelVsCode.Controls.Add(selectVsCodeEdition);
+			flowLayoutPanelVsCode.Controls.Add(btnVsCodeStart);
+			flowLayoutPanelVsCode.Controls.Add(btnVsCodeStartAdmin);
+			flowLayoutPanelVsCode.Controls.Add(btnVsCodeStartNewWindow);
+			flowLayoutPanelVsCode.Controls.Add(btnVsCodeStartNoExt);
+			flowLayoutPanelVsCode.Dock = DockStyle.Fill;
+			flowLayoutPanelVsCode.FlowDirection = FlowDirection.TopDown;
+			flowLayoutPanelVsCode.Location = new Point(3, 3);
+			flowLayoutPanelVsCode.Margin = new Padding(0);
+			flowLayoutPanelVsCode.Name = "flowLayoutPanelVsCode";
+			flowLayoutPanelVsCode.Size = new Size(236, 415);
+			flowLayoutPanelVsCode.TabIndex = 0;
+			flowLayoutPanelVsCode.WrapContents = false;
+			// 
+			// selectVsCodeEdition
+			// 
+			this.selectVsCodeEdition.DrawMode = DrawMode.OwnerDrawFixed;
+			this.selectVsCodeEdition.DropDownHeight = 300;
+			this.selectVsCodeEdition.DropDownStyle = ComboBoxStyle.DropDownList;
+			this.selectVsCodeEdition.IntegralHeight = false;
+			this.selectVsCodeEdition.ItemHeight = 28;
+			this.selectVsCodeEdition.Location = new Point(0, 21);
+			this.selectVsCodeEdition.Margin = new Padding(0, 0, 0, 6);
+			this.selectVsCodeEdition.Name = "selectVsCodeEdition";
+			this.selectVsCodeEdition.ShowDefault = false;
+			this.selectVsCodeEdition.Size = new Size(232, 34);
+			this.selectVsCodeEdition.TabIndex = 0;
+			this.tooltipForButtons.SetToolTip(this.selectVsCodeEdition, "VS Code editions currently installed");
+			this.selectVsCodeEdition.SelectedIndexChanged += selectVsCodeEdition_SelectedIndexChanged;
+			// 
+			// btnVsCodeStart
+			// 
+			btnVsCodeStart.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+			btnVsCodeStart.ImageAlign = ContentAlignment.MiddleLeft;
+			btnVsCodeStart.Location = new Point(0, 61);
+			btnVsCodeStart.Margin = new Padding(0);
+			btnVsCodeStart.Name = "btnVsCodeStart";
+			btnVsCodeStart.Padding = new Padding(4);
+			btnVsCodeStart.Size = new Size(232, 64);
+			btnVsCodeStart.TabIndex = 1;
+			btnVsCodeStart.Tag = "Start {0}";
+			btnVsCodeStart.Text = "Start VS Code";
+			btnVsCodeStart.TextAlign = ContentAlignment.MiddleLeft;
+			btnVsCodeStart.TextImageRelation = TextImageRelation.ImageBeforeText;
+			btnVsCodeStart.UseVisualStyleBackColor = true;
+			btnVsCodeStart.Click += btnVsCodeStart_Click;
+			// 
+			// btnVsCodeStartAdmin
+			// 
+			btnVsCodeStartAdmin.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+			btnVsCodeStartAdmin.ImageAlign = ContentAlignment.MiddleLeft;
+			btnVsCodeStartAdmin.Location = new Point(0, 125);
+			btnVsCodeStartAdmin.Margin = new Padding(0);
+			btnVsCodeStartAdmin.Name = "btnVsCodeStartAdmin";
+			btnVsCodeStartAdmin.Padding = new Padding(4);
+			btnVsCodeStartAdmin.Size = new Size(232, 64);
+			btnVsCodeStartAdmin.TabIndex = 2;
+			btnVsCodeStartAdmin.Tag = "Start {0} as Admin";
+			btnVsCodeStartAdmin.Text = "Start VS Code \r\nas Admin";
+			btnVsCodeStartAdmin.TextAlign = ContentAlignment.MiddleLeft;
+			btnVsCodeStartAdmin.TextImageRelation = TextImageRelation.ImageBeforeText;
+			btnVsCodeStartAdmin.UseVisualStyleBackColor = true;
+			btnVsCodeStartAdmin.Click += btnVsCodeStartAdmin_Click;
+			// 
+			// btnVsCodeStartNewWindow
+			// 
+			btnVsCodeStartNewWindow.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+			btnVsCodeStartNewWindow.ImageAlign = ContentAlignment.MiddleLeft;
+			btnVsCodeStartNewWindow.Location = new Point(0, 189);
+			btnVsCodeStartNewWindow.Margin = new Padding(0);
+			btnVsCodeStartNewWindow.Name = "btnVsCodeStartNewWindow";
+			btnVsCodeStartNewWindow.Padding = new Padding(4);
+			btnVsCodeStartNewWindow.Size = new Size(232, 64);
+			btnVsCodeStartNewWindow.TabIndex = 3;
+			btnVsCodeStartNewWindow.Tag = "Start {0}\r\nwith New Window";
+			btnVsCodeStartNewWindow.Text = "Start VS Code\r\nwith New Window";
+			btnVsCodeStartNewWindow.TextAlign = ContentAlignment.MiddleLeft;
+			btnVsCodeStartNewWindow.TextImageRelation = TextImageRelation.ImageBeforeText;
+			btnVsCodeStartNewWindow.UseVisualStyleBackColor = true;
+			btnVsCodeStartNewWindow.Click += btnVsCodeStartNewWindow_Click;
+			// 
+			// btnVsCodeStartNoExt
+			// 
+			btnVsCodeStartNoExt.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+			btnVsCodeStartNoExt.ImageAlign = ContentAlignment.MiddleLeft;
+			btnVsCodeStartNoExt.Location = new Point(0, 253);
+			btnVsCodeStartNoExt.Margin = new Padding(0);
+			btnVsCodeStartNoExt.Name = "btnVsCodeStartNoExt";
+			btnVsCodeStartNoExt.Padding = new Padding(4);
+			btnVsCodeStartNoExt.Size = new Size(232, 64);
+			btnVsCodeStartNoExt.TabIndex = 4;
+			btnVsCodeStartNoExt.Tag = "Start {0}\r\nwithout Extensions";
+			btnVsCodeStartNoExt.Text = "Start VS Code\r\nwithout Extensions";
+			btnVsCodeStartNoExt.TextAlign = ContentAlignment.MiddleLeft;
+			btnVsCodeStartNoExt.TextImageRelation = TextImageRelation.ImageBeforeText;
+			btnVsCodeStartNoExt.UseVisualStyleBackColor = true;
+			btnVsCodeStartNoExt.Click += btnVsCodeStartNoExt_Click;
+			// 
+			// btnVsCodeDownload
+			// 
+			btnVsCodeDownload.Dock = DockStyle.Bottom;
+			btnVsCodeDownload.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+			btnVsCodeDownload.Image = Resources.Download;
+			btnVsCodeDownload.ImageAlign = ContentAlignment.MiddleLeft;
+			btnVsCodeDownload.Location = new Point(3, 418);
+			btnVsCodeDownload.Margin = new Padding(0, 0, 0, 4);
+			btnVsCodeDownload.Name = "btnVsCodeDownload";
+			btnVsCodeDownload.Padding = new Padding(4, 0, 4, 0);
+			btnVsCodeDownload.Size = new Size(236, 48);
+			btnVsCodeDownload.TabIndex = 1;
+			btnVsCodeDownload.Text = "Download VS Code";
+			btnVsCodeDownload.TextAlign = ContentAlignment.MiddleLeft;
+			btnVsCodeDownload.TextImageRelation = TextImageRelation.ImageBeforeText;
+			btnVsCodeDownload.UseVisualStyleBackColor = true;
+			btnVsCodeDownload.Click += btnVsCodeDownload_Click;
 			// 
 			// imageListMainIcons
 			// 
@@ -825,14 +1011,14 @@ namespace VSLauncher
 			statusStrip1.Items.AddRange(new ToolStripItem[] { mainStatusLabel, toolStripStatusGit });
 			statusStrip1.Location = new Point(0, 497);
 			statusStrip1.Name = "statusStrip1";
-			statusStrip1.Size = new Size(933, 22);
+			statusStrip1.Size = new Size(949, 22);
 			statusStrip1.TabIndex = 1;
 			statusStrip1.Text = "statusStrip1";
 			// 
 			// mainStatusLabel
 			// 
 			mainStatusLabel.Name = "mainStatusLabel";
-			mainStatusLabel.Size = new Size(896, 17);
+			mainStatusLabel.Size = new Size(912, 17);
 			mainStatusLabel.Spring = true;
 			mainStatusLabel.Text = "Lets do something incredible today";
 			mainStatusLabel.TextAlign = ContentAlignment.MiddleLeft;
@@ -851,7 +1037,7 @@ namespace VSLauncher
 			// 
 			AutoScaleDimensions = new SizeF(7F, 15F);
 			AutoScaleMode = AutoScaleMode.Font;
-			ClientSize = new Size(933, 519);
+			ClientSize = new Size(949, 519);
 			Controls.Add(statusStrip1);
 			Controls.Add(mainPanel);
 			Icon = (Icon)resources.GetObject("$this.Icon");
@@ -865,8 +1051,13 @@ namespace VSLauncher
 			leftSubPanel.ResumeLayout(false);
 			((System.ComponentModel.ISupportInitialize)olvFiles).EndInit();
 			mainPanel.ResumeLayout(false);
+			tabControlIdes.ResumeLayout(false);
+			tabVisualStudio.ResumeLayout(false);
 			flowLayoutPanel1.ResumeLayout(false);
 			flowLayoutPanel1.PerformLayout();
+			tabVsCode.ResumeLayout(false);
+			flowLayoutPanelVsCode.ResumeLayout(false);
+			flowLayoutPanelVsCode.PerformLayout();
 			ctxMenu.ResumeLayout(false);
 			statusStrip1.ResumeLayout(false);
 			statusStrip1.PerformLayout();
@@ -888,7 +1079,17 @@ namespace VSLauncher
 		private ImageList imageList3;
 		private ImageList imageListMainIcons;
 		private MultiImageRenderer optionsRenderer;
+		private TabControl tabControlIdes;
+		private TabPage tabVisualStudio;
+		private TabPage tabVsCode;
 		private FlowLayoutPanel flowLayoutPanel1;
+		private FlowLayoutPanel flowLayoutPanelVsCode;
+		private IdeCombobox selectVsCodeEdition;
+		private Button btnVsCodeStart;
+		private Button btnVsCodeStartAdmin;
+		private Button btnVsCodeStartNewWindow;
+		private Button btnVsCodeStartNoExt;
+		private Button btnVsCodeDownload;
 		private Button btnMainStartVisualStudio1;
 		private Button btnMainStartVisualStudio2;
 		private Button btnMainStartVisualStudio3;

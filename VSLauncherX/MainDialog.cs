@@ -8,6 +8,7 @@ using Newtonsoft.Json;
 using VSLauncher.DataModel;
 using VSLauncher.Forms;
 using VSLauncher.Helpers;
+using VSLauncher.Ide;
 
 using VSLXshared.Helpers;
 using System.Reflection;
@@ -24,9 +25,10 @@ namespace VSLauncher
 		/// <summary>
 		/// used to indicate that some internal update is going on
 		/// </summary>
-		private readonly bool bInUpdate;
+		private bool bInUpdate;
 
 		private readonly VisualStudioInstanceManager visualStudioInstances = new VisualStudioInstanceManager();
+		private readonly IdeManager ideManager = new IdeManager();
 		private DescribedTaskRenderer? itemRenderer;
 		private VsFolder solutionGroups = new VsFolder();
 		private IDataObject? lastDroppedData;
@@ -34,6 +36,7 @@ namespace VSLauncher
 		private int gitRefreshInProgress;
 		private int gitRemoteOperationInProgress;
 		private Bitmap? currentVsButtonBitmap;
+		private Bitmap? currentVsCodeButtonBitmap;
 
 		public JumpList? TaskbarJumpList { get; private set; }
 
@@ -192,33 +195,191 @@ namespace VSLauncher
 
 			this.bInUpdate = true;
 
-			if (this.selectVisualStudioVersion.Items.Count > 0)
+			try
 			{
-				if (!string.IsNullOrEmpty(Properties.Settings.Default.SelectedVSversion))
-				{
-					VisualStudioInstance? v = this.selectVisualStudioVersion.Versions.FirstOrDefault(v => v.Identifier == Properties.Settings.Default.SelectedVSversion);
-
-					if (v is not null)
-					{
-						this.selectVisualStudioVersion.SelectedItem = v;
-					}
-					else
-					{
-						this.selectVisualStudioVersion.SelectedIndex = 0;
-					}
-				}
-				else
-				{
-					this.selectVisualStudioVersion.SelectedIndex = 0;
-				}
+				InitializeVisualStudioSelector();
+				InitializeVsCodeSelector();
+				ApplyInstalledIdeState();
 			}
-
-			this.bInUpdate = false;
+			finally
+			{
+				this.bInUpdate = false;
+			}
 
 			LoadSolutionData();
 
 			this.solutionGroups.Items.OnChanged += SolutionData_OnChanged;
 			UpdateList(false);
+		}
+
+		/// <summary>
+		/// Returns the currently selected default instance targets from the Visual Studio and VS Code sidebar selectors.
+		/// </summary>
+		/// <returns>An array of configured <see cref="IdeDefaultTarget"/> entries.</returns>
+		internal IdeDefaultTarget[] GetCurrentDefaultTargets()
+		{
+			var targets = new List<IdeDefaultTarget>(2);
+
+			if (this.selectVisualStudioVersion.SelectedItem is VisualStudioInstance vs && !string.IsNullOrWhiteSpace(vs.Identifier))
+			{
+				targets.Add(new IdeDefaultTarget(IdeType.VisualStudio, vs.Identifier));
+			}
+
+			if (this.selectVsCodeEdition.SelectedIdeInstance is IIdeInstance vsCode && !string.IsNullOrWhiteSpace(vsCode.Identifier))
+			{
+				targets.Add(new IdeDefaultTarget(IdeType.VsCode, vsCode.Identifier));
+			}
+
+			return targets.ToArray();
+		}
+
+		/// <summary>
+		/// Restores the previously selected Visual Studio instance or selects the first installed instance.
+		/// </summary>
+		private void InitializeVisualStudioSelector()
+		{
+			if (this.selectVisualStudioVersion.Items.Count <= 0)
+			{
+				return;
+			}
+
+			string savedVsVersion = Properties.Settings.Default.SelectedVSversion;
+
+			if (!string.IsNullOrEmpty(savedVsVersion))
+			{
+				VisualStudioInstance? savedInstance = this.selectVisualStudioVersion.Versions.FirstOrDefault(v => v.Identifier == savedVsVersion);
+
+				if (savedInstance is not null)
+				{
+					this.selectVisualStudioVersion.SelectedItem = savedInstance;
+
+					return;
+				}
+			}
+
+			this.selectVisualStudioVersion.SelectedIndex = 0;
+		}
+
+		/// <summary>
+		/// Populates the VS Code edition selector and restores the saved edition or default instance.
+		/// </summary>
+		private void InitializeVsCodeSelector()
+		{
+			IReadOnlyList<IIdeInstance> vsCodeInstances = this.ideManager.GetInstances(IdeType.VsCode);
+
+			this.selectVsCodeEdition.LoadInstances(vsCodeInstances);
+
+			if (this.selectVsCodeEdition.Items.Count <= 0)
+			{
+				return;
+			}
+
+			string savedEdition = Properties.Settings.Default.SelectedVsCodeEdition;
+
+			if (!string.IsNullOrWhiteSpace(savedEdition))
+			{
+				this.selectVsCodeEdition.SelectByIdentifier(savedEdition);
+			}
+
+			if (this.selectVsCodeEdition.SelectedIndex >= 0)
+			{
+				return;
+			}
+
+			IIdeInstance? defaultInstance = this.ideManager.GetProvider(IdeType.VsCode)?.DefaultInstance;
+
+			if (defaultInstance is not null)
+			{
+				this.selectVsCodeEdition.SelectedIdeInstance = defaultInstance;
+			}
+			else
+			{
+				this.selectVsCodeEdition.SelectedIndex = 0;
+			}
+		}
+
+		/// <summary>
+		/// Enables or disables sidebar controls and selects the initial IDE tab based on installed IDEs.
+		/// </summary>
+		private void ApplyInstalledIdeState()
+		{
+			bool hasVs   = this.ideManager.HasInstalled(IdeType.VisualStudio);
+			bool hasCode = this.ideManager.HasInstalled(IdeType.VsCode);
+
+			SetVisualStudioSidebarEnabled(hasVs);
+			SetVsCodeSidebarEnabled(hasCode);
+
+			TabPage targetTab     = ResolveInitialIdeTab(hasVs, hasCode);
+			bool previousInUpdate = this.bInUpdate;
+
+			this.bInUpdate = true;
+
+			try
+			{
+				this.tabControlIdes.SelectedTab = targetTab;
+			}
+			finally
+			{
+				this.bInUpdate = previousInUpdate;
+			}
+		}
+
+		/// <summary>
+		/// Enables or disables the Visual Studio selector and launch action buttons while keeping the installer button active.
+		/// </summary>
+		/// <param name="enabled"><c>true</c> if Visual Studio is installed; otherwise <c>false</c>.</param>
+		private void SetVisualStudioSidebarEnabled(bool enabled)
+		{
+			this.selectVisualStudioVersion.Enabled = enabled;
+			this.btnMainStartVisualStudio1.Enabled = enabled;
+			this.btnMainStartVisualStudio2.Enabled = enabled;
+			this.btnMainStartVisualStudio3.Enabled = enabled;
+			this.btnMainStartVisualStudio4.Enabled = enabled;
+			this.btnMainStartVisualStudio5.Enabled = enabled;
+			this.btnMainOpenActivityLog.Enabled    = enabled;
+		}
+
+		/// <summary>
+		/// Enables or disables VS Code quick-launch controls and toggles download button visibility.
+		/// </summary>
+		/// <param name="enabled"><c>true</c> if VS Code is installed; otherwise <c>false</c>.</param>
+		private void SetVsCodeSidebarEnabled(bool enabled)
+		{
+			this.selectVsCodeEdition.Enabled     = enabled;
+			this.btnVsCodeStart.Enabled          = enabled;
+			this.btnVsCodeStartAdmin.Enabled     = enabled;
+			this.btnVsCodeStartNewWindow.Enabled = enabled;
+			this.btnVsCodeStartNoExt.Enabled     = enabled;
+			this.btnVsCodeDownload.Visible       = !enabled;
+			this.btnVsCodeDownload.Enabled       = !enabled;
+		}
+
+		/// <summary>
+		/// Determines which sidebar IDE tab should be active on startup.
+		/// </summary>
+		/// <param name="hasVs">Whether Visual Studio is installed.</param>
+		/// <param name="hasCode">Whether VS Code is installed.</param>
+		/// <returns>The <see cref="TabPage"/> to select.</returns>
+		private TabPage ResolveInitialIdeTab(bool hasVs, bool hasCode)
+		{
+			if (!hasVs && hasCode)
+			{
+				return this.tabVsCode;
+			}
+
+			if (hasVs && !hasCode)
+			{
+				return this.tabVisualStudio;
+			}
+
+			if (hasVs && hasCode)
+			{
+				return string.Equals(Properties.Settings.Default.SelectedIdeTab, "VsCode", StringComparison.OrdinalIgnoreCase)
+					? this.tabVsCode
+					: this.tabVisualStudio;
+			}
+
+			return this.tabVisualStudio;
 		}
 		/// <summary>
 		/// Handles the load event.
@@ -315,6 +476,8 @@ namespace VSLauncher
 
 			this.currentVsButtonBitmap?.Dispose();
 			this.currentVsButtonBitmap = null;
+			this.currentVsCodeButtonBitmap?.Dispose();
+			this.currentVsCodeButtonBitmap = null;
 		}
 
 
@@ -475,16 +638,17 @@ namespace VSLauncher
 		}
 
 		/// <summary>
-		/// Handles importing from VS button.
+		/// Handles importing recent projects from installed IDEs.
 		/// </summary>
 		/// <param name="sender">The sender.</param>
 		/// <param name="e">The event parameters</param>
 		private void mainImportVS_Click(object sender, EventArgs e)
 		{
-			dlgImportVisualStudio dlg = new dlgImportVisualStudio();
+			using dlgImportVisualStudio dlg = new dlgImportVisualStudio(this.ideManager);
+
 			if (dlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
 			{
-				OLVListItem r = this.olvFiles.SelectedItem;
+				OLVListItem r     = this.olvFiles.SelectedItem;
 				VsItemList source = dlg.Solution.Items;
 
 				MergeNewItems(r, source);
@@ -1295,6 +1459,86 @@ namespace VSLauncher
 			}
 		}
 
+		/// <summary>
+		/// Persists the active sidebar IDE tab when both Visual Studio and VS Code are installed.
+		/// </summary>
+		/// <param name="sender">The event source.</param>
+		/// <param name="e">The event arguments.</param>
+		private void tabControlIdes_SelectedIndexChanged(object? sender, EventArgs e)
+		{
+			if (this.bInUpdate)
+			{
+				return;
+			}
+
+			bool hasVs   = this.ideManager.HasInstalled(IdeType.VisualStudio);
+			bool hasCode = this.ideManager.HasInstalled(IdeType.VsCode);
+
+			if (!hasVs || !hasCode)
+			{
+				return;
+			}
+
+			Properties.Settings.Default.SelectedIdeTab = this.tabControlIdes.SelectedTab == this.tabVsCode ? "VsCode" : "VisualStudio";
+			Properties.Settings.Default.Save();
+		}
+
+		/// <summary>
+		/// Saves the newly selected VS Code edition and refreshes the VS Code quick-action buttons.
+		/// </summary>
+		/// <param name="sender">The event source.</param>
+		/// <param name="e">The event arguments.</param>
+		private void selectVsCodeEdition_SelectedIndexChanged(object? sender, EventArgs e)
+		{
+			if (this.selectVsCodeEdition.SelectedIdeInstance is not IIdeInstance selected)
+			{
+				return;
+			}
+
+			if (!this.bInUpdate)
+			{
+				Properties.Settings.Default.SelectedVsCodeEdition = selected.Identifier;
+				Properties.Settings.Default.Save();
+			}
+
+			UpdateVsCodeQuickActionButtons(selected);
+		}
+
+		/// <summary>
+		/// Updates the VS Code quick-action buttons with the icon, short name, and tooltip of <paramref name="selected"/>.
+		/// </summary>
+		/// <param name="selected">The selected VS Code instance.</param>
+		private void UpdateVsCodeQuickActionButtons(IIdeInstance selected)
+		{
+			Bitmap icon            = selected.AppIcon.ToBitmap();
+			string shortName       = selected.ShortName;
+			string tooltip         = selected.ToString() ?? selected.Name;
+			Bitmap? previousBitmap = this.currentVsCodeButtonBitmap;
+
+			this.currentVsCodeButtonBitmap = icon;
+
+			Button[] vsCodeButtons =
+			{
+				this.btnVsCodeStart,
+				this.btnVsCodeStartAdmin,
+				this.btnVsCodeStartNewWindow,
+				this.btnVsCodeStartNoExt
+			};
+
+			foreach (Button button in vsCodeButtons)
+			{
+				if (button.Tag is string format)
+				{
+					button.Text = string.Format(format, shortName);
+				}
+
+				this.tooltipForButtons.SetToolTip(button, tooltip);
+				button.Image = icon;
+			}
+
+			previousBitmap?.Dispose();
+		}
+
 		#region Solution Data Handling
 		/// <summary>
 		/// Handles changes to Solution data
@@ -1546,6 +1790,105 @@ namespace VSLauncher
 				}
 			}
 			catch (Win32Exception ex)
+			{
+				Debug.WriteLine(ex);
+			}
+		}
+
+		/// <summary>
+		/// Gets the currently selected VS Code instance from <see cref="selectVsCodeEdition"/>, or <c>null</c> if none is selected.
+		/// </summary>
+		/// <returns>The selected <see cref="VsCodeInstance"/> or <c>null</c>.</returns>
+		private VsCodeInstance? GetSelectedVsCodeInstance()
+		{
+			return this.selectVsCodeEdition.SelectedIdeInstance as VsCodeInstance;
+		}
+
+		/// <summary>
+		/// Runs a quick-launch action against the currently selected VS Code edition while displaying a wait cursor.
+		/// </summary>
+		/// <param name="launchAction">The launch callback to invoke on the selected instance.</param>
+		private void ExecuteSelectedVsCodeAction(Action<VsCodeInstance> launchAction)
+		{
+			VsCodeInstance? vsCode = GetSelectedVsCodeInstance();
+
+			if (vsCode is null)
+			{
+				return;
+			}
+
+			this.Cursor = Cursors.WaitCursor;
+
+			try
+			{
+				launchAction(vsCode);
+			}
+			finally
+			{
+				this.Cursor = Cursors.Default;
+			}
+		}
+
+		/// <summary>
+		/// Handles click on <see cref="btnVsCodeStart"/> to launch the selected VS Code edition.
+		/// </summary>
+		/// <param name="sender">The event source.</param>
+		/// <param name="e">The event arguments.</param>
+		private void btnVsCodeStart_Click(object? sender, EventArgs e)
+		{
+			ExecuteSelectedVsCodeAction(vsCode => vsCode.Execute());
+		}
+
+		/// <summary>
+		/// Handles click on <see cref="btnVsCodeStartAdmin"/> to launch the selected VS Code edition as administrator.
+		/// </summary>
+		/// <param name="sender">The event source.</param>
+		/// <param name="e">The event arguments.</param>
+		private void btnVsCodeStartAdmin_Click(object? sender, EventArgs e)
+		{
+			ExecuteSelectedVsCodeAction(vsCode => vsCode.ExecuteAsAdmin());
+		}
+
+		/// <summary>
+		/// Handles click on <see cref="btnVsCodeStartNewWindow"/> to launch the selected VS Code edition in a new window.
+		/// </summary>
+		/// <param name="sender">The event source.</param>
+		/// <param name="e">The event arguments.</param>
+		private void btnVsCodeStartNewWindow_Click(object? sender, EventArgs e)
+		{
+			ExecuteSelectedVsCodeAction(vsCode => vsCode.ExecuteNewWindow());
+		}
+
+		/// <summary>
+		/// Handles click on <see cref="btnVsCodeStartNoExt"/> to launch the selected VS Code edition with extensions disabled.
+		/// </summary>
+		/// <param name="sender">The event source.</param>
+		/// <param name="e">The event arguments.</param>
+		private void btnVsCodeStartNoExt_Click(object? sender, EventArgs e)
+		{
+			ExecuteSelectedVsCodeAction(vsCode => vsCode.ExecuteWithoutExtensions());
+		}
+
+		/// <summary>
+		/// Handles click on <see cref="btnVsCodeDownload"/> to open the VS Code download page in the default browser.
+		/// </summary>
+		/// <param name="sender">The event source.</param>
+		/// <param name="e">The event arguments.</param>
+		private void btnVsCodeDownload_Click(object? sender, EventArgs e)
+		{
+			string url = this.ideManager.GetProvider(IdeType.VsCode)?.DownloadUrl ?? "https://code.visualstudio.com/download";
+
+			try
+			{
+				var psi = new ProcessStartInfo
+				{
+					FileName        = url,
+					UseShellExecute = true
+				};
+
+				using var process = Process.Start(psi);
+			}
+			catch (Exception ex) when (ex is Win32Exception or InvalidOperationException)
 			{
 				Debug.WriteLine(ex);
 			}

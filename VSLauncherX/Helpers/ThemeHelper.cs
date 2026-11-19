@@ -453,7 +453,7 @@ namespace VSLauncher.Helpers
 					break;
 
 				case FlowLayoutPanel flowLayoutPanel:
-					if (flowLayoutPanel.Name == "flowLayoutPanel2" || flowLayoutPanel.Name == "flowLayoutPanel1")
+					if (flowLayoutPanel.Name == "flowLayoutPanel2")
 					{
 						flowLayoutPanel.BackColor = palette.SurfaceContrast;
 					}

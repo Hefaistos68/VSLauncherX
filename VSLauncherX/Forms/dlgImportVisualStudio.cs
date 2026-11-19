@@ -9,34 +9,50 @@ using Newtonsoft.Json.Serialization;
 
 using VSLauncher.DataModel;
 using VSLauncher.Helpers;
+using VSLauncher.Ide;
 
 namespace VSLauncher
 {
 	/// <summary>
-	/// The dlg import visual studio.
+	/// Dialog for importing recent solutions, projects, and workspaces from installed IDEs.
 	/// </summary>
 	public partial class dlgImportVisualStudio : Form
 	{
-		private DescribedTaskRenderer itemRenderer;
+		private DescribedTaskRenderer? itemRenderer;
 
-		private VisualStudioInstanceManager visualStudioVersions = new VisualStudioInstanceManager();
+		private readonly IdeManager ideManager;
 
 		private bool isInitializing;
 
 		/// <summary>
-		/// Initializes a new instance of the <see cref="dlgImportVisualStudio"/> class.
+		/// Initializes a new instance of the <see cref="dlgImportVisualStudio"/> class using a default <see cref="IdeManager"/>.
 		/// </summary>
-		public dlgImportVisualStudio()
+		public dlgImportVisualStudio() : this(new IdeManager())
 		{
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="dlgImportVisualStudio"/> class using the supplied <see cref="IdeManager"/>.
+		/// </summary>
+		/// <param name="ideManager">The IDE manager providing installed IDEs and recent project lists.</param>
+		public dlgImportVisualStudio(IdeManager ideManager)
+		{
+			this.ideManager = ideManager ?? throw new ArgumentNullException(nameof(ideManager));
+
 			InitializeComponent();
 			InitializeList();
 			ThemeHelper.ApplyCurrentTheme(this);
 
-			this.Solution = new VsFolder();
-			this.isInitializing = true;
-			this.OnlyDefaultInstances = Properties.Settings.Default.OnlyDefaultInstances;
+			this.Solution                   = new VsFolder();
+			this.isInitializing             = true;
+			this.OnlyDefaultInstances       = Properties.Settings.Default.OnlyDefaultInstances;
 			this.chkDefaultInstance.Checked = this.OnlyDefaultInstances;
-			this.isInitializing = false;
+
+			bool hasVisualStudio = this.ideManager.HasInstalled(IdeType.VisualStudio);
+
+			this.chkDefaultInstance.Enabled = hasVisualStudio;
+			this.chkDefaultInstance.Visible = hasVisualStudio;
+			this.isInitializing             = false;
 		}
 
 		/// <summary>
@@ -193,7 +209,7 @@ namespace VSLauncher
 				this.olvFiles.Items.Clear();
 				this.olvFiles.ClearObjects();
 
-				var items = this.visualStudioVersions.GetRecentProjects(this.OnlyDefaultInstances);
+				VsItemList items = this.ideManager.GetAllRecentProjects(this.OnlyDefaultInstances);
 
 				this.Solution = new VsFolder
 				{

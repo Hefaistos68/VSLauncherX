@@ -196,7 +196,7 @@ namespace VSLauncher
 			this.Name = "dlgImportVisualStudio";
 			this.SizeGripStyle = SizeGripStyle.Show;
 			this.StartPosition = FormStartPosition.CenterParent;
-			this.Text = "Import from Visual Studio Recent List";
+			this.Text = "Import Recent Projects";
 			Load += dlgImportVisualStudio_Load;
 			((System.ComponentModel.ISupportInitialize)olvFiles).EndInit();
 			ResumeLayout(false);

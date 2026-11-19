@@ -166,5 +166,29 @@ namespace VSLauncher.Properties {
                 this["AutoStart"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string SelectedVsCodeEdition {
+            get {
+                return ((string)(this["SelectedVsCodeEdition"]));
+            }
+            set {
+                this["SelectedVsCodeEdition"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string SelectedIdeTab {
+            get {
+                return ((string)(this["SelectedIdeTab"]));
+            }
+            set {
+                this["SelectedIdeTab"] = value;
+            }
+        }
     }
 }
