@@ -178,23 +178,16 @@ namespace VSLauncher
 
 			try
 			{
-				string? dir = Path.GetDirectoryName(itemPath);
-
-				if (string.IsNullOrWhiteSpace(dir) || !Directory.Exists(dir))
-				{
-					return ("?", string.Empty);
-				}
-
-				string? repoPath = Repository.Discover(dir);
+				string? repoPath = DiscoverRepositoryPath(itemPath);
 
 				if (string.IsNullOrEmpty(repoPath))
 				{
 					return ("?", string.Empty);
 				}
 
-				using var repo = new Repository(repoPath);
-				var stat = repo.RetrieveStatus();
-				string status = stat.IsDirty ? "*" : "!";
+				using var repo    = new Repository(repoPath);
+				var stat          = repo.RetrieveStatus();
+				string status     = stat.IsDirty ? "*" : "!";
 				string branchName = repo.Head?.FriendlyName ?? string.Empty;
 
 				return (status, branchName);
@@ -239,7 +232,7 @@ namespace VSLauncher
 		/// </summary>
 		/// <param name="r">The selected item</param>
 		/// <param name="source">The source to add</param>
-		private void MergeNewItems(OLVListItem r, VsItemList source)
+		private void MergeNewItems(OLVListItem? r, VsItemList source)
 		{
 			if (r == null)
 			{
@@ -269,7 +262,7 @@ namespace VSLauncher
 		/// </summary>
 		/// <param name="r">The selected list item</param>
 		/// <param name="source">The source to add</param>
-		private void MergeNewItem(OLVListItem r, VsItem source)
+		private void MergeNewItem(OLVListItem? r, VsItem source)
 		{
 			if (r == null)
 			{
@@ -525,55 +518,68 @@ namespace VSLauncher
 				branchesMenu.DropDownItems.Clear();
 			}
 
-			bool enableBranches = false;
+			bool enableBranches = TryPopulateBranchMenuItems(branchesMenu, i);
 
-			if (i is not VsFolder && !string.IsNullOrWhiteSpace(i.Path))
-			{
-				try
-				{
-					string? dir = Path.GetDirectoryName(i.Path);
-					string? repoPath = (!string.IsNullOrWhiteSpace(dir) && Directory.Exists(dir)) ? Repository.Discover(dir) : null;
-
-					if (!string.IsNullOrEmpty(repoPath))
-					{
-						using (var repo = new Repository(repoPath))
-						{
-							// Get the list of branches
-							var branches = repo.Branches;
-							var activeBranch = repo.Head?.FriendlyName;
-
-							// Add branch items to the submenu
-							foreach (var branch in branches)
-							{
-								if (!branch.IsRemote)
-								{
-									string branchName = branch.FriendlyName;
-									var branchMenuItem = new ToolStripMenuItem(branch.FriendlyName)
-									{
-										Checked = branch.FriendlyName == activeBranch
-									};
-									branchMenuItem.Click += (sender, e) =>
-									{
-										BranchMenuItem_Click(sender!, e, i, branchName);
-									};
-									branchesMenu.DropDownItems.Add(branchMenuItem);
-								}
-							}
-
-							enableBranches = true;
-						}
-					}
-				}
-				catch (Exception ex)
-				{
-					// Handle exceptions (e.g., not a Git repository)
-					Debug.WriteLine(ex);
-				}
-			}
-
-			branchesMenu.Enabled = enableBranches;
+			branchesMenu.Enabled              = enableBranches;
 			this.gitToolStripMenuItem.Enabled = enableBranches;
 			ThemeHelper.ApplyTheme(this.ctxMenu, this.currentTheme);
+		}
+
+		/// <summary>
+		/// Discovers the Git repository for <paramref name="item"/> and populates local branches into <paramref name="branchesMenu"/>.
+		/// </summary>
+		/// <param name="branchesMenu">The menu to populate with local branches.</param>
+		/// <param name="item">The selected item.</param>
+		/// <returns><c>true</c> if a repository was found and branches were populated; otherwise <c>false</c>.</returns>
+		private bool TryPopulateBranchMenuItems(ToolStripMenuItem branchesMenu, VsItem item)
+		{
+			if (item is VsFolder || string.IsNullOrWhiteSpace(item.Path))
+			{
+				return false;
+			}
+
+			try
+			{
+				string? repoPath = DiscoverRepositoryPath(item);
+
+				if (string.IsNullOrEmpty(repoPath))
+				{
+					return false;
+				}
+
+				using var repo       = new Repository(repoPath);
+				string? activeBranch = repo.Head?.FriendlyName;
+
+				foreach (var branch in repo.Branches)
+				{
+					if (branch.IsRemote)
+					{
+						continue;
+					}
+
+					string branchName  = branch.FriendlyName;
+					var branchMenuItem = new ToolStripMenuItem(branchName)
+					{
+						Checked = branchName == activeBranch
+					};
+
+					branchMenuItem.Click += (sender, e) =>
+					{
+						BranchMenuItem_Click(sender!, e, item, branchName);
+					};
+
+					branchesMenu.DropDownItems.Add(branchMenuItem);
+				}
+
+				return true;
+			}
+			catch (Exception ex)
+			{
+				// Handle exceptions (e.g., not a Git repository)
+				Debug.WriteLine(ex);
+
+				return false;
+			}
 		}
 	}
 }

@@ -104,6 +104,7 @@ namespace VSLauncher
 			toolStripMenuItem4 = new ToolStripSeparator();
 			favoriteToolStripMenuItem = new ToolStripMenuItem();
 			explorerToolStripMenuItem = new ToolStripMenuItem();
+			openInVsCodeToolStripMenuItem = new ToolStripMenuItem();
 			statusStrip1 = new StatusStrip();
 			mainStatusLabel = new ToolStripStatusLabel();
 			toolStripStatusGit = new ToolStripStatusLabel();
@@ -871,9 +872,9 @@ namespace VSLauncher
 			// 
 			// ctxMenu
 			// 
-			ctxMenu.Items.AddRange(new ToolStripItem[] { gitToolStripMenuItem, addToolStripMenuItem, toolStripMenuItem3, runToolStripMenuItem, runAsAdminToolStripMenuItem, renameToolStripMenuItem, toolStripSeparator1, settingsToolStripMenuItem, toolStripSeparator2, removeToolStripMenuItem, toolStripMenuItem4, favoriteToolStripMenuItem, explorerToolStripMenuItem });
+			ctxMenu.Items.AddRange(new ToolStripItem[] { gitToolStripMenuItem, addToolStripMenuItem, toolStripMenuItem3, runToolStripMenuItem, runAsAdminToolStripMenuItem, renameToolStripMenuItem, toolStripSeparator1, settingsToolStripMenuItem, toolStripSeparator2, removeToolStripMenuItem, toolStripMenuItem4, favoriteToolStripMenuItem, explorerToolStripMenuItem, openInVsCodeToolStripMenuItem });
 			ctxMenu.Name = "ctxMenu";
-			ctxMenu.Size = new Size(209, 226);
+			ctxMenu.Size = new Size(209, 248);
 			ctxMenu.Opening += ctxMenu_Opening;
 			// 
 			// gitToolStripMenuItem
@@ -1006,6 +1007,13 @@ namespace VSLauncher
 			explorerToolStripMenuItem.Text = "Open location in Explorer";
 			explorerToolStripMenuItem.Click += explorerToolStripMenuItem_Click;
 			// 
+			// openInVsCodeToolStripMenuItem
+			// 
+			openInVsCodeToolStripMenuItem.Name = "openInVsCodeToolStripMenuItem";
+			openInVsCodeToolStripMenuItem.Size = new Size(208, 22);
+			openInVsCodeToolStripMenuItem.Text = "Open in VS Code";
+			openInVsCodeToolStripMenuItem.Click += openInVsCodeToolStripMenuItem_Click;
+			// 
 			// statusStrip1
 			// 
 			statusStrip1.Items.AddRange(new ToolStripItem[] { mainStatusLabel, toolStripStatusGit });
@@ -1122,6 +1130,7 @@ namespace VSLauncher
 		private ToolStripSeparator toolStripMenuItem4;
 		private ToolStripMenuItem favoriteToolStripMenuItem;
 		private ToolStripMenuItem explorerToolStripMenuItem;
+		private ToolStripMenuItem openInVsCodeToolStripMenuItem;
 		private Button btnImportSoP;
 		private Button btnVsInstaller;
 		private System.Windows.Forms.Timer gitTimer;
