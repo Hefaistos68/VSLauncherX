@@ -31,6 +31,8 @@ namespace VSLauncher
 			InitializeComponent();
 			ThemeHelper.ApplyCurrentTheme(this);
 			this.Solution = new VsFolder();
+
+			ThemeHelper.ApplyDarkMode(this, Properties.Settings.Default.DarkMode);
 		}
 
 		/// <summary>

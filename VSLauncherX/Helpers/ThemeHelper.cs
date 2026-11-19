@@ -3,8 +3,6 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
-
-using BrightIdeasSoftware;
 using VSLauncher.Controls;
 
 namespace VSLauncher.Helpers
@@ -434,7 +432,7 @@ namespace VSLauncher.Helpers
 					break;
 
 				case FlowLayoutPanel flowLayoutPanel:
-					if (flowLayoutPanel.Name == "flowLayoutPanel2")
+					if (flowLayoutPanel.Name == "flowLayoutPanel2" || flowLayoutPanel.Name == "flowLayoutPanel1")
 					{
 						flowLayoutPanel.BackColor = palette.SurfaceContrast;
 					}
@@ -633,6 +631,7 @@ namespace VSLauncher.Helpers
 			internal Color Selection { get; init; }
 			internal Color SelectionText { get; init; }
 			internal Color Button { get; init; }
+			internal Color HierarchyLine { get; init; }
 		}
 
 		/// <summary>

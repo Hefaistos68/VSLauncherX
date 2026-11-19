@@ -14,7 +14,7 @@ using VSLauncherX.Helpers;
 
 namespace VSLauncher.Helpers
 {
-    internal class AdminInfo
+	internal class AdminInfo
 	{
 		private static WindowsIdentity _currentUserIdentity;
 

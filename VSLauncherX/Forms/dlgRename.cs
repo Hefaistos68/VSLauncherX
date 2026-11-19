@@ -27,6 +27,8 @@ namespace VSLauncher
 			ThemeHelper.ApplyCurrentTheme(this);
 			this.ItemName = vsi.Name ?? "";
 			this.txtItemName.Text = this.ItemName;
+
+			ThemeHelper.ApplyDarkMode(this, Properties.Settings.Default.DarkMode);
 		}
 
 		/// <summary>

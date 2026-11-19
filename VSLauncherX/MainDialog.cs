@@ -574,9 +574,8 @@ namespace VSLauncher
 
 		private void ApplyTheme(bool useDarkMode)
 		{
-			this.currentTheme = ThemeHelper.GetPalette(useDarkMode);
+			this.currentTheme = ThemeHelper.ApplyDarkMode(this, useDarkMode);
 
-			ThemeHelper.ApplyTheme(this, this.currentTheme);
 			ThemeHelper.ApplyTheme(this.ctxMenu, this.currentTheme);
 			this.olvFiles.Invalidate();
 		}
@@ -1571,6 +1570,7 @@ namespace VSLauncher
 		{
 			int w = this.txtFilter.Parent.Width;
 			w -= (34 * 7) + 12 + 12; // 7 buttons + 2 spacer
+			w -= 34 + 12;
 			w -= this.txtFilter.Location.X;
 			this.txtFilter.Width = w;
 		}

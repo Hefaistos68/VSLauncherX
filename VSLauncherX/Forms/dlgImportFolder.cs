@@ -40,6 +40,8 @@ namespace VSLauncher
 			ThemeHelper.ApplyCurrentTheme(this);
 			this.Solution = new VsFolder();
 			this.chkSolutionOnly.Checked = true;
+
+			ThemeHelper.ApplyDarkMode(this, Properties.Settings.Default.DarkMode);
 		}
 
 		/// <summary>

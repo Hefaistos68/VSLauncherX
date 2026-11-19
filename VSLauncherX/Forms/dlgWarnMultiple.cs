@@ -26,6 +26,8 @@ namespace VSLauncher
 			InitializeComponent();
 			ThemeHelper.ApplyCurrentTheme(this);
 			this.lblItemNumber.Text = n.ToString();
+
+			ThemeHelper.ApplyDarkMode(this, Properties.Settings.Default.DarkMode);
 		}
 
 		/// <summary>
