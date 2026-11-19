@@ -1,12 +1,11 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using System.Security.AccessControl;
-using System.Security.Principal;
 using System.Windows.Forms;
 
 using VSLauncher.DataModel;
 using VSLauncher.Helpers;
+using VSLauncher.Ide;
 
 namespace BackgroundLaunch
 {
@@ -15,8 +14,10 @@ namespace BackgroundLaunch
 	/// </summary>
 	public class Runner
 	{
-		private readonly VisualStudioInstanceManager visualStudioInstances = new VisualStudioInstanceManager();
+		private readonly IdeManager ideManager;
+		private readonly Func<ProcessStartInfo, Process?> processStarter;
 		private readonly LaunchInfo launchInfo;
+		private readonly Dictionary<IdeType, string> defaultTargets;
 
 		/// <summary>
 		/// Sets the window pos.
@@ -38,10 +39,40 @@ namespace BackgroundLaunch
 		/// <summary>
 		/// Initializes a new instance of the <see cref="Runner"/> class.
 		/// </summary>
-		/// <param name="item">The item.</param>
-		public Runner(LaunchInfo item)
+		/// <param name="item">The launch configuration payload.</param>
+		/// <param name="ideManager">Optional IDE manager used to resolve target instances and build start info.</param>
+		/// <param name="processStarter">Optional process launcher delegate; defaults to <see cref="Process.Start(ProcessStartInfo)"/>.</param>
+		public Runner(
+			LaunchInfo item,
+			IdeManager? ideManager = null,
+			Func<ProcessStartInfo, Process?>? processStarter = null)
 		{
-			this.launchInfo = item;
+			ArgumentNullException.ThrowIfNull(item);
+
+			this.launchInfo     = item;
+			this.ideManager     = ideManager ?? new IdeManager();
+			this.processStarter = processStarter ?? Process.Start;
+			this.defaultTargets = BuildDefaultTargetsDictionary(item.DefaultTargets);
+		}
+
+		/// <summary>
+		/// Resolves the working directory for a file or directory target path.
+		/// </summary>
+		/// <param name="path">The target file or directory path.</param>
+		/// <returns>The directory path itself when <paramref name="path"/> is an existing directory, its parent directory otherwise, or <c>null</c> when empty.</returns>
+		internal static string? ResolveWorkingDirectory(string? path)
+		{
+			if (string.IsNullOrWhiteSpace(path))
+			{
+				return null;
+			}
+
+			if (Directory.Exists(path))
+			{
+				return path;
+			}
+
+			return Path.GetDirectoryName(path);
 		}
 
 		/// <summary>
@@ -49,8 +80,9 @@ namespace BackgroundLaunch
 		/// </summary>
 		/// <param name="item">The item.</param>
 		/// <param name="allowWaitForCompletion">Whether <see cref="VsOptions.WaitForCompletion"/> waits for this process to exit.</param>
+		/// <param name="waitForExit">Whether to request wait semantics when building IDE start info.</param>
 		/// <returns>The process</returns>
-		private Process? RunItem(VsItem? item, bool allowWaitForCompletion = true)
+		private Process? RunItem(VsItem? item, bool allowWaitForCompletion = true, bool waitForExit = false)
 		{
 			// dont do anything if empty
 			if (item is null)
@@ -58,14 +90,15 @@ namespace BackgroundLaunch
 				return null;
 			}
 
-			ProcessStartInfo? startInfo = BuildStartInfo(item);
+			bool effectiveWait          = waitForExit || (allowWaitForCompletion && item.WaitForCompletion);
+			ProcessStartInfo? startInfo = BuildStartInfo(item, effectiveWait);
 
 			if (startInfo is null)
 			{
 				return null;
 			}
 
-			Process? process = Process.Start(startInfo);
+			Process? process = this.processStarter(startInfo);
 
 			if ((process != null) && item.PreferredMonitor.HasValue)
 			{
@@ -95,113 +128,153 @@ namespace BackgroundLaunch
 		/// Builds a <see cref="ProcessStartInfo"/> for the given item.
 		/// </summary>
 		/// <param name="item">The item to launch.</param>
+		/// <param name="waitForExit">Whether the launched IDE process should wait until closed.</param>
 		/// <returns>The configured start info, or <c>null</c> if the item is not directly launchable.</returns>
-		private ProcessStartInfo? BuildStartInfo(VsItem item)
+		internal ProcessStartInfo? BuildStartInfo(VsItem item, bool waitForExit = false)
 		{
-			ProcessStartInfo startInfo = new ProcessStartInfo();
-			string? workingPath = Path.GetDirectoryName(item.Path);
+			ArgumentNullException.ThrowIfNull(item);
 
-			// setup the working path
-			if (!string.IsNullOrWhiteSpace(workingPath))
+			if (item is VsFolder folder && folder.ItemType == ItemTypeEnum.Folder)
 			{
-				if (!PathHelper.PathIsValid(workingPath))
-				{
-					throw new ExecutionException("Invalid working path: " + workingPath);
-				}
-
-				if (!PathHelper.CanRead(workingPath))
-				{
-					throw new ExecutionException("Access denied: " + workingPath);
-				}
-
-				startInfo.WorkingDirectory = workingPath;
-			}
-
-			startInfo.Verb = item.RunAsAdmin ? "runas" : string.Empty;
-
-			// depending on item type, prepare executable and arguments
-			if ((item.ItemType == ItemTypeEnum.Solution) || (item.ItemType == ItemTypeEnum.Project))
-			{
-				string targetFilename = GetTargetFilename(item);
-
-				if (string.IsNullOrWhiteSpace(targetFilename))
-				{
-					throw new ExecutionException("No Visual Studio executable found.");
-				}
-
-				startInfo.UseShellExecute = item.RunAsAdmin;
-				startInfo.ErrorDialog     = item.RunAsAdmin;
-				startInfo.FileName        = targetFilename;
-				startInfo.Arguments       = BuildVisualStudioArguments(item);
-
-				return startInfo;
-			}
-
-			if (item.ItemType == ItemTypeEnum.Other)
-			{
-				if (string.IsNullOrWhiteSpace(item.Path))
+				if (!ShouldLaunchFolderAsWorkspace(folder))
 				{
 					return null;
 				}
 
-				startInfo.UseShellExecute = true;
-				startInfo.ErrorDialog     = item.RunAsAdmin;
-				startInfo.FileName        = item.Path;
+				return BuildIdeStartInfo(folder, waitForExit);
+			}
 
-				if (!string.IsNullOrEmpty(item.Commands))
-				{
-					startInfo.Arguments = item.Commands;
-				}
+			if (item.ItemType == ItemTypeEnum.Solution || item.ItemType == ItemTypeEnum.Project)
+			{
+				return BuildIdeStartInfo(item, waitForExit);
+			}
 
-				return startInfo;
+			if (item.ItemType == ItemTypeEnum.Other)
+			{
+				return BuildOtherStartInfo(item);
 			}
 
 			return null;
 		}
 
 		/// <summary>
-		/// Builds command-line arguments for launching a solution or project in Visual Studio.
+		/// Converts serialized per-IDE default targets into a lookup dictionary.
 		/// </summary>
-		/// <param name="item">The item to launch.</param>
-		/// <returns>The formatted argument string.</returns>
-		private static string BuildVisualStudioArguments(VsItem item)
+		/// <param name="targets">The serialized default targets array.</param>
+		/// <returns>A dictionary mapping each IDE family to its default instance identifier.</returns>
+		private static Dictionary<IdeType, string> BuildDefaultTargetsDictionary(IdeDefaultTarget[]? targets)
 		{
-			string arguments = "\"" + item.Path + "\"";
+			var map = new Dictionary<IdeType, string>();
 
-			if (!string.IsNullOrEmpty(item.Commands))
+			if (targets is null)
 			{
-				arguments += " " + item.Commands;
+				return map;
 			}
 
-			if (!item.ShowSplash)
+			foreach (IdeDefaultTarget target in targets)
 			{
-				arguments += " /NoSplash";
+				if (target is not null && !string.IsNullOrWhiteSpace(target.TargetIdentifier))
+				{
+					map[target.IdeType] = target.TargetIdentifier;
+				}
 			}
 
-			if (!string.IsNullOrWhiteSpace(item.Instance))
-			{
-				string trimmedInstance = item.Instance.Trim();
-				arguments += trimmedInstance.Contains(' ', StringComparison.Ordinal)
-					? $" /RootSuffix \"{trimmedInstance}\""
-					: $" /RootSuffix {trimmedInstance}";
-			}
-
-			return arguments;
+			return map;
 		}
 
 		/// <summary>
-		/// Gets the target filename, either the default VS instance, or the file specific one
+		/// Determines whether a <see cref="VsFolder"/> should launch directly in VS Code as a workspace-backed folder.
 		/// </summary>
-		/// <param name="item">The item.</param>
-		/// <returns>A string.</returns>
-		private string GetTargetFilename(VsItem item)
+		/// <param name="folder">The folder to inspect.</param>
+		/// <returns><c>true</c> if the folder is workspace-backed and VS Code is installed; otherwise <c>false</c>.</returns>
+		private bool ShouldLaunchFolderAsWorkspace(VsFolder folder)
 		{
-			if (string.IsNullOrEmpty(item.VsVersion))
+			return folder.ItemType == ItemTypeEnum.Folder &&
+				folder.IsWorkspaceBacked() &&
+				this.ideManager.HasInstalled(IdeType.VsCode);
+		}
+
+		/// <summary>
+		/// Resolves an IDE provider for the item and builds a configured <see cref="ProcessStartInfo"/>.
+		/// </summary>
+		/// <param name="item">The launchable IDE item.</param>
+		/// <param name="waitForExit">Whether the launched IDE process should wait until closed.</param>
+		/// <returns>The configured start info, or <c>null</c> if no compatible IDE is installed.</returns>
+		private ProcessStartInfo? BuildIdeStartInfo(VsItem item, bool waitForExit)
+		{
+			IIdeInstance? instance = this.ideManager.ResolveInstance(item, this.defaultTargets);
+
+			if (instance is null)
 			{
-				return this.launchInfo.Target ?? this.visualStudioInstances.HighestVersion()?.Location ?? string.Empty;
+				Debug.WriteLine($"Skipping '{item.Name}' ({item.IdeType}): no compatible IDE installation resolved.");
+
+				return null;
 			}
 
-			return this.visualStudioInstances.GetByIdentifier(item.VsVersion)?.Location ?? this.launchInfo.Target ?? string.Empty;
+			IIdeProvider? provider = this.ideManager.GetProvider(instance.IdeType);
+
+			if (provider is null)
+			{
+				Debug.WriteLine($"Skipping '{item.Name}' ({instance.IdeType}): provider not registered.");
+
+				return null;
+			}
+
+			ProcessStartInfo? startInfo = provider.BuildStartInfo(item, instance, waitForExit: waitForExit);
+
+			if (startInfo is null)
+			{
+				return null;
+			}
+
+			ApplyWorkingDirectoryIfAccessible(startInfo, item.Path);
+
+			return startInfo;
+		}
+
+		/// <summary>
+		/// Builds a shell-execute <see cref="ProcessStartInfo"/> for custom scripts or executables.
+		/// </summary>
+		/// <param name="item">The <see cref="ItemTypeEnum.Other"/> item to launch.</param>
+		/// <returns>The configured start info, or <c>null</c> if the item has no path.</returns>
+		private static ProcessStartInfo? BuildOtherStartInfo(VsItem item)
+		{
+			if (string.IsNullOrWhiteSpace(item.Path))
+			{
+				return null;
+			}
+
+			var startInfo = new ProcessStartInfo
+			{
+				UseShellExecute = true,
+				ErrorDialog     = item.RunAsAdmin,
+				Verb            = item.RunAsAdmin ? "runas" : string.Empty,
+				FileName        = item.Path
+			};
+
+			ApplyWorkingDirectoryIfAccessible(startInfo, item.Path);
+
+			if (!string.IsNullOrEmpty(item.Commands))
+			{
+				startInfo.Arguments = item.Commands;
+			}
+
+			return startInfo;
+		}
+
+		/// <summary>
+		/// Sets <see cref="ProcessStartInfo.WorkingDirectory"/> when the resolved directory exists and is readable.
+		/// </summary>
+		/// <param name="startInfo">The start info to update.</param>
+		/// <param name="itemPath">The item target path.</param>
+		private static void ApplyWorkingDirectoryIfAccessible(ProcessStartInfo startInfo, string? itemPath)
+		{
+			string? workingPath = ResolveWorkingDirectory(itemPath);
+
+			if (PathHelper.PathIsValidAndCanRead(workingPath))
+			{
+				startInfo.WorkingDirectory = workingPath;
+			}
 		}
 
 		/// <summary>
@@ -303,9 +376,9 @@ namespace BackgroundLaunch
 		/// </summary>
 		internal void Run()
 		{
-			if (launchInfo != null && launchInfo.Solution != null)
+			if (this.launchInfo.Solution != null)
 			{
-				RunAll(launchInfo.Solution);
+				RunAll(this.launchInfo.Solution);
 			}
 		}
 
@@ -315,41 +388,86 @@ namespace BackgroundLaunch
 		/// <param name="item">The item.</param>
 		internal void RunAll(VsItem item)
 		{
-			// set the working path before executing the RunBefore item
-			string? workingPath = Path.GetDirectoryName(item.Path);
+			ArgumentNullException.ThrowIfNull(item);
 
-			if (!string.IsNullOrWhiteSpace(workingPath))
+			string? previousDirectory = SetWorkingDirectoryIfAccessible(item.Path);
+
+			try
 			{
-				if (!PathHelper.PathIsValid(workingPath))
+				using Process? before = RunItem(item.RunBefore);
+				bool waitForRunAfter  = item.RunAfter?.WaitForCompletion == true;
+				using Process? main   = ExecuteMainOrChildren(item, waitForRunAfter);
+
+				if (waitForRunAfter)
 				{
-					throw new ExecutionException("Invalid working path: " + workingPath);
+					WaitForExitSafe(main);
 				}
 
-				if (!PathHelper.CanRead(workingPath))
+				using Process? after = RunItem(item.RunAfter, allowWaitForCompletion: false);
+			}
+			finally
+			{
+				RestoreWorkingDirectory(previousDirectory);
+			}
+		}
+
+		/// <summary>
+		/// Launches an item directly or recurses through its child items for non-workspace folders.
+		/// </summary>
+		/// <param name="item">The item or folder being executed.</param>
+		/// <param name="waitForRunAfter">Whether a subsequent <c>RunAfter</c> item requires waiting for the main process.</param>
+		/// <returns>The launched main process, if any.</returns>
+		private Process? ExecuteMainOrChildren(VsItem item, bool waitForRunAfter)
+		{
+			if (item is VsFolder folder && folder.ItemType == ItemTypeEnum.Folder)
+			{
+				if (ShouldLaunchFolderAsWorkspace(folder))
 				{
-					throw new ExecutionException("Access denied: " + workingPath);
+					return RunItem(folder, waitForExit: waitForRunAfter);
 				}
 
-				Environment.CurrentDirectory = workingPath;
-			}
-
-			using var before = RunItem(item.RunBefore);
-			using var main = RunItem(item);
-
-			if (item is VsFolder f)
-			{
-				foreach (var i in f.Items)
+				foreach (VsItem child in folder.Items)
 				{
-					RunAll(i);
+					RunAll(child);
 				}
+
+				return null;
 			}
 
-			if (item.RunAfter?.WaitForCompletion == true)
+			return RunItem(item, waitForExit: waitForRunAfter);
+		}
+
+		/// <summary>
+		/// Updates <see cref="Environment.CurrentDirectory"/> to the resolved working directory when valid and readable.
+		/// </summary>
+		/// <param name="itemPath">The target path of the item about to run.</param>
+		/// <returns>The previous working directory when changed; otherwise <c>null</c>.</returns>
+		private static string? SetWorkingDirectoryIfAccessible(string? itemPath)
+		{
+			string? workingPath = ResolveWorkingDirectory(itemPath);
+
+			if (!PathHelper.PathIsValidAndCanRead(workingPath))
 			{
-				WaitForExitSafe(main);
+				return null;
 			}
 
-			using var after = RunItem(item.RunAfter, allowWaitForCompletion: false);
+			string previous = Environment.CurrentDirectory;
+
+			Environment.CurrentDirectory = workingPath!;
+
+			return previous;
+		}
+
+		/// <summary>
+		/// Restores <see cref="Environment.CurrentDirectory"/> if a previous directory was saved and still exists.
+		/// </summary>
+		/// <param name="previousDirectory">The directory path to restore, or <c>null</c>.</param>
+		private static void RestoreWorkingDirectory(string? previousDirectory)
+		{
+			if (!string.IsNullOrEmpty(previousDirectory) && Directory.Exists(previousDirectory))
+			{
+				Environment.CurrentDirectory = previousDirectory;
+			}
 		}
 	}
 }
