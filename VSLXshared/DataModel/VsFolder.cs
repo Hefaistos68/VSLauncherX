@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 
 namespace VSLauncher.DataModel
 {
@@ -114,7 +114,7 @@ namespace VSLauncher.DataModel
 			}
 			set
 			{
-				items = value;
+				items = value ?? new VsItemList(this);
 				items.Reparent(this);
 			}
 		}
@@ -124,6 +124,12 @@ namespace VSLauncher.DataModel
 		/// </summary>
 		public bool Expanded { get; set; }
 
+		/// <inheritdoc/>
+		public override VsItem Clone()
+		{
+			return Clone(true);
+		}
+
 		/// <summary>
 		/// Clones the object
 		/// </summary>
@@ -132,9 +138,16 @@ namespace VSLauncher.DataModel
 		{
 			var f = (VsFolder)this.MemberwiseClone();
 
-			if (!withItems)
+			f.RunBefore = this.RunBefore?.Clone();
+			f.RunAfter  = this.RunAfter?.Clone();
+			f.items     = new VsItemList(f);
+
+			if (withItems)
 			{
-				f.Items = new VsItemList(f);
+				foreach (var item in this.Items)
+				{
+					f.items.Add(item.Clone());
+				}
 			}
 
 			return f;

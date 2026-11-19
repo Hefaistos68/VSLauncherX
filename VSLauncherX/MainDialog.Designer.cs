@@ -296,46 +296,45 @@ namespace VSLauncher
 			// 
 			// olvFiles
 			// 
-			olvFiles.AllColumns.Add(olvColumnFilename);
-			olvFiles.AllColumns.Add(olvColumnGit);
-			olvFiles.AllColumns.Add(olvColumnGitName);
-			olvFiles.AllColumns.Add(olvColumnDate);
-			olvFiles.AllColumns.Add(olvColumnVersion);
-			olvFiles.AllColumns.Add(olvColumnOptions);
-			olvFiles.AllowDrop = true;
-			olvFiles.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
-			olvFiles.CellEditUseWholeCell = false;
-			olvFiles.Columns.AddRange(new ColumnHeader[] { olvColumnFilename, olvColumnGit, olvColumnDate, olvColumnVersion, olvColumnOptions });
-			olvFiles.EmptyListMsg = "Add a group, import a folder or import recent items";
-			olvFiles.EmptyListMsgFont = new Font("Segoe UI", 11.25F);
-			olvFiles.FullRowSelect = true;
-			olvFiles.Location = new Point(0, 75);
-			olvFiles.Margin = new Padding(0);
-			olvFiles.MultiSelect = false;
-			olvFiles.Name = "olvFiles";
-			olvFiles.SelectColumnsOnRightClickBehaviour = ObjectListView.ColumnSelectBehaviour.Submenu;
-			olvFiles.ShowCommandMenuOnRightClick = true;
-			olvFiles.ShowFilterMenuOnRightClick = false;
-			olvFiles.ShowGroups = false;
-			olvFiles.ShowItemToolTips = true;
-			olvFiles.Size = new Size(695, 422);
-			olvFiles.SmallImageList = imageList3;
-			olvFiles.TabIndex = 1;
-			olvFiles.UseCompatibleStateImageBehavior = false;
-			olvFiles.UseFilterIndicator = true;
-			olvFiles.UseFiltering = true;
-			olvFiles.UseWaitCursorWhenExpanding = false;
-			olvFiles.View = View.Details;
-			olvFiles.VirtualMode = true;
-			olvFiles.CellRightClick += olvFiles_CellRightClick;
-			olvFiles.CellToolTipShowing += olvFiles_CellToolTipShowing;
-			olvFiles.Dropped += olvFiles_Dropped;
-			olvFiles.HotItemChanged += olvFiles_HotItemChanged;
-			olvFiles.AfterLabelEdit += olvFiles_AfterLabelEdit;
-			olvFiles.SelectedIndexChanged += olvFiles_SelectedIndexChanged;
-			olvFiles.DoubleClick += olvFiles_DoubleClick;
-			olvFiles.KeyDown += olvFiles_KeyDown;
-			olvFiles.KeyPress += olvFiles_KeyPress;
+			this.olvFiles.AllColumns.Add(this.olvColumnFilename);
+			this.olvFiles.AllColumns.Add(this.olvColumnGit);
+			this.olvFiles.AllColumns.Add(this.olvColumnGitName);
+			this.olvFiles.AllColumns.Add(this.olvColumnDate);
+			this.olvFiles.AllColumns.Add(this.olvColumnVersion);
+			this.olvFiles.AllColumns.Add(this.olvColumnOptions);
+			this.olvFiles.AllowDrop = true;
+			this.olvFiles.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+			this.olvFiles.CellEditUseWholeCell = false;
+			this.olvFiles.Columns.AddRange(new ColumnHeader[] { this.olvColumnFilename, this.olvColumnGit, this.olvColumnDate, this.olvColumnVersion, this.olvColumnOptions });
+			this.olvFiles.EmptyListMsg = "Add a group, import a folder or import recent items";
+			this.olvFiles.EmptyListMsgFont = new Font("Segoe UI", 11.25F, FontStyle.Regular, GraphicsUnit.Point);
+			this.olvFiles.FullRowSelect = true;
+			this.olvFiles.Location = new Point(0, 75);
+			this.olvFiles.Margin = new Padding(0);
+			this.olvFiles.MultiSelect = false;
+			this.olvFiles.Name = "olvFiles";
+			this.olvFiles.SelectColumnsOnRightClickBehaviour = ObjectListView.ColumnSelectBehaviour.Submenu;
+			this.olvFiles.ShowCommandMenuOnRightClick = true;
+			this.olvFiles.ShowFilterMenuOnRightClick = false;
+			this.olvFiles.ShowGroups = false;
+			this.olvFiles.ShowItemToolTips = true;
+			this.olvFiles.Size = new Size(695, 422);
+			this.olvFiles.SmallImageList = this.imageList3;
+			this.olvFiles.TabIndex = 1;
+			this.olvFiles.UseCompatibleStateImageBehavior = false;
+			this.olvFiles.UseFilterIndicator = true;
+			this.olvFiles.UseFiltering = true;
+			this.olvFiles.UseWaitCursorWhenExpanding = false;
+			this.olvFiles.View = View.Details;
+			this.olvFiles.VirtualMode = true;
+			this.olvFiles.CellRightClick += olvFiles_CellRightClick;
+			this.olvFiles.CellToolTipShowing += olvFiles_CellToolTipShowing;
+			this.olvFiles.HotItemChanged += olvFiles_HotItemChanged;
+			this.olvFiles.AfterLabelEdit += olvFiles_AfterLabelEdit;
+			this.olvFiles.SelectedIndexChanged += olvFiles_SelectedIndexChanged;
+			this.olvFiles.DoubleClick += olvFiles_DoubleClick;
+			this.olvFiles.KeyDown += olvFiles_KeyDown;
+			this.olvFiles.KeyPress += olvFiles_KeyPress;
 			// 
 			// olvColumnFilename
 			// 
@@ -514,21 +513,20 @@ namespace VSLauncher
 			// 
 			// selectVisualStudioVersion
 			// 
-			selectVisualStudioVersion.DrawMode = DrawMode.OwnerDrawFixed;
-			selectVisualStudioVersion.DropDownHeight = 300;
-			selectVisualStudioVersion.DropDownStyle = ComboBoxStyle.DropDownList;
-			selectVisualStudioVersion.IntegralHeight = false;
-			selectVisualStudioVersion.ItemHeight = 28;
-			selectVisualStudioVersion.Location = new Point(0, 40);
-			selectVisualStudioVersion.Margin = new Padding(0, 0, 0, 6);
-			selectVisualStudioVersion.Name = "selectVisualStudioVersion";
-			selectVisualStudioVersion.SelectedItem = null;
-			selectVisualStudioVersion.ShowDefault = false;
-			selectVisualStudioVersion.Size = new Size(232, 34);
-			selectVisualStudioVersion.TabIndex = 0;
-			tooltipForButtons.SetToolTip(selectVisualStudioVersion, "Visual Studio versions currently installed");
-			selectVisualStudioVersion.DrawItem += selectVisualStudioVersion_DrawItem;
-			selectVisualStudioVersion.SelectedIndexChanged += selectVisualStudioVersion_SelectedIndexChanged;
+			this.selectVisualStudioVersion.DrawMode = DrawMode.OwnerDrawFixed;
+			this.selectVisualStudioVersion.DropDownHeight = 300;
+			this.selectVisualStudioVersion.DropDownStyle = ComboBoxStyle.DropDownList;
+			this.selectVisualStudioVersion.IntegralHeight = false;
+			this.selectVisualStudioVersion.ItemHeight = 28;
+			this.selectVisualStudioVersion.Location = new Point(0, 40);
+			this.selectVisualStudioVersion.Margin = new Padding(0, 0, 0, 6);
+			this.selectVisualStudioVersion.Name = "selectVisualStudioVersion";
+			this.selectVisualStudioVersion.SelectedItem = null;
+			this.selectVisualStudioVersion.ShowDefault = false;
+			this.selectVisualStudioVersion.Size = new Size(232, 34);
+			this.selectVisualStudioVersion.TabIndex = 0;
+			this.tooltipForButtons.SetToolTip(this.selectVisualStudioVersion, "Visual Studio versions currently installed");
+			this.selectVisualStudioVersion.SelectedIndexChanged += selectVisualStudioVersion_SelectedIndexChanged;
 			// 
 			// btnMainStartVisualStudio1
 			// 

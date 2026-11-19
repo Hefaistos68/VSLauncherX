@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -24,10 +24,9 @@ namespace VSLauncher
 		public dlgRename(VsItem vsi)
 		{
 			InitializeComponent();
+			ThemeHelper.ApplyCurrentTheme(this);
 			this.ItemName = vsi.Name ?? "";
 			this.txtItemName.Text = this.ItemName;
-
-			ThemeHelper.ApplyDarkMode(this, Properties.Settings.Default.DarkMode);
 		}
 
 		/// <summary>

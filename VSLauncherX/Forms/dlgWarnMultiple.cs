@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -24,9 +24,8 @@ namespace VSLauncher
 		public dlgWarnMultiple(int n)
 		{
 			InitializeComponent();
+			ThemeHelper.ApplyCurrentTheme(this);
 			this.lblItemNumber.Text = n.ToString();
-
-			ThemeHelper.ApplyDarkMode(this, Properties.Settings.Default.DarkMode);
 		}
 
 		/// <summary>

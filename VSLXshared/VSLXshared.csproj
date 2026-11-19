@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <!-- Corrected target framework to include -windows suffix so Windows Forms APIs (MessageBox, etc.) resolve -->
-    <TargetFramework>net8.0-windows</TargetFramework>
+    <TargetFramework>net10.0-windows</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
 	  <UseWindowsForms>true</UseWindowsForms>
 	  <Nullable>enable</Nullable>
@@ -46,8 +46,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.VisualStudio.Setup.Configuration.Interop" Version="3.7.2175" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
-    <PackageReference Include="System.Drawing.Common" Version="8.0.21" />
-    <PackageReference Include="System.Management" Version="8.0.0" />
+    <PackageReference Include="System.Management" Version="10.0.15" />
   </ItemGroup>
 
   <ItemGroup>

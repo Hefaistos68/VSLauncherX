@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -41,7 +41,7 @@ namespace VSLauncher.Helpers
 
 			try
 			{
-				TokenProvider tp = TokenProvider.CreateFromCurrentProcessToken();
+				using TokenProvider tp = TokenProvider.CreateFromCurrentProcessToken();
 				var et = tp.GetTokenElevationType();
 
 				return et == TokenProvider.TokenElevationType.Full;

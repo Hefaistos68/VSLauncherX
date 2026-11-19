@@ -47,10 +47,9 @@ namespace VSLauncher.Helpers
 					folder = ts.RootFolder.SubFolders.First(sf => sf.Name == FolderName);
 				}
 
-				var user = System.Security.Principal.WindowsIdentity.GetCurrent();
-
-				string location = Assembly.GetExecutingAssembly().Location.Replace(".dll", ".exe");
-				var execAction = new ExecAction(location, "autostart" ,workingDirectory: Path.GetDirectoryName(location));
+				using var user = System.Security.Principal.WindowsIdentity.GetCurrent();
+				string location = Environment.ProcessPath ?? Path.ChangeExtension(Assembly.GetExecutingAssembly().Location, ".exe");
+				var execAction = new ExecAction(location, "autostart", workingDirectory: Path.GetDirectoryName(location));
 				var taskName = TaskName + GetUserName(user);
 
 				// create the task if it doesn't exist
@@ -76,13 +75,13 @@ namespace VSLauncher.Helpers
 				td.Settings.AllowHardTerminate = true;
 				td.Settings.MultipleInstances = TaskInstancesPolicy.Parallel;
 
-				if (asAutostart)
+				if (asAutostart && user.User != null)
 				{
 					// Create a trigger that will fire the task when the user logs on
 					var logonTrigger = new LogonTrigger
 					{
 						UserId = user.User.ToString(),
-						Delay = TimeSpan.FromSeconds(10)	// give task manager time to start too
+						Delay  = TimeSpan.FromSeconds(10)	// give task manager time to start too
 					};
 
 					td.Triggers.Add(logonTrigger);
@@ -110,27 +109,33 @@ namespace VSLauncher.Helpers
 		/// </summary>
 		internal static bool Run()
 		{
-			// Get the service on the local machine
-			using (TaskService ts = new TaskService())
+			try
 			{
-				TaskFolder folder;
-				var bFolderExists = ts.RootFolder.SubFolders.Any(sf => sf.Name == FolderName);
+				// Get the service on the local machine
+				using (TaskService ts = new TaskService())
+				{
+					var bFolderExists = ts.RootFolder.SubFolders.Any(sf => sf.Name == FolderName);
 
-				if (!bFolderExists)
-				{
-					throw new Exception("Task Folder not found");
-				}
-				else
-				{
-					folder = ts.RootFolder.SubFolders.First(sf => sf.Name == FolderName);
-				}
-				var taskName = TaskName + GetUserName(System.Security.Principal.WindowsIdentity.GetCurrent());
+					if (!bFolderExists)
+					{
+						return false;
+					}
 
-				if (folder.AllTasks.Any(t => t.Name == taskName))
-				{
-					folder.Tasks[taskName].Run();
-					return true;
+					TaskFolder folder = ts.RootFolder.SubFolders.First(sf => sf.Name == FolderName);
+					using var currentUser = System.Security.Principal.WindowsIdentity.GetCurrent();
+					var taskName = TaskName + GetUserName(currentUser);
+
+					if (folder.AllTasks.Any(t => t.Name == taskName))
+					{
+						folder.Tasks[taskName].Run();
+
+						return true;
+					}
 				}
+			}
+			catch
+			{
+				return false;
 			}
 
 			return false;
@@ -153,7 +158,7 @@ namespace VSLauncher.Helpers
 
 				folder = ts.RootFolder.SubFolders.First(sf => sf.Name == FolderName);
 
-				var user = System.Security.Principal.WindowsIdentity.GetCurrent();
+				using var user = System.Security.Principal.WindowsIdentity.GetCurrent();
 				var taskName = TaskName + GetUserName(user);
 
 				// create the task if it doesn't exist

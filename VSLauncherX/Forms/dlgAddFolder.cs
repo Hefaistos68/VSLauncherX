@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -29,9 +29,8 @@ namespace VSLauncher
 		public dlgAddFolder()
 		{
 			InitializeComponent();
+			ThemeHelper.ApplyCurrentTheme(this);
 			this.Solution = new VsFolder();
-
-			ThemeHelper.ApplyDarkMode(this, Properties.Settings.Default.DarkMode);
 		}
 
 		/// <summary>

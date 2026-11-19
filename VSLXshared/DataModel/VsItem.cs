@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 
 namespace VSLauncher.DataModel
 {
@@ -31,9 +31,14 @@ namespace VSLauncher.DataModel
 		/// Clones the object
 		/// </summary>
 		/// <returns>A VsItem.</returns>
-		public VsItem Clone()
+		public virtual VsItem Clone()
 		{
-			return (VsItem)this.MemberwiseClone();
+			var clone = (VsItem)this.MemberwiseClone();
+
+			clone.RunBefore = this.RunBefore?.Clone();
+			clone.RunAfter  = this.RunAfter?.Clone();
+
+			return clone;
 		}
 		
 		/// <summary>
@@ -117,7 +122,7 @@ namespace VSLauncher.DataModel
 		/// <summary>
 		/// Gets or sets the branch name.
 		/// </summary>
-		public string BranchName { get; set; }
+		public string BranchName { get; set; } = string.Empty;
 
 		/// <summary>
 		/// Refreshes the item

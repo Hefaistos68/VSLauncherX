@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -15,14 +15,17 @@ namespace VSLauncher.Forms
 	/// </summary>
 	public partial class frmPing : Form
 	{
+		private readonly int monitorIndex;
+
 		public frmPing(int n)
 		{
 			InitializeComponent();
-			this.txtInfo.Text = (1+n).ToString();
-			
-			if(n >= 0 && n < Screen.AllScreens.Length)
+			this.monitorIndex = n;
+			this.txtInfo.Text = (1 + n).ToString();
+
+			if (n >= 0 && n < Screen.AllScreens.Length)
 			{
-				this.Location = Screen.AllScreens[n].Bounds.Location;
+				this.Bounds = Screen.AllScreens[n].Bounds;
 			}
 		}
 
@@ -71,7 +74,15 @@ namespace VSLauncher.Forms
 		/// <param name="e">The e.</param>
 		private void frmPing_Load(object sender, EventArgs e)
 		{
-			txtInfo.Font = new Font("Segoe UI", this.Height / 2, FontStyle.Bold, GraphicsUnit.Pixel);
+			if (this.monitorIndex >= 0 && this.monitorIndex < Screen.AllScreens.Length)
+			{
+				this.Bounds = Screen.AllScreens[this.monitorIndex].Bounds;
+			}
+
+			float fontSize = Math.Max(12F, this.Height / 2F);
+			var oldFont = txtInfo.Font;
+			txtInfo.Font = new Font("Segoe UI", fontSize, FontStyle.Bold, GraphicsUnit.Pixel);
+			oldFont?.Dispose();
 		}
 	}
 }

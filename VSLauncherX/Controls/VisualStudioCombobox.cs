@@ -1,4 +1,6 @@
-﻿using VSLauncher.DataModel;
+using System.ComponentModel;
+
+using VSLauncher.DataModel;
 using VSLauncher.Helpers;
 using ThemePalette = VSLauncher.Helpers.ThemeHelper.ThemePalette;
 
@@ -30,6 +32,8 @@ namespace VSLauncher.Controls
         /// <summary>
         /// Gets or sets a value indicating whether to show default.
         /// </summary>
+        [DefaultValue(false)]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         public bool ShowDefault
         {
             get => showDefault;
@@ -39,7 +43,10 @@ namespace VSLauncher.Controls
 
                 if (value)
                 {
-                    Items.Insert(0, "<default>");
+                    if (Items.Count == 0 || Items[0] is not string)
+                    {
+                        Items.Insert(0, "<default>");
+                    }
                 }
                 else
                 {
@@ -59,6 +66,8 @@ namespace VSLauncher.Controls
         /// <summary>
         /// Gets the selected item.
         /// </summary>
+        [Browsable(false)]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public new VisualStudioInstance? SelectedItem
         {
             get
@@ -79,6 +88,8 @@ namespace VSLauncher.Controls
         /// <summary>
         /// Gets or sets the selected index, accounting for the default item which will result in -1
         /// </summary>
+        [Browsable(false)]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public new int SelectedIndex
         {
             get
@@ -115,7 +126,7 @@ namespace VSLauncher.Controls
 
         protected override void OnDropDown(EventArgs e)
 		{
-			int selectedItem = SelectedIndex; // remember the item selected before clearing the list
+			int selectedRawIndex = base.SelectedIndex; // remember the raw index selected before clearing the list
 
 			Items.Clear();
 
@@ -126,7 +137,7 @@ namespace VSLauncher.Controls
 
             Items.AddRange(visualStudioVersions.All.ToArray());
 
-			SelectedIndex = selectedItem < 0 ? -1 : selectedItem;   // set the previously selected item back
+			base.SelectedIndex = (selectedRawIndex >= 0 && selectedRawIndex < Items.Count) ? selectedRawIndex : -1;
 
 			base.OnDropDown(e);
         }
@@ -139,17 +150,25 @@ namespace VSLauncher.Controls
         {
             if (string.IsNullOrWhiteSpace(v))
             {
-                if (ShowDefault)
+                if (ShowDefault && v != null)
                 {
-                    if (v != null)  // v is "" so select the default
-                    {
-                        SelectDefault();
-                        return;
-                    }
+                    // v is "" so select the default
+                    SelectDefault();
+
+                    return;
                 }
 
-                // any NULL value will return the highest version
-                v = visualStudioVersions.HighestVersion().Version;
+                // any NULL value will return the highest version if available
+                var highest = visualStudioVersions.HighestVersion();
+
+                if (highest is null)
+                {
+                    SelectedIndex = ShowDefault ? 0 : -1;
+
+                    return;
+                }
+
+                v = highest.Version;
             }
 
             // find either by exact version or by short name containing the version
@@ -192,8 +211,9 @@ namespace VSLauncher.Controls
         internal void ApplyTheme(ThemePalette palette)
         {
             this.currentTheme = palette;
-            BackColor = palette.SurfaceAlt;
-            ForeColor = palette.Text;
+            BackColor         = palette.SurfaceAlt;
+            ForeColor         = palette.Text;
+            FlatStyle         = palette.IsDark ? FlatStyle.Flat : FlatStyle.Standard;
         }
 
         /// <summary>
@@ -201,47 +221,50 @@ namespace VSLauncher.Controls
         /// </summary>
         /// <param name="sender">The sender.</param>
         /// <param name="e">The e.</param>
-        private void CustomDrawItem(object sender, DrawItemEventArgs e)
+        private void CustomDrawItem(object? sender, DrawItemEventArgs e)
         {
-            if (e.Index >= 0 && e.Index <= visualStudioVersions.Count)
+            if (e.Index < 0 || e.Index >= Items.Count)
             {
-                var palette = this.currentTheme;
-                bool selected = (e.State & DrawItemState.Selected) == DrawItemState.Selected;
-                Color backColor = selected ? (palette?.Selection ?? SystemColors.Highlight) : (palette?.SurfaceAlt ?? SystemColors.Window);
-                Color textColor = palette?.Text ?? SystemColors.ControlText;
+                return;
+            }
 
-                using (var backBrush = new SolidBrush(backColor))
-                using (var textBrush = new SolidBrush(textColor))
+            var palette = this.currentTheme;
+            bool selected = (e.State & DrawItemState.Selected) == DrawItemState.Selected;
+            Color backColor = selected ? (palette?.Selection ?? SystemColors.Highlight) : (palette?.SurfaceAlt ?? SystemColors.Window);
+            Color textColor = selected ? (palette?.SelectionText ?? SystemColors.HighlightText) : (palette?.Text ?? SystemColors.ControlText);
+            Font drawFont = e.Font ?? Font;
+
+            using (var backBrush = new SolidBrush(backColor))
+            using (var textBrush = new SolidBrush(textColor))
+            {
+                e.Graphics.FillRectangle(backBrush, e.Bounds);
+
+                int height = 16;
+                Rectangle iconRect = new Rectangle(e.Bounds.Left + Margin.Left,
+                                                    e.Bounds.Top + (ItemHeight - height) / 2,
+                                                    height, height);
+
+                if (ShowDefault)
                 {
-                    e.Graphics.FillRectangle(backBrush, e.Bounds);
-
-                    int height = 16;
-                    Rectangle iconRect = new Rectangle(e.Bounds.Left + Margin.Left,
-                                                        e.Bounds.Top + (ItemHeight - height) / 2,
-                                                        height, height);
-
-                    if (ShowDefault)
+                    if (e.Index > 0 && (e.Index - 1) < visualStudioVersions.Count)
                     {
-                        if (e.Index > 0)
-                        {
-                            e.Graphics.DrawIcon(visualStudioVersions[e.Index - 1].AppIcon, iconRect);
-                            e.Graphics.DrawString(visualStudioVersions[e.Index - 1].Name, e.Font, textBrush, e.Bounds.Left + 20, e.Bounds.Top + 4);
-                        }
-                        else
-                        {
-                            e.Graphics.DrawIcon(Resources.AppLogo, iconRect);
-                            e.Graphics.DrawString("<default>", e.Font, textBrush, e.Bounds.Left + 20, e.Bounds.Top + 4);
-                        }
+                        e.Graphics.DrawIcon(visualStudioVersions[e.Index - 1].AppIcon, iconRect);
+                        e.Graphics.DrawString(visualStudioVersions[e.Index - 1].Name, drawFont, textBrush, e.Bounds.Left + 20, e.Bounds.Top + 4);
                     }
-                    else
+                    else if (e.Index == 0)
                     {
-                        e.Graphics.DrawIcon(visualStudioVersions[e.Index].AppIcon, iconRect);
-                        e.Graphics.DrawString(visualStudioVersions[e.Index].Name, e.Font, textBrush, e.Bounds.Left + 20, e.Bounds.Top + 4);
+                        e.Graphics.DrawIcon(Resources.AppLogo, iconRect);
+                        e.Graphics.DrawString("<default>", drawFont, textBrush, e.Bounds.Left + 20, e.Bounds.Top + 4);
                     }
                 }
-
-                e.DrawFocusRectangle();
+                else if (e.Index < visualStudioVersions.Count)
+                {
+                    e.Graphics.DrawIcon(visualStudioVersions[e.Index].AppIcon, iconRect);
+                    e.Graphics.DrawString(visualStudioVersions[e.Index].Name, drawFont, textBrush, e.Bounds.Left + 20, e.Bounds.Top + 4);
+                }
             }
+
+            e.DrawFocusRectangle();
         }
 
     }

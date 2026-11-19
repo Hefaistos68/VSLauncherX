@@ -1,4 +1,4 @@
-﻿namespace VSLauncher
+namespace VSLauncher
 {
 	partial class dlgNewInstance
 	{
@@ -59,6 +59,7 @@
 			// btnOk
 			// 
 			btnOk.DialogResult = DialogResult.OK;
+			btnOk.Enabled = false;
 			btnOk.Image = Resources.Check_24x24;
 			btnOk.Location = new Point(236, 78);
 			btnOk.Name = "btnOk";

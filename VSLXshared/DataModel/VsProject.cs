@@ -49,51 +49,59 @@ namespace VSLauncher.DataModel
 		/// <returns>A string.</returns>
 		public string GetDotNetVersion()
 		{
-			bool isSdk = false;
 			if (PathHelper.PathIsValidAndCanRead(System.IO.Path.GetDirectoryName(this.Path)))
 			{
 				try
 				{
-					// load solution file as XML, find the TargetFrameworkVersion node and read the value
+					// load project file as XML, inspect TargetFramework / TargetFrameworks / TargetFrameworkVersion
 					var xdoc = XDocument.Load(this.Path!);
-					var ns = xdoc.Root?.GetDefaultNamespace();
-					var project = xdoc.Root?.Descendants((ns ?? "") + "Project").FirstOrDefault();
+					var root = xdoc.Root;
 
-					if (project != null)
+					if (root != null)
 					{
-						var sdk = project.Attribute("Sdk");
-						if (sdk != null)
-						{
-							isSdk = true;
-						}
-					}
+						var ns = root.GetDefaultNamespace();
+						string? version = ReadTargetFramework(root, ns);
 
-					if (isSdk)
-					{
-						var node = xdoc.Root?.Descendants((ns ?? "") + "TargetFrameworkVersion").FirstOrDefault();
-
-						if (node != null)
+						if (!string.IsNullOrWhiteSpace(version))
 						{
-							return node.Value;
+							return version;
 						}
-
-						// not found, read the other value
-						node = xdoc.Root?.Descendants((ns ?? "") + "TargetFramework").FirstOrDefault();
-						if (node != null)
-						{
-							return node.Value;
-						}
-					}
-					else
-					{
-						return "Framework?";
 					}
 				}
 				catch
 				{
 				}
 			}
+
 			return "<unknown>";
+		}
+
+		/// <summary>
+		/// Reads the target framework element value from a project root XML element.
+		/// </summary>
+		/// <param name="root">The XML root element.</param>
+		/// <param name="ns">The XML default namespace.</param>
+		/// <returns>The framework version text, or <c>null</c> if not present.</returns>
+		private static string? ReadTargetFramework(XElement root, XNamespace ns)
+		{
+			string[] candidateElements = new[]
+			{
+				"TargetFramework",
+				"TargetFrameworks",
+				"TargetFrameworkVersion"
+			};
+
+			foreach (string elementName in candidateElements)
+			{
+				var node = root.Descendants(ns + elementName).FirstOrDefault();
+
+				if (node != null && !string.IsNullOrWhiteSpace(node.Value))
+				{
+					return node.Value.Trim();
+				}
+			}
+
+			return null;
 		}
 
 		/// <summary>

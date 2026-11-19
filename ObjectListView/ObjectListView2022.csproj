@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net8.0-windows</TargetFramework>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <NoWarn>$(NoWarn);WFO1000</NoWarn>
     <OutputType>Library</OutputType>
     <RootNamespace>BrightIdeasSoftware</RootNamespace>
     <AssemblyName>ObjectListView</AssemblyName>
@@ -29,10 +30,6 @@
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DocumentationFile>bin\Release\ObjectListView.XML</DocumentationFile>
   </PropertyGroup>
-  <ItemGroup>
-    <Reference Include="System.configuration" />
-    <Reference Include="System.Design" />
-  </ItemGroup>
   <ItemGroup>
     <Compile Update="DataTreeListView.cs">
       <SubType>Component</SubType>

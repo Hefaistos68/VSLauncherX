@@ -19,6 +19,8 @@ namespace VSLauncher.DataModel
     /// </summary>
     public class VisualStudioInstance
 	{
+		private Icon? cachedAppIcon;
+
 		/// <summary>
 		/// Initializes a new instance of the <see cref="VisualStudioInstance"/> class.
 		/// </summary>
@@ -87,15 +89,22 @@ namespace VSLauncher.DataModel
 		{
 			get
 			{
+				if (this.cachedAppIcon is not null)
+				{
+					return this.cachedAppIcon;
+				}
+
 				// get the application icon from the assembly at the Location property
 				try
 				{
-					return Icon.ExtractAssociatedIcon(Location) ?? Resources.AppLogo;
+					this.cachedAppIcon = Icon.ExtractAssociatedIcon(Location) ?? Resources.AppLogo;
 				}
 				catch
 				{
-					return Resources.AppLogo;
+					this.cachedAppIcon = Resources.AppLogo;
 				}
+
+				return this.cachedAppIcon;
 			}
 		}
 
@@ -114,7 +123,7 @@ namespace VSLauncher.DataModel
 		{
 			try
 			{
-				Process.Start(psi);
+				using var process = Process.Start(psi);
 			}
 			catch(Exception ex)
 			{
@@ -146,7 +155,7 @@ namespace VSLauncher.DataModel
 		/// <param name="bAdmin">If true, b admin.</param>
 		public void ExecuteNewProject(bool bAdmin)
 		{
-			Execute(BuildStartInfo(bAdmin, command: "np"));
+			Execute(BuildStartInfo(bAdmin, command: "File.NewProject"));
 		}
 
 		/// <summary>
@@ -178,20 +187,34 @@ namespace VSLauncher.DataModel
 		public List<string> GetInstances()
 		{
 			string identifier = Identifier;
-
 			List<string> instances = new() { "<default>" };
 			var vsDir = new DirectoryInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Microsoft", "VisualStudio"));
 
-			foreach (var dir in vsDir.GetDirectories("*", SearchOption.TopDirectoryOnly))
+			if (!vsDir.Exists || string.IsNullOrEmpty(identifier))
 			{
-				if (dir.Name.Contains(identifier))
+				return instances;
+			}
+
+			try
+			{
+				foreach (var dir in vsDir.GetDirectories("*", SearchOption.TopDirectoryOnly))
 				{
-					string instanceName = dir.Name.Substring(dir.Name.IndexOf(identifier) + identifier.Length);
-					if (instanceName.Length > 0)
+					int idx = dir.Name.IndexOf(identifier, StringComparison.OrdinalIgnoreCase);
+
+					if (idx >= 0)
 					{
-						instances.Add(instanceName);
+						string instanceName = dir.Name.Substring(idx + identifier.Length);
+
+						if (instanceName.Length > 0)
+						{
+							instances.Add(instanceName);
+						}
 					}
 				}
+			}
+			catch (Exception ex) when (ex is DirectoryNotFoundException or UnauthorizedAccessException or IOException)
+			{
+				Debug.WriteLine(ex);
 			}
 
 			return instances;
@@ -209,18 +232,14 @@ namespace VSLauncher.DataModel
 		{
 			var si = new ProcessStartInfo(Location)
 			{
-				Verb = bAdmin ? "runas" : "run",
+				Verb            = bAdmin ? "runas" : string.Empty,
+				UseShellExecute = bAdmin
 			};
 
 			if(SystemUtility.IsAdmin() && !bAdmin)
 			{
 				// TODO: must run as non-admin user, revert to user from admin
 			}
-
-			if (bAdmin)
-				si.UseShellExecute = true;
-			else
-				si.UseShellExecute = false;
 
 			var args = BuildVisualStudioCommandline(bShowSplash, instance, command, projectOrSolution); //.ForEach(x => si.ArgumentList.Add(x));
 			si.Arguments = string.Join(' ', args);

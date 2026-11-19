@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+using System.ComponentModel;
+using System.Diagnostics;
 using System.Reflection;
 
 using BrightIdeasSoftware;
@@ -10,127 +11,12 @@ using Newtonsoft.Json;
 using VSLauncher.DataModel;
 using VSLauncher.Helpers;
 
+using VSLXshared.Helpers;
+
 namespace VSLauncher
 {
 	public partial class MainDialog
 	{
-		#region Git Credentials Helper
-		// Thread-safe lazy cache of PATs loaded from optional config file
-		private static readonly object _credLock = new();
-		private static bool _credsLoaded = false;
-		private static Dictionary<string,string> _hostPats = new(StringComparer.OrdinalIgnoreCase); // host -> PAT
-		private static Dictionary<string,string> _repoPats = new(StringComparer.OrdinalIgnoreCase); // repo name -> PAT
-
-		/// <summary>
-		/// Load credential mappings from %APPDATA%/VSLauncher/git-credentials.json if present.
-		/// Schema:
-		/// {
-		/// "hosts": { "github.com": "PAT1", "dev.azure.com": "PAT2" },
-		/// "repos": { "MyRepo": "PAT3", "AnotherRepo": "PAT4" }
-		/// }
-		/// </summary>
-		private static void EnsureCredentialConfigLoaded()
-		{
-			if (_credsLoaded) return;
-			lock (_credLock)
-			{
-				if (_credsLoaded) return;
-				try
-				{
-					string cfgPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "VSLauncher", "git-credentials.json");
-					if (File.Exists(cfgPath))
-					{
-						var json = File.ReadAllText(cfgPath);
-						var root = JsonConvert.DeserializeObject<GitCredConfig?>(json);
-						if (root != null)
-						{
-							_hostPats = new Dictionary<string,string>(root.Hosts ?? new(), StringComparer.OrdinalIgnoreCase);
-							_repoPats = new Dictionary<string,string>(root.Repos ?? new(), StringComparer.OrdinalIgnoreCase);
-						}
-					}
-				}
-				catch { /* ignore malformed file */ }
-				finally { _credsLoaded = true; }
-			}
-		}
-
-		private class GitCredConfig
-		{
-			[JsonProperty("hosts")] public Dictionary<string,string>? Hosts { get; set; }
-			[JsonProperty("repos")] public Dictionary<string,string>? Repos { get; set; }
-		}
-
-		/// <summary>
-		/// Provides credentials for LibGit2Sharp remote operations.
-		/// Resolution order:
-		///1. Repo-specific env var VSLX_GIT_PAT_REPO_{REPO_NAME}
-		///2. Host-specific env var VSLX_GIT_PAT_HOST_{HOST}
-		/// (dots replaced by '_', uppercased)
-		///3. Config file repo mapping (git-credentials.json)
-		///4. Config file host mapping
-		///5. Generic env var VSLX_GIT_PAT
-		///6. DefaultCredentials
-		/// </summary>
-		private static Credentials GitCredentialsProvider(string url, string usernameFromUrl, SupportedCredentialTypes types)
-		{
-			EnsureCredentialConfigLoaded();
-
-			// Parse URL to extract host and repo name
-			string? host = null; string? repoName = null;
-			if (Uri.TryCreate(url, UriKind.Absolute, out var uri))
-			{
-				host = uri.Host;
-				// repo name is last segment without .git
-				var segments = uri.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
-				if (segments.Length >0)
-				{
-					repoName = segments[^1].EndsWith(".git", StringComparison.OrdinalIgnoreCase)
-						? segments[^1].Substring(0, segments[^1].Length -4)
-						: segments[^1];
-				}
-			}
-
-			//1 &2: Environment overrides
-			if (!string.IsNullOrEmpty(repoName))
-			{
-				var repoEnvKey = $"VSLX_GIT_PAT_REPO_{repoName.ToUpperInvariant()}";
-				var repoPat = Environment.GetEnvironmentVariable(repoEnvKey);
-				if (!string.IsNullOrWhiteSpace(repoPat))
-					return PatCredentials(repoPat);
-			}
-
-			if (!string.IsNullOrEmpty(host))
-			{
-				var hostKey = host.ToUpperInvariant().Replace('.', '_');
-				var hostEnvKey = $"VSLX_GIT_PAT_HOST_{hostKey}";
-				var hostPat = Environment.GetEnvironmentVariable(hostEnvKey);
-				if (!string.IsNullOrWhiteSpace(hostPat))
-					return PatCredentials(hostPat);
-			}
-
-			//3 &4: Config file mappings
-			if (!string.IsNullOrEmpty(repoName) && _repoPats.TryGetValue(repoName, out var cfgRepoPat) && !string.IsNullOrWhiteSpace(cfgRepoPat))
-				return PatCredentials(cfgRepoPat);
-
-			if (!string.IsNullOrEmpty(host) && _hostPats.TryGetValue(host, out var cfgHostPat) && !string.IsNullOrWhiteSpace(cfgHostPat))
-				return PatCredentials(cfgHostPat);
-
-			//5: Generic PAT
-			var genericPat = Environment.GetEnvironmentVariable("VSLX_GIT_PAT");
-			if (!string.IsNullOrWhiteSpace(genericPat))
-				return PatCredentials(genericPat);
-
-			//6: Fallback
-			return new DefaultCredentials();
-		}
-
-		private static UsernamePasswordCredentials PatCredentials(string pat) => new()
-		{
-			Username = "git",
-			Password = pat
-		};
-		#endregion
-
 		/// <summary>
 		/// Returns if the control key is pressed.
 		/// </summary>
@@ -189,7 +75,7 @@ namespace VSLauncher
 				btnVsInstaller.Tag = vsi;
 				btnVsInstaller.Text = "Visual Studio Installer";
 				// get icon from installer and set as image into the button
-				Icon? ico = Icon.ExtractAssociatedIcon(vsi);
+				using Icon? ico = Icon.ExtractAssociatedIcon(vsi);
 				btnVsInstaller.Image = ico is null ? Resources.Installer : ico.ToBitmap();
 			}
 		}
@@ -200,96 +86,151 @@ namespace VSLauncher
 		/// <param name="folder">The folder.</param>
 		private void FetchGitStatusAsync(VsFolder folder)
 		{
-			// Build a snapshot of items on the UI thread to avoid concurrent modification while iterating.
-			List<VsItem> snapshot = CollectGitTargets(folder);
+			if (Interlocked.CompareExchange(ref this.gitRefreshInProgress, 1, 0) != 0)
+			{
+				return;
+			}
 
-			Task.Run(() => FetchGitStatusBackground(snapshot));
+			// Snapshot non-folder items on the UI thread to prevent concurrent collection modification
+			var snapshot = new List<VsItem>();
+			CollectGitItems(folder, snapshot);
+
+			if (!this.IsDisposed && this.IsHandleCreated)
+			{
+				toolStripStatusGit.Visible = true;
+			}
+
+			_ = Task.Run(() =>
+			{
+				try
+				{
+					FetchGitStatusSnapshot(snapshot);
+				}
+				finally
+				{
+					Interlocked.Exchange(ref this.gitRefreshInProgress, 0);
+					SafeInvokeOnUiThread(() =>
+					{
+						this.olvFiles.Invalidate();
+						toolStripStatusGit.Visible = false;
+					});
+				}
+			});
 		}
 
 		/// <summary>
-		/// Collects all non-folder items from the tree into a flat list.
-		/// Executed on the UI thread to avoid concurrent modification of the tree while building the snapshot.
+		/// Recursively collects non-folder items from a folder snapshot on the UI thread.
 		/// </summary>
-		/// <param name="folder">The root folder.</param>
-		/// <returns>A list of VsItem.</returns>
-		private static List<VsItem> CollectGitTargets(VsFolder folder)
+		/// <param name="folder">Root folder to traverse.</param>
+		/// <param name="target">Destination list of items.</param>
+		private static void CollectGitItems(VsFolder folder, List<VsItem> target)
 		{
-			List<VsItem> items = new();
 			Stack<VsFolder> stack = new();
 			stack.Push(folder);
 
 			while (stack.Count > 0)
 			{
 				VsFolder current = stack.Pop();
-				foreach (var item in current.Items)
+
+				foreach (VsItem item in current.Items)
 				{
-					if (item is VsFolder childFolder)
+					if (item is VsFolder subFolder)
 					{
-						stack.Push(childFolder);
+						stack.Push(subFolder);
 					}
 					else
 					{
-						items.Add(item);
+						target.Add(item);
 					}
 				}
 			}
-
-			return items;
 		}
 
 		/// <summary>
-		/// Fetches the git status for all items in the provided snapshot.
+		/// Fetches Git status and branch names for a snapshotted list of items on a background thread.
 		/// </summary>
-		/// <param name="items">The items.</param>
-		private void FetchGitStatusBackground(IEnumerable<VsItem> items)
+		/// <param name="items">Snapshot of items to inspect.</param>
+		private void FetchGitStatusSnapshot(List<VsItem> items)
 		{
 			foreach (var item in items)
 			{
-				string? status = null;
-				string? branchName = null;
+				(string status, string branchName) = ReadItemGitStatus(item.Path);
 
-				try
+				SafeInvokeOnUiThread(() =>
 				{
-					using (var repo = new Repository(Path.GetDirectoryName(item.Path)))
-					{
-						var stat = repo.RetrieveStatus();
-						status = stat.IsDirty ? "*" : "!";
-						branchName = repo.Head.FriendlyName;
-					}
-				}
-				catch (RepositoryNotFoundException)
+					item.Status     = status;
+					item.BranchName = branchName;
+				});
+			}
+		}
+
+		/// <summary>
+		/// Resolves Git dirty status and branch name for a file path using repository discovery.
+		/// </summary>
+		/// <param name="itemPath">Path to a solution or project file.</param>
+		/// <returns>Tuple of status marker and branch name.</returns>
+		private static (string Status, string BranchName) ReadItemGitStatus(string? itemPath)
+		{
+			if (string.IsNullOrWhiteSpace(itemPath))
+			{
+				return ("?", string.Empty);
+			}
+
+			try
+			{
+				string? dir = Path.GetDirectoryName(itemPath);
+
+				if (string.IsNullOrWhiteSpace(dir) || !Directory.Exists(dir))
 				{
-					try
-					{
-						using (var repo = new Repository(Path.GetDirectoryName(Path.GetDirectoryName(item.Path))))
-						{
-							var stat = repo.RetrieveStatus();
-							status = stat.IsDirty ? "*" : "!";
-							branchName = repo.Head.FriendlyName;
-						}
-					}
-					catch (RepositoryNotFoundException)
-					{
-						status = "?";
-						branchName = string.Empty;
-					}
+					return ("?", string.Empty);
 				}
 
-				// Marshal the update to the UI thread
+				string? repoPath = Repository.Discover(dir);
+
+				if (string.IsNullOrEmpty(repoPath))
+				{
+					return ("?", string.Empty);
+				}
+
+				using var repo = new Repository(repoPath);
+				var stat = repo.RetrieveStatus();
+				string status = stat.IsDirty ? "*" : "!";
+				string branchName = repo.Head?.FriendlyName ?? string.Empty;
+
+				return (status, branchName);
+			}
+			catch (Exception ex)
+			{
+				Debug.WriteLine(ex);
+
+				return ("?", string.Empty);
+			}
+		}
+
+		/// <summary>
+		/// Marshals an action safely onto the UI thread if the form handle is alive.
+		/// </summary>
+		/// <param name="action">Action to execute on the UI thread.</param>
+		private void SafeInvokeOnUiThread(Action action)
+		{
+			if (this.IsDisposed || !this.IsHandleCreated)
+			{
+				return;
+			}
+
+			try
+			{
 				if (this.InvokeRequired)
 				{
-					this.BeginInvoke(new Action(() =>
-					{
-						item.Status = status;
-						item.BranchName = branchName;
-						// Optionally refresh the UI for this item here
-					}));
+					this.BeginInvoke(action);
 				}
 				else
 				{
-					item.Status = status;
-					item.BranchName = branchName;
+					action();
 				}
+			}
+			catch (Exception ex) when (ex is ObjectDisposedException or InvalidOperationException)
+			{
 			}
 		}
 
@@ -306,23 +247,20 @@ namespace VSLauncher
 				this.solutionGroups.Items.AddRange(source);
 				this.solutionGroups.Items.Sort((x, y) => string.Compare(x.Name, y.Name, StringComparison.OrdinalIgnoreCase));
 			}
+			else if (r.RowObject is VsFolder sg)
+			{
+				// add below selected item
+				sg.Items.AddRange(source);
+				sg.Items.Sort((x, y) => string.Compare(x.Name, y.Name, StringComparison.OrdinalIgnoreCase));
+			}
 			else
 			{
-				if (r.RowObject is VsFolder sg)
-				{
-					// add below selected item
-					sg.Items.AddRange(source);
-					sg.Items.Sort((x, y) => string.Compare(x.Name, y.Name, StringComparison.OrdinalIgnoreCase));
-				}
-				else
-				{
-					// get parent of this item
-					_ = this.solutionGroups.FindParent(r.RowObject as VsItem);
+				// get parent of this item
+				VsFolder targetParent = this.solutionGroups.FindParent(r.RowObject) ?? this.solutionGroups;
 
-					// add at the end
-					this.solutionGroups.Items.AddRange(source);
-					this.solutionGroups.Items.Sort((x, y) => string.Compare(x.Name, y.Name, StringComparison.OrdinalIgnoreCase));
-				}
+				// add at the end of parent folder
+				targetParent.Items.AddRange(source);
+				targetParent.Items.Sort((x, y) => string.Compare(x.Name, y.Name, StringComparison.OrdinalIgnoreCase));
 			}
 		}
 
@@ -339,80 +277,135 @@ namespace VSLauncher
 				this.solutionGroups.Items.Add(source);
 				this.solutionGroups.Items.Sort((x, y) => string.Compare(x.Name, y.Name, StringComparison.OrdinalIgnoreCase));
 			}
+			else if (r.RowObject is VsFolder sg)
+			{
+				// add below selected item
+				sg.Items.Add(source);
+				sg.Items.Sort((x, y) => string.Compare(x.Name, y.Name, StringComparison.OrdinalIgnoreCase));
+			}
 			else
 			{
-				if (r.RowObject is VsFolder sg)
-				{
-					// add below selected item
-					sg.Items.Add(source);
-					sg.Items.Sort((x, y) => string.Compare(x.Name, y.Name, StringComparison.OrdinalIgnoreCase));
-				}
-				else
-				{
-					// get parent of this item
-					VsFolder? vsi = this.solutionGroups.FindParent(r.RowObject as VsItem);
+				// get parent of this item
+				VsFolder targetParent = this.solutionGroups.FindParent(r.RowObject) ?? this.solutionGroups;
 
-					// add at the end
-					vsi?.Items.Add(source);
-					vsi?.Items.Sort((x, y) => string.Compare(x.Name, y.Name, StringComparison.OrdinalIgnoreCase));
-				}
+				// add at the end
+				targetParent.Items.Add(source);
+				targetParent.Items.Sort((x, y) => string.Compare(x.Name, y.Name, StringComparison.OrdinalIgnoreCase));
 			}
-
-			// Sort the list of items
 		}
 
 		/// <summary>
 		/// Restarts the application to register it with admin rights.
 		/// </summary>
-		private void RestartOurselves()
+		/// <returns>True if the elevated instance started; false if cancelled or failed.</returns>
+		private bool RestartOurselves()
 		{
 			ProcessStartInfo startInfo = new ProcessStartInfo
 			{
-				FileName = Assembly.GetExecutingAssembly().Location.Replace(".dll", ".exe"),
-				Arguments = "register",
-				Verb = "runas",
+				FileName        = Environment.ProcessPath ?? Path.ChangeExtension(Assembly.GetExecutingAssembly().Location, ".exe"),
+				Arguments       = "register",
+				Verb            = "runas",
 				UseShellExecute = true
 			};
 
-			Process.Start(startInfo);
+			try
+			{
+				using var process = Process.Start(startInfo);
+
+				return process != null;
+			}
+			catch (Win32Exception ex)
+			{
+				Debug.WriteLine(ex);
+
+				return false;
+			}
 		}
 
 		/// <summary>
 		/// Loads the solution data.
 		/// </summary>
-		private void LoadSolutionData()
+		/// <returns>True if data loaded or no datafile exists yet; false if the existing datafile was unreadable.</returns>
+		private bool LoadSolutionData()
 		{
 			// load this.solutionGroups data from a JSON file in the users data folder
 			string fileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "VSLauncher", "VSLauncher.json");
 
 			if (File.Exists(fileName))
 			{
-				string json = File.ReadAllText(fileName);
-				JsonSerializerSettings settings = new JsonSerializerSettings()
-				{
-					TypeNameHandling = TypeNameHandling.All
-				};
-
 				VsFolder? data = null;
 
 				try
 				{
+					string json = File.ReadAllText(fileName);
+					JsonSerializerSettings settings = FileHelper.CreateSafeJsonSettings(indented: false);
 					data = JsonConvert.DeserializeObject<VsFolder>(json, settings);
 				}
-				catch (System.Exception)
+				catch (System.Exception ex)
 				{
-					// probably wrong format
+					// probably wrong format or disallowed type
+					Debug.WriteLine(ex);
 				}
 
 				if (data is null)
 				{
+					this.solutionDataLoadFailed = true;
+
 					// alert the user that the datafile was unreadable
 					_ = MessageBox.Show($"The datafile was unreadable. Please check the file in '{fileName}' and try again.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+
+					return false;
 				}
 				else
 				{
+					UpgradeLegacySlnxItems(data);
 					data.Refresh();
-					this.solutionGroups = data;
+					this.solutionGroups         = data;
+					this.solutionDataLoadFailed = false;
+				}
+			}
+			else
+			{
+				this.solutionDataLoadFailed = false;
+			}
+
+			return true;
+		}
+
+		/// <summary>
+		/// Upgrades legacy .slnx entries saved as base <see cref="VsItem"/> instances into <see cref="VsSolution"/> instances.
+		/// </summary>
+		/// <param name="folder">The root folder to inspect recursively.</param>
+		private static void UpgradeLegacySlnxItems(VsFolder folder)
+		{
+			for (int i = 0; i < folder.Items.Count; i++)
+			{
+				VsItem item = folder.Items[i];
+
+				if (item is VsFolder subFolder)
+				{
+					UpgradeLegacySlnxItems(subFolder);
+					continue;
+				}
+
+				if (item.GetType() == typeof(VsItem) && string.Equals(Path.GetExtension(item.Path), ".slnx", StringComparison.OrdinalIgnoreCase))
+				{
+					folder.Items[i] = new VsSolution
+					{
+						Name              = item.Name,
+						Path              = item.Path,
+						Commands          = item.Commands,
+						Instance          = item.Instance,
+						VsVersion         = item.VsVersion,
+						IsFavorite        = item.IsFavorite,
+						BranchName        = item.BranchName,
+						RunBefore         = item.RunBefore,
+						RunAfter          = item.RunAfter,
+						RunAsAdmin        = item.RunAsAdmin,
+						ShowSplash        = item.ShowSplash,
+						WaitForCompletion = item.WaitForCompletion,
+						PreferredMonitor  = item.PreferredMonitor
+					};
 				}
 			}
 		}
@@ -422,38 +415,22 @@ namespace VSLauncher
 		/// </summary>
 		private void SaveSolutionData()
 		{
-			// 			if (true)
-			// 			{
-			// 				JsonSerializerSettings settings = new JsonSerializerSettings()
-			// 				{
-			// 					Formatting = Formatting.Indented,
-			// 					TypeNameHandling = TypeNameHandling.All
-			// 				};
-			//
-			// 				string json = JsonConvert.SerializeObject(this.solutionGroups, settings);
-			// 				// testing out storing the file in the google drive
-			// 				new GoogleDriveStorage().Upload(json);
-			// 			}
-
 			// save this.solutionGroups data to a JSON file in the users data folder
 			string fileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "VSLauncher", "VSLauncher.json");
 
 			try
 			{
 				string? dir = Path.GetDirectoryName(fileName);
+
 				if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
 				{
 					// make sure the path exists
 					_ = Directory.CreateDirectory(dir);
 				}
 
-				JsonSerializerSettings settings = new JsonSerializerSettings()
-				{
-					Formatting = Formatting.Indented,
-					TypeNameHandling = TypeNameHandling.All
-				};
-
+				JsonSerializerSettings settings = FileHelper.CreateSafeJsonSettings(indented: true);
 				string json = JsonConvert.SerializeObject(this.solutionGroups, settings);
+
 				try
 				{
 					File.WriteAllText(fileName, json);
@@ -550,22 +527,24 @@ namespace VSLauncher
 
 			bool enableBranches = false;
 
-			if (i is not VsFolder)
-				if (Directory.Exists(Path.Combine(Path.GetDirectoryName(i.Path), ".git")))
+			if (i is not VsFolder && !string.IsNullOrWhiteSpace(i.Path))
 			{
 				try
 				{
-					using (var repo = new Repository(Path.GetDirectoryName(i.Path)))
+					string? dir = Path.GetDirectoryName(i.Path);
+					string? repoPath = (!string.IsNullOrWhiteSpace(dir) && Directory.Exists(dir)) ? Repository.Discover(dir) : null;
+
+					if (!string.IsNullOrEmpty(repoPath))
 					{
-						// Get the list of branches
-						var branches = repo.Branches;
-						var activeBranch = repo.Head.FriendlyName;
-
-						// Check if the branches menu already exists
-
-						// Add branch items to the submenu
-						foreach (var branch in branches)
+						using (var repo = new Repository(repoPath))
 						{
+							// Get the list of branches
+							var branches = repo.Branches;
+							var activeBranch = repo.Head?.FriendlyName;
+
+							// Add branch items to the submenu
+							foreach (var branch in branches)
+							{
 								if (!branch.IsRemote)
 								{
 									string branchName = branch.FriendlyName;
@@ -575,23 +554,26 @@ namespace VSLauncher
 									};
 									branchMenuItem.Click += (sender, e) =>
 									{
-										BranchMenuItem_Click(sender, e, i, branchName);
+										BranchMenuItem_Click(sender!, e, i, branchName);
 									};
 									branchesMenu.DropDownItems.Add(branchMenuItem);
 								}
-						}
+							}
 
-						enableBranches = true;
+							enableBranches = true;
+						}
 					}
 				}
 				catch (Exception ex)
 				{
 					// Handle exceptions (e.g., not a Git repository)
+					Debug.WriteLine(ex);
 				}
 			}
 
 			branchesMenu.Enabled = enableBranches;
 			this.gitToolStripMenuItem.Enabled = enableBranches;
+			ThemeHelper.ApplyTheme(this.ctxMenu, this.currentTheme);
 		}
 	}
 }

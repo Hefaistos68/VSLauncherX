@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using static VSLauncher.Helpers.Native.ProcessApi;
 using static VSLauncher.Helpers.Native.TokensApi;
 using System.ComponentModel;
@@ -22,10 +22,41 @@ namespace VSLauncher.Helpers.Tokens
         {
         }
 
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern IntPtr LocalFree(IntPtr hMem);
+
+        [DllImport("advapi32.dll", EntryPoint = "DuplicateTokenEx", CharSet = CharSet.Auto, SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool DuplicateTokenExRaw(
+            IntPtr hExistingToken,
+            uint dwDesiredAccess,
+            IntPtr lpTokenAttributes,
+            SECURITY_IMPERSONATION_LEVEL ImpersonationLevel,
+            TOKEN_TYPE TokenType,
+            out IntPtr phNewToken);
+
         public static TokenProvider CreateFromSystemAccount()
         {
-            var winlogon = Process.GetProcesses().Where(p => p.ProcessName == "winlogon").FirstOrDefault();
-            return CreateFromProcessToken(winlogon.Id);
+            Process[] processes = Process.GetProcessesByName("winlogon");
+
+            try
+            {
+                Process? winlogon = processes.FirstOrDefault();
+
+                if (winlogon is null)
+                {
+                    throw new InvalidOperationException("Unable to locate winlogon process.");
+                }
+
+                return CreateFromProcessToken(winlogon.Id);
+            }
+            finally
+            {
+                foreach (Process process in processes)
+                {
+                    process.Dispose();
+                }
+            }
         }
 
         public static TokenProvider CreateFromProcessToken(int pidWithToken, uint tokenAccess = MAXIMUM_ALLOWED)
@@ -170,22 +201,28 @@ namespace VSLauncher.Helpers.Tokens
                     throw new Win32Exception();
                 }
 
-                // Marshal the TOKEN_MANDATORY_LABEL struct from native to .NET object.
+                // Marshal the TOKEN_LINKED_TOKEN struct from native to .NET object.
                 TOKEN_LINKED_TOKEN linkedTokenStruct = (TOKEN_LINKED_TOKEN)
-                    Marshal.PtrToStructure(pLinkedToken, typeof(TOKEN_LINKED_TOKEN));
-
-                var sa = new SECURITY_ATTRIBUTES();
-                sa.nLength = 0;
+                    Marshal.PtrToStructure(pLinkedToken, typeof(TOKEN_LINKED_TOKEN))!;
 
                 SafeTokenHandle newToken;
 
-                if (!DuplicateTokenEx(linkedTokenStruct.LinkedToken, desiredAccess, IntPtr.Zero,
-                    SECURITY_IMPERSONATION_LEVEL.SecurityImpersonation, TOKEN_TYPE.TokenPrimary, out newToken))
+                try
                 {
-                    throw new Win32Exception();
+                    if (!DuplicateTokenEx(linkedTokenStruct.LinkedToken, desiredAccess, IntPtr.Zero,
+                        SECURITY_IMPERSONATION_LEVEL.SecurityImpersonation, TOKEN_TYPE.TokenPrimary, out newToken))
+                    {
+                        throw new Win32Exception();
+                    }
+                }
+                finally
+                {
+                    if (linkedTokenStruct.LinkedToken != IntPtr.Zero)
+                    {
+                        CloseHandle(linkedTokenStruct.LinkedToken);
+                    }
                 }
 
-                CloseHandle(linkedTokenStruct.LinkedToken);
                 Token.Close();
                 Token = newToken;
             }
@@ -243,24 +280,45 @@ namespace VSLauncher.Helpers.Tokens
         {
             string integritySid =
                 "S-1-16-" + integrityLevel.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            IntPtr pIntegritySid;
-            if (!ConvertStringSidToSid(integritySid, out pIntegritySid))
-                throw new Win32Exception();
+            IntPtr pIntegritySid = IntPtr.Zero;
+            IntPtr pTIL = IntPtr.Zero;
 
-            TOKEN_MANDATORY_LABEL TIL = new TOKEN_MANDATORY_LABEL();
-            TIL.Label.Attributes = 0x00000020 /* SE_GROUP_INTEGRITY */;
-            TIL.Label.Sid = pIntegritySid;
+            try
+            {
+                if (!ConvertStringSidToSid(integritySid, out pIntegritySid))
+                {
+                    throw new Win32Exception();
+                }
 
-            var pTIL = Marshal.AllocHGlobal(Marshal.SizeOf<TOKEN_MANDATORY_LABEL>());
-            Marshal.StructureToPtr(TIL, pTIL, false);
+                TOKEN_MANDATORY_LABEL TIL = new TOKEN_MANDATORY_LABEL();
+                TIL.Label.Attributes = 0x00000020 /* SE_GROUP_INTEGRITY */;
+                TIL.Label.Sid        = pIntegritySid;
 
-            if (!SetTokenInformation(Token.DangerousGetHandle(),
-                TOKEN_INFORMATION_CLASS.TokenIntegrityLevel,
-                pTIL,
-                (uint)(Marshal.SizeOf<TOKEN_MANDATORY_LABEL>() + GetLengthSid(pIntegritySid))))
-                throw new Win32Exception();
+                pTIL = Marshal.AllocHGlobal(Marshal.SizeOf<TOKEN_MANDATORY_LABEL>());
+                Marshal.StructureToPtr(TIL, pTIL, false);
 
-            return this;
+                if (!SetTokenInformation(Token.DangerousGetHandle(),
+                    TOKEN_INFORMATION_CLASS.TokenIntegrityLevel,
+                    pTIL,
+                    (uint)(Marshal.SizeOf<TOKEN_MANDATORY_LABEL>() + GetLengthSid(pIntegritySid))))
+                {
+                    throw new Win32Exception();
+                }
+
+                return this;
+            }
+            finally
+            {
+                if (pTIL != IntPtr.Zero)
+                {
+                    Marshal.FreeHGlobal(pTIL);
+                }
+
+                if (pIntegritySid != IntPtr.Zero)
+                {
+                    LocalFree(pIntegritySid);
+                }
+            }
         }
 
         /// <summary>
@@ -293,31 +351,40 @@ namespace VSLauncher.Helpers.Tokens
             return this;
         }
 
+        /// <summary>
+        /// Creates an independently owned <see cref="Microsoft.Win32.SafeHandles.SafeAccessTokenHandle"/> duplicate of the current token.
+        /// </summary>
+        /// <returns>An owned <see cref="Microsoft.Win32.SafeHandles.SafeAccessTokenHandle"/>.</returns>
+        private Microsoft.Win32.SafeHandles.SafeAccessTokenHandle CreateDuplicateAccessTokenHandle()
+        {
+            if (!DuplicateTokenExRaw(
+                GetToken().DangerousGetHandle(),
+                MAXIMUM_ALLOWED,
+                IntPtr.Zero,
+                SECURITY_IMPERSONATION_LEVEL.SecurityImpersonation,
+                TOKEN_TYPE.TokenPrimary,
+                out IntPtr duplicatedHandle))
+            {
+                throw new Win32Exception();
+            }
+
+            return new Microsoft.Win32.SafeHandles.SafeAccessTokenHandle(duplicatedHandle);
+        }
+
         public TokenProvider Impersonate(Action ActionImpersonated)
         {
-            WindowsIdentity.RunImpersonated(new Microsoft.Win32.SafeHandles.SafeAccessTokenHandle(GetToken().DangerousGetHandle()), ActionImpersonated);
+            using var accessToken = CreateDuplicateAccessTokenHandle();
+            WindowsIdentity.RunImpersonated(accessToken, ActionImpersonated);
 
-            /*            using (var ctx = System.Security.Principal.WindowsIdentity.Impersonate(GetToken().DangerousGetHandle()))
-                        {
-                            try
-                            {
-                                ActionImpersonated();
-                            }
-                            finally
-                            {
-                                ctx.Undo();
-                            }
-                        }
-
-            */
             return this;
         }
 
         public T Impersonate<T>(Func<T> ActionImpersonated)
-
         {
-            T res = default;
-            WindowsIdentity.RunImpersonated(new Microsoft.Win32.SafeHandles.SafeAccessTokenHandle(GetToken().DangerousGetHandle()), () => { res = ActionImpersonated(); });
+            T res = default!;
+            using var accessToken = CreateDuplicateAccessTokenHandle();
+            WindowsIdentity.RunImpersonated(accessToken, () => { res = ActionImpersonated(); });
+
             return res;
         }
 
@@ -379,24 +446,25 @@ namespace VSLauncher.Helpers.Tokens
         {
             int size = Marshal.SizeOf<int>();
             IntPtr pValue = Marshal.AllocHGlobal(size);
-            if (!GetTokenInformation(token, TOKEN_INFORMATION_CLASS.TokenElevationType, pValue, size, out size))
-            {
-                throw new Win32Exception();
-            }
 
-            return (TokenElevationType)Marshal.ReadInt32(pValue);
+            try
+            {
+                if (!GetTokenInformation(token, TOKEN_INFORMATION_CLASS.TokenElevationType, pValue, size, out size))
+                {
+                    throw new Win32Exception();
+                }
+
+                return (TokenElevationType)Marshal.ReadInt32(pValue);
+            }
+            finally
+            {
+                Marshal.FreeHGlobal(pValue);
+            }
         }
 
         public TokenElevationType GetTokenElevationType()
         {
-            int size = Marshal.SizeOf<int>();
-            IntPtr pValue = Marshal.AllocHGlobal(size);
-            if (!GetTokenInformation(Token.DangerousGetHandle(), TOKEN_INFORMATION_CLASS.TokenElevationType, pValue, size, out size))
-            {
-                throw new Win32Exception();
-            }
-
-            return (TokenElevationType)Marshal.ReadInt32(pValue);
+            return GetTokenElevationType(Token.DangerousGetHandle());
         }
 
         public int GetSessionId()
@@ -420,6 +488,7 @@ namespace VSLauncher.Helpers.Tokens
 
         public void Dispose()
         {
+            Token?.Dispose();
         }
 
         internal enum TokenElevationType : uint

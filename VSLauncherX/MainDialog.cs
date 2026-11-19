@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+using System.ComponentModel;
+using System.Diagnostics;
 using Microsoft.WindowsAPICodePack.Taskbar;
 using BrightIdeasSoftware;
 using ThemePalette = VSLauncher.Helpers.ThemeHelper.ThemePalette;
@@ -28,9 +29,13 @@ namespace VSLauncher
 		private readonly VisualStudioInstanceManager visualStudioInstances = new VisualStudioInstanceManager();
 		private DescribedTaskRenderer? itemRenderer;
 		private VsFolder solutionGroups = new VsFolder();
-		private DataObject? lastDroppedData;
+		private IDataObject? lastDroppedData;
+		private bool solutionDataLoadFailed;
+		private int gitRefreshInProgress;
+		private int gitRemoteOperationInProgress;
+		private Bitmap? currentVsButtonBitmap;
 
-		public JumpList TaskbarJumpList { get; private set; }
+		public JumpList? TaskbarJumpList { get; private set; }
 
 		private ThemePalette currentTheme;
 
@@ -113,13 +118,20 @@ namespace VSLauncher
 			{
 				if (rowObject is VsItem item)
 				{
-					if (item.VsVersion is null)
+					if (string.IsNullOrEmpty(item.VsVersion))
 					{
 						return "<default>";
 					}
 
 					var vs = visualStudioInstances.GetByIdentifier(item.VsVersion);
+
+					if (vs is null)
+					{
+						return "<default>";
+					}
+
 					string s = $"{vs.Year} ({vs.ShortVersion})";
+
 					return s;
 				}
 
@@ -180,21 +192,25 @@ namespace VSLauncher
 
 			this.bInUpdate = true;
 
-			if (!string.IsNullOrEmpty(Properties.Settings.Default.SelectedVSversion))
+			if (this.selectVisualStudioVersion.Items.Count > 0)
 			{
-				VisualStudioInstance? v = this.selectVisualStudioVersion.Versions.Where(v => v.Identifier == Properties.Settings.Default.SelectedVSversion).SingleOrDefault();
-				if (v is not null)
+				if (!string.IsNullOrEmpty(Properties.Settings.Default.SelectedVSversion))
 				{
-					this.selectVisualStudioVersion.SelectedItem = v;
+					VisualStudioInstance? v = this.selectVisualStudioVersion.Versions.FirstOrDefault(v => v.Identifier == Properties.Settings.Default.SelectedVSversion);
+
+					if (v is not null)
+					{
+						this.selectVisualStudioVersion.SelectedItem = v;
+					}
+					else
+					{
+						this.selectVisualStudioVersion.SelectedIndex = 0;
+					}
 				}
 				else
 				{
 					this.selectVisualStudioVersion.SelectedIndex = 0;
 				}
-			}
-			else
-			{
-				this.selectVisualStudioVersion.SelectedIndex = 0;
 			}
 
 			this.bInUpdate = false;
@@ -215,8 +231,14 @@ namespace VSLauncher
 			{
 				// we don't want a minimized window at startup
 				this.WindowState = Properties.Settings.Default.AppWindow == FormWindowState.Minimized ? FormWindowState.Normal : Properties.Settings.Default.AppWindow;
-				this.Location = Properties.Settings.Default.AppLocation;
-				this.Size = Properties.Settings.Default.AppSize;
+
+				Rectangle savedBounds = new Rectangle(Properties.Settings.Default.AppLocation, Properties.Settings.Default.AppSize);
+
+				if (savedBounds.Width >= 200 && savedBounds.Height >= 200 && Screen.AllScreens.Any(s => s.WorkingArea.IntersectsWith(savedBounds)))
+				{
+					this.Location = Properties.Settings.Default.AppLocation;
+					this.Size     = Properties.Settings.Default.AppSize;
+				}
 
 				// now set the columns
 				this.olvColumnDate.IsVisible = Properties.Settings.Default.ColumnDateVisible;
@@ -253,11 +275,7 @@ namespace VSLauncher
 				return;
 			}
 
-			toolStripStatusGit.Visible = true;
 			FetchGitStatusAsync(this.solutionGroups);
-			this.olvFiles.Invalidate();
-			this.olvFiles.Update();
-			toolStripStatusGit.Visible = false;
 		}
 
 
@@ -290,7 +308,13 @@ namespace VSLauncher
 			// don't forget to save the settings
 			Properties.Settings.Default.Save();
 
-			SaveSolutionData();
+			if (!this.solutionDataLoadFailed)
+			{
+				SaveSolutionData();
+			}
+
+			this.currentVsButtonBitmap?.Dispose();
+			this.currentVsButtonBitmap = null;
 		}
 
 
@@ -299,7 +323,6 @@ namespace VSLauncher
 
 		private void SetupTaskbarTasks()
 		{
-			var cat = new JumpListCustomCategory("Test");
 			// Create a jump list.
 			try
 			{
@@ -307,7 +330,7 @@ namespace VSLauncher
 			}
 			catch (System.Exception ex)
 			{
-
+				Debug.WriteLine(ex);
 			}
 
 			RebuildTaskbarItems();
@@ -319,26 +342,30 @@ namespace VSLauncher
 		/// <param name="item">The item.</param>
 		private void AddItemToTaskbar(VsItem item)
 		{
-			var il = new ItemLauncher(item, visualStudioInstances.GetByIdentifier(item.VsVersion));
+			if (this.TaskbarJumpList is null)
+			{
+				return;
+			}
 
-			// Note: to add items grouped by their category, create a custom category and add the items to that category.
-			// but, since the taskbar does not support hierarchies, we should think about a different way to do this
-			// the group/category must be added in the calling method, not here, then add the JumpListItem to the parent passed to this method.
-			// 
-			// 
-			// var cat = new JumpListCustomCategory(item.Parent.Name);
+			VisualStudioInstance? targetVs = this.visualStudioInstances.GetByIdentifier(item.VsVersion);
+
+			if (targetVs is null)
+			{
+				return;
+			}
+
+			ItemLauncher il = item is VsFolder folderItem
+				? new ItemLauncher(folderItem, targetVs)
+				: new ItemLauncher(item, targetVs);
+
 			// Add a jump task to the jump list.
-			var jll = new JumpListLink(il.GetLauncherPath(), item.Name);
-			// need to find a way to pass admin requirement
-			jll.Arguments = il.CreateLaunchInfoString();
-			jll.IconReference = new Microsoft.WindowsAPICodePack.Shell.IconReference(Assembly.GetExecutingAssembly().Location, 1);
-			jll.ShowCommand = Microsoft.WindowsAPICodePack.Shell.WindowShowCommand.Hide;
-
-			// cat.AddJumpListItems(jll);
+			string exePath = Environment.ProcessPath ?? Path.ChangeExtension(Assembly.GetExecutingAssembly().Location, ".exe");
+			var jll = new JumpListLink(il.GetLauncherPath(), item.Name ?? string.Empty);
+			jll.Arguments     = il.CreateLaunchInfoString();
+			jll.IconReference = new Microsoft.WindowsAPICodePack.Shell.IconReference(exePath, 0);
+			jll.ShowCommand   = Microsoft.WindowsAPICodePack.Shell.WindowShowCommand.Hide;
 
 			this.TaskbarJumpList.AddUserTasks(jll);
-			// this.TaskbarJumpList.AddCustomCategories(cat);
-
 		}
 
 		/// <summary>
@@ -361,22 +388,23 @@ namespace VSLauncher
 				{
 					AddItemToTaskbar(item);
 				}
+
 				if (item is VsFolder f)
 				{
 					RebuildTaskbarItems(f);
 				}
 			}
 
-			if (folder is null || folder == this.solutionGroups)
+			if (folder == this.solutionGroups)
 			{
 				try
 				{
 					this.TaskbarJumpList.Refresh();
 				}
-				catch (Exception)
+				catch (Exception ex)
 				{
-					// whatever goes wrong, we can do anything about it 
-				}			
+					Debug.WriteLine(ex);
+				}
 			}
 		}
 		#endregion
@@ -420,12 +448,11 @@ namespace VSLauncher
 			{
 				VsItem item = (VsItem)this.olvFiles.SelectedItem.RowObject;
 
-				if (item is not VsFolder)
+				if (item is not VsFolder && !string.IsNullOrWhiteSpace(item.Path))
 				{
-					Process.Start("explorer.exe", "/select, " + item.Path);
+					using var process = Process.Start("explorer.exe", $"/select, \"{item.Path}\"");
 				}
 			}
-
 		}
 
 		/// <summary>
@@ -468,21 +495,22 @@ namespace VSLauncher
 
 		private void mainImportSoP_Click(object sender, EventArgs e)
 		{
-			OpenFileDialog dlg = new OpenFileDialog
+			using OpenFileDialog dlg = new OpenFileDialog
 			{
 				Filter = FileHelper.SolutionFilterString,
-				Title = "Select a solution or project file"
+				Title  = "Select a solution or project file"
 			};
 
 			if (dlg.ShowDialog() == DialogResult.OK)
 			{
 				VsItem item = ImportHelper.GetItemFromExtension(Path.GetFileNameWithoutExtension(dlg.FileName), dlg.FileName);
-				dlgExecuteVisualStudio dlg2 = new dlgExecuteVisualStudio(item);
-				if (dlg2.ShowDialog() == DialogResult.OK)
+				using dlgExecuteVisualStudio dlg2 = new dlgExecuteVisualStudio(item);
+
+				if (dlg2.ShowDialog() == DialogResult.OK && dlg2.Item is not null)
 				{
 					// add the item to the list
-					MergeNewItem(this.olvFiles.SelectedItem, dlg2.Item!);
-					UpdateList(true);
+					MergeNewItem(this.olvFiles.SelectedItem, dlg2.Item);
+					_ = SolutionData_OnChanged(true);
 				}
 			}
 		}
@@ -494,12 +522,13 @@ namespace VSLauncher
 		private void mainRefresh_Click(object sender, EventArgs e)
 		{
 			this.solutionGroups.Items.OnChanged -= SolutionData_OnChanged;
-			this.solutionGroups.Items.Clear();
-			LoadSolutionData();
+			bool loaded = LoadSolutionData();
 			this.solutionGroups.Items.OnChanged += SolutionData_OnChanged;
 
-			UpdateList(true);
-			// FetchGitStatus(this.solutionGroups);
+			if (loaded)
+			{
+				UpdateList(true);
+			}
 		}
 
 		/// <summary>
@@ -509,23 +538,31 @@ namespace VSLauncher
 		/// <param name="e">The event parameters</param>
 		private void mainSettings_Click(object sender, EventArgs e)
 		{
-			dlgSettings dlg = new dlgSettings();
+			bool wasAlwaysAdmin = Properties.Settings.Default.AlwaysAdmin;
+			bool wasAutoStart = Properties.Settings.Default.AutoStart;
+			using dlgSettings dlg = new dlgSettings();
 
 			if (dlg.ShowDialog() == DialogResult.OK)
 			{
+				bool needsAdminRegistration = Properties.Settings.Default.AlwaysAdmin && (!wasAlwaysAdmin || !AdminInfo.IsElevated());
+
 				if (Properties.Settings.Default.AlwaysAdmin || Properties.Settings.Default.AutoStart)
 				{
-					if (Properties.Settings.Default.AlwaysAdmin)
+					if (needsAdminRegistration)
 					{
-						RestartOurselves();
-						Application.Exit();
+						if (RestartOurselves())
+						{
+							Application.Exit();
+
+							return;
+						}
 					}
-					else
+					else if (Properties.Settings.Default.AutoStart != wasAutoStart || Properties.Settings.Default.AlwaysAdmin != wasAlwaysAdmin)
 					{
 						Program.UpdateTaskScheduler();
 					}
 				}
-				else
+				else if (wasAlwaysAdmin || wasAutoStart)
 				{
 					Program.RemoveTaskScheduler();
 				}
@@ -537,25 +574,11 @@ namespace VSLauncher
 
 		private void ApplyTheme(bool useDarkMode)
 		{
-			this.currentTheme = ThemeHelper.ApplyDarkMode(this, useDarkMode);
+			this.currentTheme = ThemeHelper.GetPalette(useDarkMode);
 
+			ThemeHelper.ApplyTheme(this, this.currentTheme);
 			ThemeHelper.ApplyTheme(this.ctxMenu, this.currentTheme);
-
-			this.olvFiles.HighlightBackgroundColor = this.currentTheme.Selection;
-			this.olvFiles.UnfocusedHighlightBackgroundColor = this.currentTheme.Selection;
-			this.olvFiles.AlternateRowBackColor = this.currentTheme.SurfaceAlt;
-
-			if (this.olvFiles.TreeColumnRenderer != null)
-			{
-				this.olvFiles.TreeColumnRenderer.FillBrush = new SolidBrush(this.currentTheme.Accent);
-				this.olvFiles.TreeColumnRenderer.FramePen = new Pen(this.currentTheme.Border);
-			}
-
-			if (this.itemRenderer is DescribedTaskRenderer describedTaskRenderer)
-			{
-				describedTaskRenderer.TitleColor = this.currentTheme.Text;
-				describedTaskRenderer.DescriptionColor = this.currentTheme.SubText;
-			}
+			this.olvFiles.Invalidate();
 		}
 
 		#endregion
@@ -593,14 +616,13 @@ namespace VSLauncher
 		/// <param name="e">The event parameters</param>
 		private void olvFiles_CellToolTipShowing(object sender, ToolTipShowingEventArgs e)
 		{
-			if (e.ColumnIndex == this.olvColumnOptions.DisplayIndex)
+			if (e.Column == this.olvColumnOptions && e.Model is VsOptions itemOptions)
 			{
-				VsOptions itemOptions = (VsOptions)e.Model;
 				e.Text = itemOptions.ToString();
 			}
 			else
 			{
-				e.Text = e.Model is VsFolder ? e.Item.Text : e.SubItem.Text;
+				e.Text = e.Model is VsFolder ? e.Item?.Text : e.SubItem?.Text;
 			}
 		}
 
@@ -669,24 +691,7 @@ namespace VSLauncher
 		/// <param name="e">The event parameters</param>
 		private void olvFiles_KeyPress(object sender, KeyPressEventArgs e)
 		{
-			if (e.KeyChar == (char)Keys.Enter)
-			{
-				if ((Control.ModifierKeys & Keys.Alt) == Keys.Alt)
-				{
-					settingsToolStripMenuItem_Click(sender, e);
-				}
-				else
-				{
-					runToolStripMenuItem_Click(sender, e);
-				}
-
-				e.Handled = true;
-			}
-			else if (e.KeyChar == (char)Keys.Delete)
-			{
-				removeToolStripMenuItem_Click(sender, e);
-				e.Handled = true;
-			}
+			// Action keys (Enter, F5, Delete) are handled in olvFiles_KeyDown to avoid double firing and ASCII collisions.
 		}
 
 		/// <summary>
@@ -696,12 +701,13 @@ namespace VSLauncher
 		/// <param name="e">The event parameters</param>
 		private void olvFiles_KeyDown(object sender, KeyEventArgs e)
 		{
-			if ((e.KeyValue == (char)Keys.Delete) && ((Control.ModifierKeys & Keys.Shift) == Keys.Shift))
+			if (e.KeyCode == Keys.Delete)
 			{
 				removeToolStripMenuItem_Click(sender, e);
-				e.Handled = true;
+				e.Handled          = true;
+				e.SuppressKeyPress = true;
 			}
-			else if ((e.KeyValue == (char)Keys.Enter) || (e.KeyValue == (char)Keys.F5))
+			else if ((e.KeyCode == Keys.Enter) || (e.KeyCode == Keys.F5))
 			{
 				if ((Control.ModifierKeys & Keys.Alt) == Keys.Alt)
 				{
@@ -716,7 +722,8 @@ namespace VSLauncher
 					runToolStripMenuItem_Click(sender, e);
 				}
 
-				e.Handled = true;
+				e.Handled          = true;
+				e.SuppressKeyPress = true;
 			}
 		}
 
@@ -731,43 +738,45 @@ namespace VSLauncher
 		/// <param name="e">The event parameters</param>
 		private void olvFiles_Dropped(object? sender, OlvDropEventArgs e)
 		{
-			// for some reason yet unknown, this event is fired twice, so we need to check if we already handled it
+			if (e.DataObject is not IDataObject dataObject || !dataObject.GetDataPresent(DataFormats.FileDrop))
+			{
+				return;
+			}
+
 			if (this.lastDroppedData is null)
 			{
-				this.lastDroppedData = (DataObject)e.DataObject;
-				string[] files = (string[])this.lastDroppedData.GetData(DataFormats.FileDrop);
+				this.lastDroppedData = dataObject;
+				string[]? files = dataObject.GetData(DataFormats.FileDrop) as string[];
+
+				if (files is null || files.Length == 0)
+				{
+					return;
+				}
 
 				foreach (string file in files)
 				{
 					VsItem item = ImportHelper.GetItemFromExtension(Path.GetFileNameWithoutExtension(file), file);
+
 					if (item != null && item.ItemType != ItemTypeEnum.Other)
 					{
 						MergeNewItem(e.DropTargetItem, item);
 					}
-					else if (item?.ItemType == ItemTypeEnum.Other)
-                    {
-                        // check if the file is actually a folder, then invoke the import folder dialog
-                        FileInfo fi = new FileInfo(file);
-                        if (fi.Attributes.HasFlag(FileAttributes.Directory))
-                        {
-                            dlgImportFolder dlg = new dlgImportFolder(file);
-                            
-							if (dlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
-                            {
-                                OLVListItem r = this.olvFiles.SelectedItem;
-                                VsItemList source = dlg.Solution.Items;
+					else if (item?.ItemType == ItemTypeEnum.Other && Directory.Exists(file))
+					{
+						// check if the file is actually a folder, then invoke the import folder dialog
+						using dlgImportFolder dlg = new dlgImportFolder(file);
 
-                                MergeNewItems(r, source);
+						if (dlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+						{
+							VsItemList source = dlg.Solution.Items;
+							MergeNewItems(e.DropTargetItem, source);
+							_ = SolutionData_OnChanged(true);
+						}
+					}
+				}
 
-                                _ = SolutionData_OnChanged(true);
-                            }
-                        }
-                    }
-                }
-
-                UpdateList(true);
-
-                e.Handled = true;
+				_ = SolutionData_OnChanged(true);
+				e.Handled = true;
 			}
 		}
 
@@ -778,14 +787,11 @@ namespace VSLauncher
 		/// <param name="e">The event parameters</param>
 		private void olvFiles_CanDrop(object? sender, OlvDropEventArgs e)
 		{
-			if (e.DataObject is not null)
+			if (e.DataObject is IDataObject dataObject && dataObject.GetDataPresent(DataFormats.FileDrop))
 			{
-				if (((DataObject)e.DataObject).GetDataPresent(DataFormats.FileDrop))
-				{
-					e.Effect = DragDropEffects.Copy;
-					e.Handled = true;
-					this.lastDroppedData = null;
-				}
+				e.Effect = DragDropEffects.Copy;
+				e.Handled = true;
+				this.lastDroppedData = null;
 			}
 		}
 
@@ -817,33 +823,35 @@ namespace VSLauncher
 		private void olvFiles_ModelCanDropHandler(object sender, ModelDropEventArgs e)
 		{
 			e.Effect = DragDropEffects.None;
-			if (e.TargetModel == null)
+
+			if (e.TargetModel == null || e.SourceModels == null || e.SourceModels.Count == 0)
 			{
 				return;
 			}
 
-			if (e.SourceModels[0] == e.TargetModel)
+			object? obj = e.SourceModels[0];
+
+			if (obj == null || obj == e.TargetModel)
 			{
 				return;
 			}
 
 			if (e.TargetModel is VsFolder)
 			{
-				object? obj = e.SourceModels[0];
-
-				if (obj != null)
+				if (obj is VsFolder sourceFolder && sourceFolder.FindParent(e.TargetModel) != null)
 				{
-					if (e.TargetModel != this.solutionGroups.FindParent(obj))
-					{
-						e.Effect = e.StandardDropActionFromKeys;
-					}
-					else
-					{
-						if (IsControlPressed())
-						{
-							e.Effect = e.StandardDropActionFromKeys;
-						}
-					}
+					e.InfoMessage = "Cannot drop a group into its own descendant";
+
+					return;
+				}
+
+				if (e.TargetModel != this.solutionGroups.FindParent(obj))
+				{
+					e.Effect = e.StandardDropActionFromKeys;
+				}
+				else if (IsControlPressed())
+				{
+					e.Effect = e.StandardDropActionFromKeys;
 				}
 			}
 			else
@@ -863,6 +871,8 @@ namespace VSLauncher
 			{
 				if (e.TargetModel == e.SourceModels[0])
 				{
+					e.Handled = true;
+
 					return;
 				}
 
@@ -871,6 +881,15 @@ namespace VSLauncher
 
 				if (target is null || source is null)
 				{
+					e.Handled = true;
+
+					return;
+				}
+
+				if (source is VsFolder sourceFolder && sourceFolder.FindParent(target) != null)
+				{
+					e.Handled = true;
+
 					return;
 				}
 
@@ -896,19 +915,23 @@ namespace VSLauncher
 					// update source and target models
 					this.olvFiles.UpdateObject(target);
 					this.olvFiles.UpdateObject(source);
-					this.olvFiles.UpdateObject(parent);
+
+					if (parent != null)
+					{
+						this.olvFiles.UpdateObject(parent);
+					}
 				}
 
 				if (e.Effect == System.Windows.Forms.DragDropEffects.Copy)
 				{
-					// make sure to add "copy" if same parent
-
+					// deep clone avoids sharing mutable item lists when copying folders
 					target.Items.Add(((VsItem)source).Clone());
 					this.olvFiles.UpdateObject(target);
 					this.olvFiles.UpdateObject(source);
 				}
 
 				this.solutionGroups.Items.Changed = true;
+				e.Handled = true;
 			}
 		}
 
@@ -923,8 +946,13 @@ namespace VSLauncher
 		/// <param name="e">The event parameters</param>
 		private void settingsToolStripMenuItem_Click(object sender, EventArgs e)
 		{
+			if (this.olvFiles.SelectedItem is null)
+			{
+				return;
+			}
+
 			object item = this.olvFiles.SelectedItem.RowObject;
-			dlgExecuteVisualStudio dlg = new dlgExecuteVisualStudio(item);
+			using dlgExecuteVisualStudio dlg = new dlgExecuteVisualStudio(item);
 
 			if (dlg.ShowDialog() == DialogResult.OK)
 			{
@@ -939,10 +967,17 @@ namespace VSLauncher
 		/// <param name="e">The event parameters</param>
 		private void renameToolStripMenuItem_Click(object sender, EventArgs e)
 		{
+			if (this.olvFiles.SelectedItem is null)
+			{
+				return;
+			}
+
 			object item = this.olvFiles.SelectedItem.RowObject;
+
 			if (item is VsItem vsi)
 			{
-				dlgRename dlg = new dlgRename(vsi);
+				using dlgRename dlg = new dlgRename(vsi);
+
 				if (dlg.ShowDialog() == DialogResult.OK)
 				{
 					vsi.Name = dlg.ItemName;
@@ -959,6 +994,11 @@ namespace VSLauncher
 		/// <param name="e">The event parameters</param>
 		private void removeToolStripMenuItem_Click(object sender, EventArgs e)
 		{
+			if (this.olvFiles.SelectedItem is null)
+			{
+				return;
+			}
+
 			object item = this.olvFiles.SelectedItem.RowObject;
 
 			// only ask the user if the selected item is not an empty folder
@@ -1010,22 +1050,62 @@ namespace VSLauncher
 		}
 
 		/// <summary>
+		/// Resolves the Visual Studio instance to use for launching a given item.
+		/// </summary>
+		/// <param name="item">The item to launch.</param>
+		/// <returns>The resolved <see cref="VisualStudioInstance"/>, or <c>null</c> if none are installed.</returns>
+		private VisualStudioInstance? ResolveTargetVisualStudio(VsItem item)
+		{
+			VisualStudioInstance? selectedVs = this.selectVisualStudioVersion.SelectedItem;
+
+			if (item is VsFolder f)
+			{
+				return (!string.IsNullOrEmpty(f.VsVersion) ? this.visualStudioInstances.FindByIdentifier(f.VsVersion) : null)
+					?? selectedVs
+					?? this.visualStudioInstances.HighestVersion();
+			}
+
+			if (item is VsSolution s)
+			{
+				return this.visualStudioInstances.FindByIdentifier(s.VsVersion)
+					?? this.visualStudioInstances.FindByVersion(s.RequiredVersion)
+					?? selectedVs
+					?? this.visualStudioInstances.HighestVersion();
+			}
+
+			return this.visualStudioInstances.FindByIdentifier(item.VsVersion)
+				?? selectedVs
+				?? this.visualStudioInstances.HighestVersion();
+		}
+
+		/// <summary>
 		/// Handles the run as admin menu item.
 		/// </summary>
 		/// <param name="sender">The sender.</param>
 		/// <param name="e">The event parameters</param>
 		private void runAsAdminToolStripMenuItem_Click(object sender, EventArgs e)
 		{
-			object item = this.olvFiles.SelectedItem.RowObject;
-			VisualStudioInstance vs = this.selectVisualStudioVersion.SelectedItem ?? throw new InvalidCastException();
+			if (this.olvFiles.SelectedItem?.RowObject is not VsItem item)
+			{
+				return;
+			}
+
+			VisualStudioInstance? vs = ResolveTargetVisualStudio(item);
+
+			if (vs is null)
+			{
+				_ = MessageBox.Show("No Visual Studio installation was found.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+
+				return;
+			}
 
 			if (item is VsFolder sg)
 			{
 				_ = new ItemLauncher(sg, vs).Launch(true);
 			}
-			else if (item is VsSolution s)
+			else
 			{
-				_ = new ItemLauncher(s, vs).Launch(true);
+				_ = new ItemLauncher(item, vs).Launch(true);
 			}
 		}
 
@@ -1036,18 +1116,31 @@ namespace VSLauncher
 		/// <param name="e">The event parameters</param>
 		private void runToolStripMenuItem_Click(object sender, EventArgs e)
 		{
-			object item = this.olvFiles.SelectedItem.RowObject;
-			VisualStudioInstance? vs = this.selectVisualStudioVersion.SelectedItem;
+			if (this.olvFiles.SelectedItem?.RowObject is not VsItem vsi)
+			{
+				return;
+			}
+
+			VisualStudioInstance? vs = ResolveTargetVisualStudio(vsi);
+
+			if (vs is null)
+			{
+				_ = MessageBox.Show("No Visual Studio installation was found.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+
+				return;
+			}
+
 			ItemLauncher? il = null;
 
-			if (item is VsFolder f)
+			if (vsi is VsFolder f)
 			{
 				if (!Properties.Settings.Default.DontShowMultiplesWarning)
 				{
 					var n = f.ContainedSolutionsCount() + f.ContainedProjectsCount();
+
 					if (n > 3)
 					{
-						var dlg = new dlgWarnMultiple(n);
+						using var dlg = new dlgWarnMultiple(n);
 
 						if (dlg.ShowDialog() == DialogResult.Cancel)
 						{
@@ -1056,23 +1149,15 @@ namespace VSLauncher
 					}
 				}
 
-				vs = string.IsNullOrEmpty(f.VsVersion) ? this.visualStudioInstances.GetByIdentifier(f.VsVersion) : vs;
 				il = new ItemLauncher(f, vs);
 			}
-			else if (item is VsSolution s)
+			else if (vsi is VsSolution or VsProject)
 			{
-				vs = this.visualStudioInstances.GetByVersion(s.RequiredVersion) ?? vs;
-				il = new ItemLauncher(s, vs);
-			}
-			else if (item is VsProject p)
-			{
-				vs = this.visualStudioInstances.GetByIdentifier(p.VsVersion) ?? vs;
-				il = new ItemLauncher(p, vs);
+				il = new ItemLauncher(vsi, vs);
 			}
 
 			if (il != null)
 			{
-				var vsi = item as VsItem;
 				this.mainStatusLabel.Text = $"Launching '{vsi.Name}'";
 				il.Launch().Wait();
 
@@ -1080,6 +1165,7 @@ namespace VSLauncher
 				{
 					_ = MessageBox.Show(il.LastException.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
 				}
+
 				this.mainStatusLabel.Text = "";
 			}
 		}
@@ -1097,7 +1183,7 @@ namespace VSLauncher
 				i.IsFavorite = !i.IsFavorite;
 
 				SetupTaskbarTasks();
-				//RebuildTaskbarItems();
+				_ = SolutionData_OnChanged(true);
 			}
 		}
 
@@ -1109,9 +1195,9 @@ namespace VSLauncher
 		private void explorerToolStripMenuItem_Click(object sender, EventArgs e)
 		{
 			// open the explorer with the selected item
-			if (this.olvFiles.SelectedObject is VsItem i)
+			if (this.olvFiles.SelectedObject is VsItem i && !string.IsNullOrWhiteSpace(i.Path))
 			{
-				Process.Start("explorer.exe", $"/select, \"{i.Path}\"");
+				using var process = Process.Start("explorer.exe", $"/select, \"{i.Path}\"");
 			}
 		}
 
@@ -1182,26 +1268,30 @@ namespace VSLauncher
 				// set icon and text according to selection onto all buttons
 				Bitmap icon = this.visualStudioInstances[this.selectVisualStudioVersion.SelectedIndex].AppIcon.ToBitmap();
 				string shortName = this.visualStudioInstances[this.selectVisualStudioVersion.SelectedIndex].ShortName;
+				Bitmap? previousBitmap = this.currentVsButtonBitmap;
+				this.currentVsButtonBitmap = icon;
 
-				this.btnMainStartVisualStudio1.Text = string.Format((string)this.btnMainStartVisualStudio1.Tag, shortName);
+				this.btnMainStartVisualStudio1.Text = string.Format((string)this.btnMainStartVisualStudio1.Tag!, shortName);
 				this.tooltipForButtons.SetToolTip(this.btnMainStartVisualStudio1, this.visualStudioInstances[this.selectVisualStudioVersion.SelectedIndex].ToString());
 				this.btnMainStartVisualStudio1.Image = icon;
 
-				this.btnMainStartVisualStudio2.Text = string.Format((string)this.btnMainStartVisualStudio2.Tag, shortName);
+				this.btnMainStartVisualStudio2.Text = string.Format((string)this.btnMainStartVisualStudio2.Tag!, shortName);
 				this.tooltipForButtons.SetToolTip(this.btnMainStartVisualStudio2, this.visualStudioInstances[this.selectVisualStudioVersion.SelectedIndex].ToString());
 				this.btnMainStartVisualStudio2.Image = icon;
 
-				this.btnMainStartVisualStudio3.Text = string.Format((string)this.btnMainStartVisualStudio3.Tag, shortName);
+				this.btnMainStartVisualStudio3.Text = string.Format((string)this.btnMainStartVisualStudio3.Tag!, shortName);
 				this.tooltipForButtons.SetToolTip(this.btnMainStartVisualStudio3, this.visualStudioInstances[this.selectVisualStudioVersion.SelectedIndex].ToString());
 				this.btnMainStartVisualStudio3.Image = icon;
 
-				this.btnMainStartVisualStudio4.Text = string.Format((string)this.btnMainStartVisualStudio4.Tag, shortName);
+				this.btnMainStartVisualStudio4.Text = string.Format((string)this.btnMainStartVisualStudio4.Tag!, shortName);
 				this.tooltipForButtons.SetToolTip(this.btnMainStartVisualStudio4, this.visualStudioInstances[this.selectVisualStudioVersion.SelectedIndex].ToString());
 				this.btnMainStartVisualStudio4.Image = icon;
 
-				this.btnMainStartVisualStudio5.Text = string.Format((string)this.btnMainStartVisualStudio5.Tag, shortName);
+				this.btnMainStartVisualStudio5.Text = string.Format((string)this.btnMainStartVisualStudio5.Tag!, shortName);
 				this.tooltipForButtons.SetToolTip(this.btnMainStartVisualStudio5, this.visualStudioInstances[this.selectVisualStudioVersion.SelectedIndex].ToString());
 				this.btnMainStartVisualStudio5.Image = icon;
+
+				previousBitmap?.Dispose();
 			}
 		}
 
@@ -1226,16 +1316,45 @@ namespace VSLauncher
 		#region Main VS Execution Buttons handling
 
 		/// <summary>
+		/// Gets the currently selected Visual Studio instance from the combobox, or <c>null</c> if none is selected.
+		/// </summary>
+		/// <returns>The selected <see cref="VisualStudioInstance"/> or <c>null</c>.</returns>
+		private VisualStudioInstance? GetSelectedVisualStudioInstance()
+		{
+			int index = this.selectVisualStudioVersion.SelectedIndex;
+
+			if (index >= 0 && index < this.visualStudioInstances.Count)
+			{
+				return this.visualStudioInstances[index];
+			}
+
+			return null;
+		}
+
+		/// <summary>
 		/// Handles click on the btnMainStartVisualStudio1 button (Start VS)
 		/// </summary>
 		/// <param name="sender">The sender.</param>
 		/// <param name="e">The event parameters</param>
 		private void btnMainStartVisualStudio1_Click(object sender, EventArgs e)
 		{
+			VisualStudioInstance? vs = GetSelectedVisualStudioInstance();
+
+			if (vs is null)
+			{
+				return;
+			}
+
 			this.Cursor = Cursors.WaitCursor;
-			VisualStudioInstance vs = this.visualStudioInstances[this.selectVisualStudioVersion.SelectedIndex];
-			vs.Execute();
-			this.Cursor = Cursors.Default;
+
+			try
+			{
+				vs.Execute();
+			}
+			finally
+			{
+				this.Cursor = Cursors.Default;
+			}
 		}
 
 		/// <summary>
@@ -1245,10 +1364,23 @@ namespace VSLauncher
 		/// <param name="e">The event parameters</param>
 		private void btnMainStartVisualStudio2_Click(object sender, EventArgs e)
 		{
+			VisualStudioInstance? vs = GetSelectedVisualStudioInstance();
+
+			if (vs is null)
+			{
+				return;
+			}
+
 			this.Cursor = Cursors.WaitCursor;
-			VisualStudioInstance vs = this.visualStudioInstances[this.selectVisualStudioVersion.SelectedIndex];
-			vs.ExecuteAsAdmin();
-			this.Cursor = Cursors.Default;
+
+			try
+			{
+				vs.ExecuteAsAdmin();
+			}
+			finally
+			{
+				this.Cursor = Cursors.Default;
+			}
 		}
 
 		/// <summary>
@@ -1258,14 +1390,27 @@ namespace VSLauncher
 		/// <param name="e">The event parameters</param>
 		private void btnMainStartVisualStudio3_Click(object sender, EventArgs e)
 		{
-			dlgNewInstance dlg = new dlgNewInstance();
+			VisualStudioInstance? vs = GetSelectedVisualStudioInstance();
+
+			if (vs is null)
+			{
+				return;
+			}
+
+			using dlgNewInstance dlg = new dlgNewInstance();
+
 			if (dlg.ShowDialog() == DialogResult.OK)
 			{
 				this.Cursor = Cursors.WaitCursor;
-				VisualStudioInstance vs = this.visualStudioInstances[this.selectVisualStudioVersion.SelectedIndex];
 
-				vs.ExecuteWithInstance(IsControlPressed(), dlg.InstanceName);
-				this.Cursor = Cursors.Default;
+				try
+				{
+					vs.ExecuteWithInstance(IsControlPressed(), dlg.InstanceName);
+				}
+				finally
+				{
+					this.Cursor = Cursors.Default;
+				}
 			}
 		}
 
@@ -1276,10 +1421,23 @@ namespace VSLauncher
 		/// <param name="e">The event parameters</param>
 		private void btnMainStartVisualStudio4_Click(object sender, EventArgs e)
 		{
+			VisualStudioInstance? vs = GetSelectedVisualStudioInstance();
+
+			if (vs is null)
+			{
+				return;
+			}
+
 			this.Cursor = Cursors.WaitCursor;
-			VisualStudioInstance vs = this.visualStudioInstances[this.selectVisualStudioVersion.SelectedIndex];
-			vs.ExecuteNewProject(IsControlPressed());
-			this.Cursor = Cursors.Default;
+
+			try
+			{
+				vs.ExecuteNewProject(IsControlPressed());
+			}
+			finally
+			{
+				this.Cursor = Cursors.Default;
+			}
 		}
 
 		/// <summary>
@@ -1289,19 +1447,25 @@ namespace VSLauncher
 		/// <param name="e">The event parameters</param>
 		private void btnMainStartVisualStudio5_Click(object sender, EventArgs e)
 		{
-			dlgExecuteVisualStudio dlg = new dlgExecuteVisualStudio(this.selectVisualStudioVersion.SelectedIndex);
+			using dlgExecuteVisualStudio dlg = new dlgExecuteVisualStudio(this.selectVisualStudioVersion.SelectedIndex);
 
 			if (dlg.ShowDialog() == DialogResult.OK)
 			{
 				this.Cursor = Cursors.WaitCursor;
-				VisualStudioInstance vs = dlg.VsVersion;
 
-				if (dlg.Item is not null)
+				try
 				{
-					vs.ExecuteWith(dlg.Item.RunAsAdmin, dlg.Item.ShowSplash, dlg.Item.Path!, dlg.Item.Instance, dlg.Item.Commands);
-				}
+					VisualStudioInstance? vs = dlg.VsVersion ?? GetSelectedVisualStudioInstance();
 
-				this.Cursor = Cursors.Default;
+					if (vs is not null && dlg.Item is not null)
+					{
+						vs.ExecuteWith(dlg.Item.RunAsAdmin, dlg.Item.ShowSplash, dlg.Item.Path ?? string.Empty, dlg.Item.Instance, dlg.Item.Commands);
+					}
+				}
+				finally
+				{
+					this.Cursor = Cursors.Default;
+				}
 			}
 		}
 
@@ -1312,16 +1476,39 @@ namespace VSLauncher
 		/// <param name="e">The event parameters</param>
 		private void btnMainOpenActivityLog_Click(object sender, EventArgs e)
 		{
-			VisualStudioInstance vs = this.visualStudioInstances[this.selectVisualStudioVersion.SelectedIndex];
+			VisualStudioInstance? vs = GetSelectedVisualStudioInstance();
+
+			if (vs is null)
+			{
+				return;
+			}
+
 			string version = $"{vs.MainVersion}.0_{vs.Identifier}";
-			string s = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+			string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+			string logPath = Path.Combine(appData, "Microsoft", "VisualStudio", version, "ActivityLog.xml");
+
+			if (!File.Exists(logPath))
+			{
+				_ = MessageBox.Show($"ActivityLog.xml was not found at '{logPath}'.", "ActivityLog", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+				return;
+			}
+
 			ProcessStartInfo psi = new ProcessStartInfo
 			{
-				FileName = $"{s}\\Microsoft\\VisualStudio\\{version}\\ActivityLog.xml",
-				Verb = "open",
+				FileName        = logPath,
+				Verb            = "open",
 				UseShellExecute = true
 			};
-			Process.Start(psi);
+
+			try
+			{
+				using var process = Process.Start(psi);
+			}
+			catch (Win32Exception ex)
+			{
+				_ = MessageBox.Show($"Unable to open ActivityLog.xml: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+			}
 		}
 
 		/// <summary>
@@ -1331,34 +1518,37 @@ namespace VSLauncher
 		/// <param name="e">The event parameters</param>
 		private void btnVsInstaller_Click(object sender, EventArgs e)
 		{
-			string vsi = (string)btnVsInstaller.Tag;
-
-			if (vsi.StartsWith("http"))
+			if (btnVsInstaller.Tag is not string vsi || string.IsNullOrWhiteSpace(vsi))
 			{
-				_ = Process.Start("explorer.exe", vsi);
+				return;
 			}
-			else
+
+			try
 			{
-				// ask user if installer should be started with elevated privileges
-				bool bIsElevated = AdminInfo.IsCurrentUserAdmin() || AdminInfo.IsElevated();
-
-				if (!bIsElevated && MessageBox.Show("The Visual Studio Installer may required elevated privileges, do you want to run it as administrator?", "Start installer", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+				if (vsi.StartsWith("http", StringComparison.OrdinalIgnoreCase))
 				{
-					ProcessStartInfo psi = new ProcessStartInfo
-					{
-						Verb = "runas",
-						UseShellExecute = true,
-						FileName = vsi
-					};
-
-					_ = Process.Start(psi);
+					using var p = Process.Start("explorer.exe", vsi);
 				}
 				else
 				{
-					_ = Process.Start(vsi);
+					// ask user if installer should be started with elevated privileges
+					bool bIsElevated = AdminInfo.IsCurrentUserAdmin() || AdminInfo.IsElevated();
+					bool runElevated = !bIsElevated && MessageBox.Show("The Visual Studio Installer may require elevated privileges, do you want to run it as administrator?", "Start installer", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes;
+
+					ProcessStartInfo psi = new ProcessStartInfo
+					{
+						Verb            = runElevated ? "runas" : string.Empty,
+						UseShellExecute = true,
+						FileName        = vsi
+					};
+
+					using var p = Process.Start(psi);
 				}
 			}
-
+			catch (Win32Exception ex)
+			{
+				Debug.WriteLine(ex);
+			}
 		}
 		#endregion
 
@@ -1433,77 +1623,222 @@ namespace VSLauncher
 		}
 
 		/// <summary>
-		/// Handles the click event for branch menu items.
-		/// Adds credential-aware fetch to avoid "remote authentication required but no callback set".
+		/// Discovers the Git repository path for an item.
 		/// </summary>
-		private void BranchMenuItem_Click(object sender, EventArgs e, VsItem item, string branchName)
+		/// <param name="item">The item whose path should be checked.</param>
+		/// <returns>The discovered repository path, or <c>null</c> if not inside a Git repository.</returns>
+		private static string? DiscoverRepositoryPath(VsItem item)
+		{
+			string? dir = Path.GetDirectoryName(item.Path);
+
+			if (string.IsNullOrWhiteSpace(dir) || !Directory.Exists(dir))
+			{
+				return null;
+			}
+
+			return Repository.Discover(dir);
+		}
+
+		/// <summary>
+		/// Refreshes cached Git branch and dirty status for a single item and updates its row in the list.
+		/// </summary>
+		/// <param name="item">The item to update.</param>
+		/// <param name="repoPath">The discovered repository path.</param>
+		private void RefreshGitItemStatus(VsItem item, string repoPath)
 		{
 			try
 			{
-				var repoPath = Path.GetDirectoryName(item.Path);
-				using (var repo = new Repository(repoPath))
+				using var repo = new Repository(repoPath);
+
+				item.BranchName = repo.Head?.FriendlyName ?? item.BranchName;
+				item.Status     = repo.RetrieveStatus().IsDirty ? "*" : "!";
+
+				if (!this.IsDisposed)
 				{
-					// Ensure local branch exists; if not, try to fetch from origin first with credentials.
-					var target = repo.Branches[branchName];
-					if (target == null)
-					{
-						var remote = repo.Network.Remotes["origin"]; // fallback to 'origin'
-						if (remote != null)
-						{
-							var fetchOptions = new FetchOptions
-							{
-								CredentialsProvider = GitCredentialsProvider
-							};
-							Commands.Fetch(repo, remote.Name, remote.FetchRefSpecs.Select(r => r.Specification), fetchOptions, null);
-							// Re-acquire branch after fetch
-							target = repo.Branches[branchName];
-						}
-					}
-
-					if (target == null)
-					{
-						MessageBox.Show($"Branch '{branchName}' not found after fetch.", "Branch Checkout", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-						return;
-					}
-
-					Commands.Checkout(repo, target);
-					MessageBox.Show($"Checked out branch: {branchName}", "Branch Checkout", MessageBoxButtons.OK, MessageBoxIcon.Information);
+					this.olvFiles.RefreshObject(item);
 				}
-			}
-			catch (LibGit2SharpException ex) when (ex.Message.Contains("remote authentication required"))
-			{
-				MessageBox.Show("Authentication required for remote repository. Configure credentials (PAT or DefaultCredentials).", "Git Authentication", MessageBoxButtons.OK, MessageBoxIcon.Error);
 			}
 			catch (Exception ex)
 			{
-				MessageBox.Show($"Error checking out branch: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+				Debug.WriteLine(ex);
+			}
+		}
+
+		/// <summary>
+		/// Displays a Git operation failure message, highlighting authentication guidance when relevant.
+		/// </summary>
+		/// <param name="title">The dialog title.</param>
+		/// <param name="result">The failed <see cref="GitOperationResult"/>.</param>
+		private void ShowGitOperationError(string title, GitOperationResult result)
+		{
+			if (this.IsDisposed)
+			{
+				return;
+			}
+
+			if (result.AuthFailed)
+			{
+				string detail = string.IsNullOrWhiteSpace(result.ErrorMessage) ? string.Empty : $"\r\n\r\nDetails:\r\n{result.ErrorMessage}";
+
+				_ = MessageBox.Show(
+					this,
+					$"Git authentication failed. Sign in with Git Credential Manager or check your configured credentials/SSH keys.{detail}",
+					"Git Authentication",
+					MessageBoxButtons.OK,
+					MessageBoxIcon.Error);
+
+				return;
+			}
+
+			_ = MessageBox.Show(this, result.ErrorMessage, title, MessageBoxButtons.OK, MessageBoxIcon.Error);
+		}
+
+		/// <summary>
+		/// Handles the click event for branch menu items.
+		/// Uses GitHelper for credential-aware remote fetching when a branch is not present locally.
+		/// </summary>
+		private async void BranchMenuItem_Click(object sender, EventArgs e, VsItem item, string branchName)
+		{
+			if (Interlocked.CompareExchange(ref this.gitRemoteOperationInProgress, 1, 0) != 0)
+			{
+				return;
+			}
+
+			this.Cursor               = Cursors.WaitCursor;
+			this.mainStatusLabel.Text = $"Switching branch to '{branchName}'...";
+
+			try
+			{
+				string? repoPath = DiscoverRepositoryPath(item);
+
+				if (string.IsNullOrEmpty(repoPath))
+				{
+					_ = MessageBox.Show(this, "No Git repository found for this item.", "Branch Checkout", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+
+					return;
+				}
+
+				bool branchExistsLocally;
+
+				using (var repo = new Repository(repoPath))
+				{
+					branchExistsLocally = repo.Branches[branchName] != null;
+				}
+
+				if (!branchExistsLocally)
+				{
+					GitOperationResult fetchResult = await Task.Run(() => GitHelper.Fetch(repoPath, "origin"));
+
+					if (!fetchResult.Success)
+					{
+						ShowGitOperationError("Branch Checkout", fetchResult);
+
+						return;
+					}
+				}
+
+				using (var repo = new Repository(repoPath))
+				{
+					Branch? target = repo.Branches[branchName];
+
+					if (target == null)
+					{
+						_ = MessageBox.Show(this, $"Branch '{branchName}' not found after fetch.", "Branch Checkout", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+
+						return;
+					}
+
+					_ = Commands.Checkout(repo, target);
+				}
+
+				RefreshGitItemStatus(item, repoPath);
+
+				if (!this.IsDisposed)
+				{
+					_ = MessageBox.Show(this, $"Checked out branch: {branchName}", "Branch Checkout", MessageBoxButtons.OK, MessageBoxIcon.Information);
+				}
+			}
+			catch (Exception ex)
+			{
+				if (!this.IsDisposed)
+				{
+					_ = MessageBox.Show(this, $"Error checking out branch: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+				}
+			}
+			finally
+			{
+				Interlocked.Exchange(ref this.gitRemoteOperationInProgress, 0);
+
+				if (!this.IsDisposed)
+				{
+					this.Cursor               = Cursors.Default;
+					this.mainStatusLabel.Text = string.Empty;
+				}
 			}
 		}
 
 		/// <summary>
 		/// Fetch with credentials.
 		/// </summary>
-		private void fetchToolStripMenuItem_Click(object sender, EventArgs e)
+		private async void fetchToolStripMenuItem_Click(object sender, EventArgs e)
 		{
-			if (this.olvFiles.SelectedObject is VsItem item and not VsFolder)
+			if (this.olvFiles.SelectedObject is not (VsItem item and not VsFolder))
 			{
-				try
+				return;
+			}
+
+			if (Interlocked.CompareExchange(ref this.gitRemoteOperationInProgress, 1, 0) != 0)
+			{
+				return;
+			}
+
+			this.Cursor               = Cursors.WaitCursor;
+			this.mainStatusLabel.Text = $"Fetching '{item.Name}'...";
+
+			try
+			{
+				string? repoPath = DiscoverRepositoryPath(item);
+
+				if (string.IsNullOrEmpty(repoPath))
 				{
-					using (var repo = new Repository(Path.GetDirectoryName(item.Path)))
-					{
-						var remote = repo.Network.Remotes[repo.Head.RemoteName];
-						var fetchOptions = new FetchOptions { CredentialsProvider = GitCredentialsProvider };
-						Commands.Fetch(repo, remote.Name, remote.FetchRefSpecs.Select(rs => rs.Specification), fetchOptions, null);
-						MessageBox.Show(this, $"Fetched: {remote.Name} ({repo.Head.FriendlyName})", "Branch Fetch", MessageBoxButtons.OK, MessageBoxIcon.Information);
-					}
+					_ = MessageBox.Show(this, "No Git repository found for this item.", "Branch Fetch", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+
+					return;
 				}
-				catch (LibGit2SharpException ex) when (ex.Message.Contains("remote authentication required"))
+
+				GitOperationResult result = await Task.Run(() => GitHelper.Fetch(repoPath));
+
+				if (!result.Success)
 				{
-					MessageBox.Show(this, "Authentication required for remote repository. Configure credentials.", "Git Authentication", MessageBoxButtons.OK, MessageBoxIcon.Error);
+					ShowGitOperationError("Branch Fetch", result);
+
+					return;
 				}
-				catch (Exception ex)
+
+				RefreshGitItemStatus(item, repoPath);
+
+				if (!this.IsDisposed)
 				{
-					MessageBox.Show(this, $"Error fetching: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+					string summary = string.IsNullOrWhiteSpace(result.Summary) ? string.Empty : $"\r\n\r\n{result.Summary}";
+
+					_ = MessageBox.Show(this, $"Fetched: {result.RemoteName} ({item.BranchName}){summary}", "Branch Fetch", MessageBoxButtons.OK, MessageBoxIcon.Information);
+				}
+			}
+			catch (Exception ex)
+			{
+				if (!this.IsDisposed)
+				{
+					_ = MessageBox.Show(this, $"Error fetching: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+				}
+			}
+			finally
+			{
+				Interlocked.Exchange(ref this.gitRemoteOperationInProgress, 0);
+
+				if (!this.IsDisposed)
+				{
+					this.Cursor               = Cursors.Default;
+					this.mainStatusLabel.Text = string.Empty;
 				}
 			}
 		}
@@ -1511,37 +1846,82 @@ namespace VSLauncher
 		/// <summary>
 		/// Pull with credentials.
 		/// </summary>
-		private void pullToolStripMenuItem_Click(object sender, EventArgs e)
+		private async void pullToolStripMenuItem_Click(object sender, EventArgs e)
 		{
-			if (this.olvFiles.SelectedObject is VsItem item and not VsFolder)
+			if (this.olvFiles.SelectedObject is not (VsItem item and not VsFolder))
 			{
-				try
-				{
-					using (var repo = new Repository(Path.GetDirectoryName(item.Path)))
-					{
-						var stat = repo.RetrieveStatus();
-						if (stat.IsDirty)
-						{
-							var msgResult = MessageBox.Show(this, "There are uncommitted changes. Continue with pull?", "Uncommitted Changes", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
-							if (msgResult == DialogResult.No)
-								return;
-						}
+				return;
+			}
 
-						var pullOptions = new PullOptions
-						{
-							FetchOptions = new FetchOptions { CredentialsProvider = GitCredentialsProvider }
-						};
-						var result = Commands.Pull(repo, new Signature("VSLauncherX", "user@example.com", DateTimeOffset.Now), pullOptions);
-						MessageBox.Show(this, $"Pulled: {repo.Head.RemoteName} ({repo.Head.FriendlyName})\r\nStatus: {result.Status}", "Branch Pull", MessageBoxButtons.OK, MessageBoxIcon.Information);
+			if (Interlocked.CompareExchange(ref this.gitRemoteOperationInProgress, 1, 0) != 0)
+			{
+				return;
+			}
+
+			try
+			{
+				string? repoPath = DiscoverRepositoryPath(item);
+
+				if (string.IsNullOrEmpty(repoPath))
+				{
+					_ = MessageBox.Show(this, "No Git repository found for this item.", "Branch Pull", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+
+					return;
+				}
+
+				bool isDirty;
+
+				using (var repo = new Repository(repoPath))
+				{
+					isDirty = repo.RetrieveStatus().IsDirty;
+				}
+
+				if (isDirty)
+				{
+					DialogResult msgResult = MessageBox.Show(this, "There are uncommitted changes. Continue with pull?", "Uncommitted Changes", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+
+					if (msgResult == DialogResult.No)
+					{
+						return;
 					}
 				}
-				catch (LibGit2SharpException ex) when (ex.Message.Contains("remote authentication required"))
+
+				this.Cursor               = Cursors.WaitCursor;
+				this.mainStatusLabel.Text = $"Pulling '{item.Name}'...";
+
+				GitOperationResult result = await Task.Run(() => GitHelper.Pull(repoPath));
+
+				if (!result.Success)
 				{
-					MessageBox.Show(this, "Authentication required for remote repository. Configure credentials.", "Git Authentication", MessageBoxButtons.OK, MessageBoxIcon.Error);
+					ShowGitOperationError("Branch Pull", result);
+
+					return;
 				}
-				catch (Exception ex)
+
+				RefreshGitItemStatus(item, repoPath);
+
+				if (!this.IsDisposed)
 				{
-					MessageBox.Show($"Error pulling: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+					string summary = string.IsNullOrWhiteSpace(result.Summary) ? string.Empty : $"\r\n\r\n{result.Summary}";
+
+					_ = MessageBox.Show(this, $"Pulled: {result.RemoteName} ({item.BranchName}){summary}", "Branch Pull", MessageBoxButtons.OK, MessageBoxIcon.Information);
+				}
+			}
+			catch (Exception ex)
+			{
+				if (!this.IsDisposed)
+				{
+					_ = MessageBox.Show(this, $"Error pulling: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+				}
+			}
+			finally
+			{
+				Interlocked.Exchange(ref this.gitRemoteOperationInProgress, 0);
+
+				if (!this.IsDisposed)
+				{
+					this.Cursor               = Cursors.Default;
+					this.mainStatusLabel.Text = string.Empty;
 				}
 			}
 		}

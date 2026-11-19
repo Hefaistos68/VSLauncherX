@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -21,7 +21,7 @@ namespace VSLauncher
 	/// </summary>
 	public partial class dlgImportFolder : Form
 	{
-		private readonly List<string> extensionsHandled  = new List<string>() { ".sln", ".csproj", ".tsproj", ".esproj", ".vcxproj", ".fsproj", ".vbproj"};
+		private readonly List<string> extensionsHandled  = new List<string>() { ".sln", ".slnx", ".csproj", ".tsproj", ".esproj", ".vcxproj", ".fsproj", ".vbproj"};
 		private bool bSolutionOnly;
 		private bool bFlat;
 
@@ -37,10 +37,9 @@ namespace VSLauncher
 		{
 			InitializeComponent();
 			InitializeList();
+			ThemeHelper.ApplyCurrentTheme(this);
 			this.Solution = new VsFolder();
 			this.chkSolutionOnly.Checked = true;
-
-			ThemeHelper.ApplyDarkMode(this, Properties.Settings.Default.DarkMode);
 		}
 
 		/// <summary>
@@ -116,8 +115,15 @@ namespace VSLauncher
 					Properties.Settings.Default.LastImportFolder = folderPath;
 
 					this.Cursor = Cursors.WaitCursor;
-					UpdateList();
-					this.Cursor = Cursors.Default;
+
+					try
+					{
+						UpdateList();
+					}
+					finally
+					{
+						this.Cursor = Cursors.Default;
+					}
 				}
 			}
 		}
@@ -130,48 +136,97 @@ namespace VSLauncher
 		/// <returns>An IEnumerable.</returns>
 		private VsFolder IterateFolder(string folderPath, bool bOnlySolutions, bool bFlat)
 		{
-			VsItemList sg = new(null);
+			var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-			var root = new VsFolder(Path.GetFileName(folderPath), folderPath);
+			return IterateFolderInternal(folderPath, bOnlySolutions, bFlat, visited);
+		}
 
-			// iterate through all files in the folder, returning all folders and subfolders, filter for files matching solution and project files
-			foreach (var folder in System.IO.Directory.GetDirectories(folderPath))
+		/// <summary>
+		/// Recursively iterates a directory while guarding against inaccessible paths and symlink cycles.
+		/// </summary>
+		/// <param name="folderPath">The folder path.</param>
+		/// <param name="bOnlySolutions">Whether to include only solution files.</param>
+		/// <param name="bFlat">Whether to flatten the hierarchy.</param>
+		/// <param name="visited">Set of already visited canonical paths.</param>
+		/// <returns>A populated <see cref="VsFolder"/>.</returns>
+		private VsFolder IterateFolderInternal(string folderPath, bool bOnlySolutions, bool bFlat, HashSet<string> visited)
+		{
+			string fullPath = Path.GetFullPath(folderPath);
+			string folderName = Path.GetFileName(folderPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+			var root = new VsFolder(string.IsNullOrEmpty(folderName) ? folderPath : folderName, folderPath);
+
+			if (!visited.Add(fullPath) || !Directory.Exists(folderPath))
 			{
-				// get the attributes and check if the folder is hidden
-				if (!folder.StartsWith('.'))
-				{
-					var attributes = File.GetAttributes(folder);
-					if (!attributes.HasFlag(FileAttributes.Hidden))
-					{
-						var subItem = IterateFolder(folder, bOnlySolutions, bFlat);
+				return root;
+			}
 
-						if (subItem.Items.Count > 0)
+			// iterate through all subdirectories, skipping hidden/dot directories and reparse points
+			try
+			{
+				foreach (var folder in Directory.GetDirectories(folderPath))
+				{
+					string dirName = Path.GetFileName(folder);
+
+					if (string.IsNullOrEmpty(dirName) || dirName.StartsWith('.'))
+					{
+						continue;
+					}
+
+					try
+					{
+						var attributes = File.GetAttributes(folder);
+
+						if (attributes.HasFlag(FileAttributes.Hidden) || attributes.HasFlag(FileAttributes.ReparsePoint))
 						{
-							if (!bFlat)
-							{
-								root.Items.Add(subItem);
-							}
-							else
-							{
-								subItem.Items.ForEach(x => root.Items.Add(x));
-							}
+							continue;
+						}
+					}
+					catch (Exception ex) when (ex is UnauthorizedAccessException or IOException)
+					{
+						continue;
+					}
+
+					var subItem = IterateFolderInternal(folder, bOnlySolutions, bFlat, visited);
+
+					if (subItem.Items.Count > 0)
+					{
+						if (!bFlat)
+						{
+							root.Items.Add(subItem);
+						}
+						else
+						{
+							subItem.Items.ForEach(x => root.Items.Add(x));
 						}
 					}
 				}
 			}
-
-			foreach (var file in Directory.GetFiles(folderPath))
+			catch (Exception ex) when (ex is UnauthorizedAccessException or DirectoryNotFoundException or IOException or PathTooLongException)
 			{
-				if (!file.StartsWith('.'))
+			}
+
+			try
+			{
+				foreach (var file in Directory.GetFiles(folderPath))
 				{
+					string fileName = Path.GetFileName(file);
+
+					if (string.IsNullOrEmpty(fileName) || fileName.StartsWith('.'))
+					{
+						continue;
+					}
+
 					if (IsOfInterest(file, bOnlySolutions))
 					{
 						var item = ImportHelper.GetItemFromExtension(Path.GetFileNameWithoutExtension(file), file);
-						item.LastModified = new FileInfo(file).LastAccessTime;
+						item.LastModified = new FileInfo(file).LastWriteTime;
 
 						root.Items.Add(item);
 					}
 				}
+			}
+			catch (Exception ex) when (ex is UnauthorizedAccessException or DirectoryNotFoundException or IOException or PathTooLongException)
+			{
 			}
 
 			return root;
@@ -185,12 +240,14 @@ namespace VSLauncher
 		/// <returns>A bool.</returns>
 		private bool IsOfInterest(string file, bool bOnlySolutions)
 		{
+			string ext = Path.GetExtension(file).ToLower();
+
 			if (bOnlySolutions)
 			{
-				return Path.GetExtension(file).ToLower() == ".sln";
+				return ext == ".sln" || ext == ".slnx";
 			}
 
-			return this.extensionsHandled.Contains(Path.GetExtension(file).ToLower());
+			return this.extensionsHandled.Contains(ext);
 		}
 
 		/// <summary>
@@ -228,8 +285,10 @@ namespace VSLauncher
 		/// <param name="e">The e.</param>
 		private void listViewFiles_CellToolTipShowing(object sender, ToolTipShowingEventArgs e)
 		{
-			// e.Text = e.Item.Text;
-			e.Text = ((VsItem)e.Item.RowObject).Path;
+			if (e.Item?.RowObject is VsItem vsItem)
+			{
+				e.Text = vsItem.Path;
+			}
 		}
 
 		/// <summary>
@@ -288,24 +347,31 @@ namespace VSLauncher
 		/// </summary>
 		private void UpdateList()
 		{
-			if (Path.IsPathFullyQualified(txtFoldername.Text))
+			if (Path.IsPathFullyQualified(txtFoldername.Text) && Directory.Exists(txtFoldername.Text))
 			{
 				this.Cursor = Cursors.WaitCursor;
-				this.Solution.Items.Clear();
-				var items = IterateFolder(txtFoldername.Text, this.bSolutionOnly, this.bFlat);
 
-				if (!this.bFlat)
+				try
 				{
-					this.Solution.Items.Add(items);
-				}
-				else
-				{
-					items.Items.ForEach(x => this.Solution.Items.Add(x));
-				}
+					this.Solution.Items.Clear();
+					var items = IterateFolder(txtFoldername.Text, this.bSolutionOnly, this.bFlat);
 
-				this.olvFiles.SetObjects(this.Solution.Items);
-				this.olvFiles.ExpandAll();
-				this.Cursor = Cursors.Default;
+					if (!this.bFlat)
+					{
+						this.Solution.Items.Add(items);
+					}
+					else
+					{
+						items.Items.ForEach(x => this.Solution.Items.Add(x));
+					}
+
+					this.olvFiles.SetObjects(this.Solution.Items);
+					this.olvFiles.ExpandAll();
+				}
+				finally
+				{
+					this.Cursor = Cursors.Default;
+				}
 			}
 		}
 	}

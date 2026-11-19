@@ -1,22 +1,25 @@
-﻿using System;
+using System;
 using System.Linq;
+using System.Security.Claims;
 using System.Security.Principal;
 using VSLauncher.Helpers.Tokens;
 using VSLauncher.Helpers.Native;
 
 namespace VSLauncherX.Helpers
 {
-	/// <summary>
-	/// Borrowed from gsudo
-	/// </summary>
-	internal static class SecurityHelper
-	{
-		public static bool IsMemberOfLocalAdmins()
-		{
-			var principal = new WindowsPrincipal(WindowsIdentity.GetCurrent());
-			var claims = principal.Claims;
-			return claims.Any(c => c.Value == "S-1-5-32-544");
-		}
+    /// <summary>
+    /// Borrowed from gsudo
+    /// </summary>
+    internal static class SecurityHelper
+    {
+        public static bool IsMemberOfLocalAdmins()
+        {
+            using WindowsIdentity identity = WindowsIdentity.GetCurrent();
+            var principal = new WindowsPrincipal(identity);
+            var claims = principal.Claims;
+
+            return claims.Any(c => c.Type == ClaimTypes.GroupSid && c.Value == "S-1-5-32-544");
+        }
 
 		private static int? _cacheGetCurrentIntegrityLevelCache;
 		public static bool IsHighIntegrity()
@@ -60,12 +63,12 @@ namespace VSLauncherX.Helpers
 		{
 			if (_cacheIsAdmin.HasValue) return _cacheIsAdmin.Value;
 
-			try
-			{
-				WindowsIdentity identity = WindowsIdentity.GetCurrent();
-				WindowsPrincipal principal = new WindowsPrincipal(identity);
-				_cacheIsAdmin = principal.IsInRole(WindowsBuiltInRole.Administrator);
-				
+            try
+            {
+                using WindowsIdentity identity = WindowsIdentity.GetCurrent();
+                WindowsPrincipal principal = new WindowsPrincipal(identity);
+                _cacheIsAdmin = principal.IsInRole(WindowsBuiltInRole.Administrator);
+                
 				return _cacheIsAdmin.Value;
 			}
 			catch (Exception)

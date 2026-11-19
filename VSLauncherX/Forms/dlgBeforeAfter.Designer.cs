@@ -188,6 +188,7 @@
 			// 
 			// txtArgumentsBefore
 			// 
+			txtArgumentsBefore.Enabled = false;
 			txtArgumentsBefore.HideSelection = false;
 			txtArgumentsBefore.Location = new Point(18, 112);
 			txtArgumentsBefore.MaxLength = 2048;
@@ -196,10 +197,10 @@
 			txtArgumentsBefore.ScrollBars = ScrollBars.Vertical;
 			txtArgumentsBefore.Size = new Size(321, 41);
 			txtArgumentsBefore.TabIndex = 5;
-			txtArgumentsBefore.TextChanged += txtRunBefore_TextChanged;
 			// 
 			// txtArgumentsAfter
 			// 
+			txtArgumentsAfter.Enabled = false;
 			txtArgumentsAfter.HideSelection = false;
 			txtArgumentsAfter.Location = new Point(18, 239);
 			txtArgumentsAfter.MaxLength = 2048;
@@ -208,7 +209,6 @@
 			txtArgumentsAfter.ScrollBars = ScrollBars.Vertical;
 			txtArgumentsAfter.Size = new Size(321, 41);
 			txtArgumentsAfter.TabIndex = 10;
-			txtArgumentsAfter.TextChanged += txtRunBefore_TextChanged;
 			// 
 			// dlgBeforeAfter
 			// 

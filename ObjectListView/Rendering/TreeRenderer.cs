@@ -1,4 +1,4 @@
-﻿/*
+/*
  * TreeRenderer - Draw the major column in a TreeListView
  *
  * Author: Phillip Piper
@@ -251,8 +251,7 @@ namespace BrightIdeasSoftware
 				{
 					using (SolidBrush b = new SolidBrush(GetBackgroundColor()))
 					{
-						Rectangle r2 = r;
-						r2.Inflate(-2, -2);
+						Rectangle r2 = new Rectangle(r.X + 2, r.Y + 2, r.Width - 2, r.Height - 4);
 						g.FillRectangle(b, r2);
 					}
 				}
@@ -313,8 +312,8 @@ namespace BrightIdeasSoftware
 			/// <param name="glyphMidVertical"> </param>
 			protected virtual void DrawLines(Graphics g, Rectangle r, Pen p, Branch br, int glyphMidVertical)
 			{
-				Rectangle r2 = r;
-				r2.Width = PIXELS_PER_LEVEL;
+				Rectangle paddedRectangle = this.ApplyCellPadding(r);
+				Rectangle r2 = new Rectangle(paddedRectangle.X, r.Y, PIXELS_PER_LEVEL, r.Height);
 
 				// Vertical lines have to start on even points, otherwise the dotted line looks wrong.
 				// This is only needed if pen is dotted.
