@@ -75,7 +75,7 @@ namespace VSLauncher.Ide
 		}
 
 		/// <inheritdoc/>
-		public string Version { get; }
+		public string Version { get; private set; }
 
 		/// <inheritdoc/>
 		public string Location { get; }
@@ -252,6 +252,30 @@ namespace VSLauncher.Ide
 		public void OpenPath(string targetPath)
 		{
 			Execute(BuildOpenPathStartInfo(targetPath));
+		}
+
+		/// <summary>
+		/// Re-reads the installed product version from disk and updates <see cref="Version"/>, falling back to <paramref name="fallbackVersion"/> if disk lookup is unavailable.
+		/// </summary>
+		/// <param name="fallbackVersion">Optional version string to apply when disk metadata cannot be read.</param>
+		/// <returns>The updated <see cref="Version"/> string.</returns>
+		public string RefreshVersion(string? fallbackVersion = null)
+		{
+			string resolved = VsCodeIdeProvider.ResolveVersion(this.environment, this.Location);
+
+			if (!string.IsNullOrWhiteSpace(resolved))
+			{
+				this.Version = resolved;
+
+				return this.Version;
+			}
+
+			if (!string.IsNullOrWhiteSpace(fallbackVersion))
+			{
+				this.Version = fallbackVersion.Trim();
+			}
+
+			return this.Version;
 		}
 
 		/// <inheritdoc/>

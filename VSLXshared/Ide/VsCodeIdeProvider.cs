@@ -447,9 +447,12 @@ namespace VSLauncher.Ide
 		/// <summary>
 		/// Resolves the product version from executable file metadata or falls back to <c>resources\app\package.json</c>.
 		/// </summary>
-		private string ResolveVersion(string executablePath)
+		/// <param name="environment">The environment abstraction used for version and file reads.</param>
+		/// <param name="executablePath">The path to <c>Code.exe</c> or <c>Code - Insiders.exe</c>.</param>
+		/// <returns>The resolved product version string, or an empty string if unavailable.</returns>
+		internal static string ResolveVersion(IVsCodeEnvironment environment, string executablePath)
 		{
-			string? fileVersion = this.environment.GetFileVersion(executablePath);
+			string? fileVersion = environment.GetFileVersion(executablePath);
 
 			if (!string.IsNullOrWhiteSpace(fileVersion))
 			{
@@ -465,14 +468,14 @@ namespace VSLauncher.Ide
 
 			string packageJsonPath = Path.Combine(installDir, "resources", "app", "package.json");
 
-			if (!this.environment.FileExists(packageJsonPath))
+			if (!environment.FileExists(packageJsonPath))
 			{
 				return string.Empty;
 			}
 
 			try
 			{
-				string json  = this.environment.ReadAllText(packageJsonPath);
+				string json  = environment.ReadAllText(packageJsonPath);
 				JObject root = JObject.Parse(json);
 				string? ver  = TryGetStringProperty(root, "version");
 
@@ -484,6 +487,14 @@ namespace VSLauncher.Ide
 
 				return string.Empty;
 			}
+		}
+
+		/// <summary>
+		/// Resolves the product version from executable file metadata or falls back to <c>resources\app\package.json</c>.
+		/// </summary>
+		private string ResolveVersion(string executablePath)
+		{
+			return ResolveVersion(this.environment, executablePath);
 		}
 
 		/// <summary>

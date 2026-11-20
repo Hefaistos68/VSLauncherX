@@ -2362,7 +2362,7 @@ namespace VSLauncher
 
 				int exitCode = await LaunchVsCodeInstallerAsync(installerPath, updateInfo.IsSystemInstall, ct);
 
-				await HandleVsCodeInstallerResultAsync(vsCode, exitCode, ct);
+				await HandleVsCodeInstallerResultAsync(vsCode, updateInfo, exitCode, ct);
 			}
 			catch (Exception ex) when (ex is OperationCanceledException or ObjectDisposedException)
 			{
@@ -2391,9 +2391,9 @@ namespace VSLauncher
 		}
 
 		/// <summary>
-		/// Refreshes update state after a successful installer exit or displays a warning on non-zero failure exit codes.
+		/// Refreshes version metadata, action button tooltips, and update state after a successful installer exit, or displays a warning on non-zero failure exit codes.
 		/// </summary>
-		private async Task HandleVsCodeInstallerResultAsync(VsCodeInstance vsCode, int exitCode, CancellationToken cancellationToken)
+		private async Task HandleVsCodeInstallerResultAsync(VsCodeInstance vsCode, VsCodeUpdateInfo updateInfo, int exitCode, CancellationToken cancellationToken)
 		{
 			if (this.IsDisposed || cancellationToken.IsCancellationRequested)
 			{
@@ -2403,10 +2403,20 @@ namespace VSLauncher
 			if (exitCode == 0)
 			{
 				VsCodeUpdateInfo refreshed = await this.vsCodeUpdateService.CheckForUpdateAsync(vsCode, forceRefresh: true, cancellationToken);
+				string fallbackVersion     = string.IsNullOrWhiteSpace(refreshed.CurrentVersion)
+					? updateInfo.LatestVersion
+					: refreshed.CurrentVersion;
+
+				_ = vsCode.RefreshVersion(fallbackVersion);
 
 				if (!this.IsDisposed)
 				{
 					this.vsCodeUpdateStates[vsCode.Identifier] = refreshed;
+
+					if (string.Equals(GetSelectedVsCodeInstance()?.Identifier, vsCode.Identifier, StringComparison.OrdinalIgnoreCase))
+					{
+						UpdateVsCodeQuickActionButtons(vsCode);
+					}
 				}
 
 				return;
