@@ -33,6 +33,7 @@ namespace VSLauncher
 		private VsFolder solutionGroups = new VsFolder();
 		private IDataObject? lastDroppedData;
 		private bool solutionDataLoadFailed;
+		private bool isUpdatingTreeExpansion;
 		private int gitRefreshInProgress;
 		private int gitRemoteOperationInProgress;
 		private Bitmap? currentVsButtonBitmap;
@@ -76,7 +77,7 @@ namespace VSLauncher
 
 			this.olvFiles.Expanded += delegate (object? sender, TreeBranchExpandedEventArgs e)
 			{
-				if (e.Model is VsFolder sg)
+				if (!this.isUpdatingTreeExpansion && e.Model is VsFolder sg)
 				{
 					sg.Expanded = true;
 				}
@@ -84,16 +85,25 @@ namespace VSLauncher
 
 			this.olvFiles.Collapsed += delegate (object? sender, TreeBranchCollapsedEventArgs e)
 			{
-				if (e.Model is VsFolder sg)
+				if (!this.isUpdatingTreeExpansion && e.Model is VsFolder sg)
 				{
 					sg.Expanded = false;
 				}
+			};
+
+			this.olvFiles.ParentGetter = delegate (object x)
+			{
+				VsFolder? parent = this.solutionGroups.FindParent(x);
+
+				return ReferenceEquals(parent, this.solutionGroups) ? null : parent;
 			};
 
 			this.olvFiles.ChildrenGetter = delegate (object x)
 			{
 				return x is VsFolder sg ? sg.Items : (System.Collections.IEnumerable?)null;
 			};
+
+			this.olvFiles.BeforeSearching += olvFiles_BeforeSearching;
 
 			this.itemRenderer = CreateDescribedRenderer();
 

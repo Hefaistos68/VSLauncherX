@@ -442,11 +442,174 @@ namespace VSLauncher
 
 		/// <summary>
 		/// Rebuilds the filters.
+		/// <summary>
+		/// Rebuilds the filters, searching across collapsed branches and expanding ancestor folders of any match.
 		/// </summary>
 		private void RebuildFilters()
 		{
-			this.olvFiles.ModelFilter = string.IsNullOrEmpty(this.txtFilter.Text) ? null : new TextMatchFilter(this.olvFiles, this.txtFilter.Text);
-			// this.olvFiles.AdditionalFilter = filters.Count == 0 ? null : new CompositeAllFilter(filters);
+			string searchText = this.txtFilter.Text;
+
+			this.olvFiles.BeginUpdate();
+			this.isUpdatingTreeExpansion = true;
+
+			try
+			{
+				if (string.IsNullOrEmpty(searchText))
+				{
+					this.olvFiles.ModelFilter = null;
+					RestoreFolderExpansionState(this.solutionGroups);
+
+					return;
+				}
+
+				TextMatchFilter filter = new TextMatchFilter(this.olvFiles, searchText);
+
+				// Clear active filter and reset to saved expansion state so all branches exist and can be expanded top-down.
+				this.olvFiles.ModelFilter = null;
+				RestoreFolderExpansionState(this.solutionGroups);
+
+				List<VsFolder> foldersToExpand = TreeSearchHelper.FindFoldersToExpand(
+					this.solutionGroups,
+					item => filter.Filter(item));
+
+				foreach (VsFolder folder in foldersToExpand)
+				{
+					if (!this.olvFiles.IsExpanded(folder))
+					{
+						this.olvFiles.Expand(folder);
+					}
+				}
+
+				this.olvFiles.ModelFilter = filter;
+
+				VsItem? firstMatch = TreeSearchHelper.FindFirstMatch(
+					this.solutionGroups,
+					item => filter.Filter(item));
+
+				if (firstMatch is not null)
+				{
+					this.olvFiles.EnsureModelVisible(firstMatch);
+				}
+			}
+			finally
+			{
+				this.isUpdatingTreeExpansion = false;
+				this.olvFiles.EndUpdate();
+			}
+		}
+
+		/// <summary>
+		/// Expands collapsed ancestor branches before type-ahead searching in the tree so non-visible items can be matched and revealed.
+		/// </summary>
+		/// <param name="sender">The event sender.</param>
+		/// <param name="e">The search event arguments.</param>
+		private void olvFiles_BeforeSearching(object? sender, BeforeSearchingEventArgs e)
+		{
+			if (string.IsNullOrEmpty(e.StringToFind) || this.solutionGroups.Items.Count == 0)
+			{
+				return;
+			}
+
+			OLVColumn? searchColumn = ResolveTypeAheadSearchColumn();
+
+			if (searchColumn is null)
+			{
+				return;
+			}
+
+			VsItem? focusedItem = this.olvFiles.FocusedObject as VsItem;
+			IModelFilter? activeFilter = this.olvFiles.ModelFilter;
+			bool includeStartItem = e.StringToFind.Length > 1;
+
+			VsItem? match = TreeSearchHelper.FindNextMatch(
+				this.solutionGroups,
+				focusedItem,
+				includeStartItem,
+				item => MatchesTypeAheadItem(item, searchColumn, e.StringToFind, activeFilter));
+
+			if (match is null)
+			{
+				return;
+			}
+
+			ExpandAncestorFolders(match);
+
+			int matchIndex = this.olvFiles.IndexOf(match);
+
+			if (matchIndex >= 0)
+			{
+				e.StartSearchFrom = matchIndex;
+			}
+		}
+
+		/// <summary>
+		/// Resolves the column used by <see cref="ObjectListView"/> for type-ahead prefix searching.
+		/// </summary>
+		/// <returns>The active search column, or <c>null</c> when the control has no columns.</returns>
+		private OLVColumn? ResolveTypeAheadSearchColumn()
+		{
+			if (this.olvFiles.Columns.Count == 0)
+			{
+				return null;
+			}
+
+			if (this.olvFiles.IsSearchOnSortColumn && this.olvFiles.View == View.Details && this.olvFiles.PrimarySortColumn is not null)
+			{
+				return this.olvFiles.PrimarySortColumn;
+			}
+
+			return this.olvFiles.GetColumn(0);
+		}
+
+		/// <summary>
+		/// Determines whether an item passes any active filter and prefix-matches the typed search text.
+		/// </summary>
+		/// <param name="item">The candidate tree item.</param>
+		/// <param name="searchColumn">The column whose display text is compared.</param>
+		/// <param name="searchText">The incremental search string.</param>
+		/// <param name="activeFilter">The active model filter, if any.</param>
+		/// <returns><c>true</c> if the item matches; otherwise <c>false</c>.</returns>
+		private static bool MatchesTypeAheadItem(VsItem item, OLVColumn searchColumn, string searchText, IModelFilter? activeFilter)
+		{
+			if (activeFilter is not null && !activeFilter.Filter(item))
+			{
+				return false;
+			}
+
+			string text = searchColumn.GetStringValue(item) ?? string.Empty;
+
+			return text.StartsWith(searchText, StringComparison.CurrentCultureIgnoreCase);
+		}
+
+		/// <summary>
+		/// Expands all collapsed ancestor folders of <paramref name="target"/> top-down so it becomes visible in the tree.
+		/// </summary>
+		/// <param name="target">The item to reveal.</param>
+		private void ExpandAncestorFolders(VsItem target)
+		{
+			List<VsFolder> ancestors = TreeSearchHelper.GetAncestorFolders(this.solutionGroups, target);
+
+			if (ancestors.Count == 0)
+			{
+				return;
+			}
+
+			this.olvFiles.BeginUpdate();
+
+			try
+			{
+				foreach (VsFolder ancestor in ancestors)
+				{
+					if (!this.olvFiles.IsExpanded(ancestor))
+					{
+						this.olvFiles.Expand(ancestor);
+					}
+				}
+			}
+			finally
+			{
+				this.olvFiles.EndUpdate();
+			}
 		}
 
 		/// <summary>
@@ -459,8 +622,13 @@ namespace VSLauncher
 
 			IterateAndSortItems();
 			IterateAndExpandItems();
-			
-			if(updateGitStatus)
+
+			if (!string.IsNullOrEmpty(this.txtFilter.Text))
+			{
+				RebuildFilters();
+			}
+
+			if (updateGitStatus)
 			{
 				FetchGitStatusAsync(this.solutionGroups);
 			}
@@ -478,21 +646,46 @@ namespace VSLauncher
 		}
 
 		/// <summary>
-		/// Iterates through the items in the ObjectListView and expands or collapses them based on their state.
+		/// Iterates through the items in the ObjectListView and expands or collapses them based on their persisted state.
 		/// </summary>
 		private void IterateAndExpandItems()
 		{
-			foreach (var item in this.olvFiles.Objects)
+			this.olvFiles.BeginUpdate();
+			this.isUpdatingTreeExpansion = true;
+
+			try
+			{
+				RestoreFolderExpansionState(this.solutionGroups);
+			}
+			finally
+			{
+				this.isUpdatingTreeExpansion = false;
+				this.olvFiles.EndUpdate();
+			}
+		}
+
+		/// <summary>
+		/// Recursively applies each folder's persisted <see cref="VsFolder.Expanded"/> state to the tree view.
+		/// </summary>
+		/// <param name="parent">Parent folder whose child folders should be restored.</param>
+		private void RestoreFolderExpansionState(VsFolder parent)
+		{
+			foreach (VsItem item in parent.Items)
 			{
 				if (item is VsFolder folder)
 				{
 					if (folder.Expanded)
 					{
-						this.olvFiles.Expand(item);
+						if (!this.olvFiles.IsExpanded(folder))
+						{
+							this.olvFiles.Expand(folder);
+						}
+
+						RestoreFolderExpansionState(folder);
 					}
-					else
+					else if (this.olvFiles.IsExpanded(folder))
 					{
-						this.olvFiles.Collapse(item);
+						this.olvFiles.Collapse(folder);
 					}
 				}
 			}
