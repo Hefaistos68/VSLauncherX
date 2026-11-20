@@ -173,6 +173,29 @@ namespace VSLauncher
 			}
 
 			AutoFillNameIfEmpty(filePath, isFile: true);
+
+			if (filePath.EndsWith(".code-workspace", StringComparison.OrdinalIgnoreCase))
+			{
+				SelectDefaultVsCodeEditionIfUnset();
+			}
+		}
+
+		/// <summary>
+		/// Automatically selects the default installed VS Code edition when the edition selector is currently set to <c>&lt;default&gt;</c>.
+		/// </summary>
+		private void SelectDefaultVsCodeEditionIfUnset()
+		{
+			if (!this.cbxVsCodeEdition.IsDefaultSelected)
+			{
+				return;
+			}
+
+			string? defaultEditionId = this.ideManager.ResolvePreferredIdentifier(IdeType.VsCode);
+
+			if (!string.IsNullOrWhiteSpace(defaultEditionId))
+			{
+				this.cbxVsCodeEdition.SelectByIdentifier(defaultEditionId);
+			}
 		}
 
 		/// <summary>

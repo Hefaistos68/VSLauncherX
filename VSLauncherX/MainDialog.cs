@@ -688,9 +688,10 @@ namespace VSLauncher
 			dlgImportFolder dlg = new dlgImportFolder();
 			if (dlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
 			{
-				OLVListItem r = this.olvFiles.SelectedItem;
+				OLVListItem r     = this.olvFiles.SelectedItem;
 				VsItemList source = dlg.Solution.Items;
 
+				ApplyDefaultEditionForNewWorkspaces(source);
 				MergeNewItems(r, source);
 
 				_ = SolutionData_OnChanged(true);
@@ -732,12 +733,34 @@ namespace VSLauncher
 
 			VsItem item = ImportHelper.GetItemFromExtension(Path.GetFileNameWithoutExtension(dlg.FileName), dlg.FileName);
 
+			ApplyDefaultEditionForNewWorkspace(item);
+
 			if (ShowItemSettingsDialog(item))
 			{
 				// add the item to the list
 				MergeNewItem(this.olvFiles.SelectedItem, item);
 				_ = SolutionData_OnChanged(true);
 			}
+		}
+
+		/// <summary>
+		/// Pre-selects the preferred installed VS Code edition when adding a new <c>.code-workspace</c> item without an explicit edition.
+		/// </summary>
+		/// <param name="item">The newly created item.</param>
+		private void ApplyDefaultEditionForNewWorkspace(VsItem item)
+		{
+			ApplyDefaultEditionForNewWorkspaces(new[] { item });
+		}
+
+		/// <summary>
+		/// Recursively pre-selects the preferred installed VS Code edition for newly imported <c>.code-workspace</c> items without an explicit edition.
+		/// </summary>
+		/// <param name="items">The imported items or folder trees.</param>
+		private void ApplyDefaultEditionForNewWorkspaces(IEnumerable<VsItem> items)
+		{
+			this.ideManager.ApplyDefaultEditionToWorkspaces(
+				items,
+				this.selectVsCodeEdition.SelectedIdeInstance?.Identifier);
 		}
 
 		/// <summary>
@@ -1085,6 +1108,7 @@ namespace VSLauncher
 					return false;
 				}
 
+				ApplyDefaultEditionForNewWorkspaces(dlg.Solution.Items);
 				MergeNewItems(dropTarget, dlg.Solution.Items);
 
 				return true;
@@ -1094,6 +1118,7 @@ namespace VSLauncher
 
 			if (item is not null && item.ItemType != ItemTypeEnum.Other)
 			{
+				ApplyDefaultEditionForNewWorkspace(item);
 				MergeNewItem(dropTarget, item);
 
 				return true;
