@@ -307,9 +307,10 @@ namespace VSLauncher
 		}
 
 		/// <summary>
-		/// Populates the VS Code edition selector and restores the saved edition or default instance.
+		/// Populates the VS Code edition selector and restores the preferred, saved, or default edition.
 		/// </summary>
-		private void InitializeVsCodeSelector()
+		/// <param name="preferredIdentifier">Optional edition identifier to restore before falling back to persisted settings.</param>
+		private void InitializeVsCodeSelector(string? preferredIdentifier = null)
 		{
 			IReadOnlyList<IIdeInstance> vsCodeInstances = this.ideManager.GetInstances(IdeType.VsCode);
 
@@ -320,7 +321,9 @@ namespace VSLauncher
 				return;
 			}
 
-			string savedEdition = Properties.Settings.Default.SelectedVsCodeEdition;
+			string savedEdition = !string.IsNullOrWhiteSpace(preferredIdentifier)
+				? preferredIdentifier
+				: Properties.Settings.Default.SelectedVsCodeEdition;
 
 			if (!string.IsNullOrWhiteSpace(savedEdition))
 			{
@@ -593,6 +596,11 @@ namespace VSLauncher
 				return;
 			}
 
+			if (folder is null)
+			{
+				this.TaskbarJumpList.ClearAllUserTasks();
+			}
+
 			folder ??= this.solutionGroups;
 
 			// iterate through all items in SolutionItems and add the favorite items to the taskbar
@@ -775,7 +783,10 @@ namespace VSLauncher
 
 			if (useVsCodeDialog)
 			{
-				using dlgExecuteVsCode vsCodeDlg = new dlgExecuteVsCode(item, this.ideManager);
+				using dlgExecuteVsCode vsCodeDlg = new dlgExecuteVsCode(
+					item,
+					this.ideManager,
+					this.selectVsCodeEdition.SelectedIdeInstance?.Identifier);
 
 				return vsCodeDlg.ShowDialog(this) == DialogResult.OK;
 			}
@@ -812,43 +823,154 @@ namespace VSLauncher
 		}
 
 		/// <summary>
-		/// mains the settings_ click.
+		/// Opens the general settings dialog and applies saved preferences, theme updates, and IDE changes.
 		/// </summary>
 		/// <param name="sender">The sender.</param>
-		/// <param name="e">The event parameters</param>
+		/// <param name="e">The event parameters.</param>
 		private void mainSettings_Click(object sender, EventArgs e)
 		{
 			bool wasAlwaysAdmin = Properties.Settings.Default.AlwaysAdmin;
-			bool wasAutoStart = Properties.Settings.Default.AutoStart;
-			using dlgSettings dlg = new dlgSettings();
+			bool wasAutoStart   = Properties.Settings.Default.AutoStart;
+			using dlgSettings dlg = new dlgSettings(this.ideManager);
 
-			if (dlg.ShowDialog() == DialogResult.OK)
+			if (dlg.ShowDialog(this) != DialogResult.OK)
 			{
-				bool needsAdminRegistration = Properties.Settings.Default.AlwaysAdmin && (!wasAlwaysAdmin || !AdminInfo.IsElevated());
-
-				if (Properties.Settings.Default.AlwaysAdmin || Properties.Settings.Default.AutoStart)
+				if (dlg.IdesRescanned)
 				{
-					if (needsAdminRegistration)
-					{
-						if (RestartOurselves())
-						{
-							Application.Exit();
-
-							return;
-						}
-					}
-					else if (Properties.Settings.Default.AutoStart != wasAutoStart || Properties.Settings.Default.AlwaysAdmin != wasAlwaysAdmin)
-					{
-						Program.UpdateTaskScheduler();
-					}
+					RefreshVsCodeIdesAfterSettingsChange(reRunDiscovery: false);
 				}
-				else if (wasAlwaysAdmin || wasAutoStart)
+
+				return;
+			}
+
+			if (ApplyStartupRegistrationSettings(wasAlwaysAdmin, wasAutoStart))
+			{
+				return;
+			}
+
+			ApplyTheme(Properties.Settings.Default.DarkMode);
+
+			if (dlg.CustomIdesChanged || dlg.IdesRescanned)
+			{
+				RefreshVsCodeIdesAfterSettingsChange(reRunDiscovery: dlg.CustomIdesChanged);
+			}
+
+			_ = SolutionData_OnChanged(true);
+		}
+
+		/// <summary>
+		/// Applies Windows Task Scheduler startup and elevation changes, returning <c>true</c> when restarting elevated.
+		/// </summary>
+		/// <param name="wasAlwaysAdmin">Previous <c>AlwaysAdmin</c> preference value.</param>
+		/// <param name="wasAutoStart">Previous <c>AutoStart</c> preference value.</param>
+		/// <returns><c>true</c> if the application is restarting as administrator; otherwise <c>false</c>.</returns>
+		private bool ApplyStartupRegistrationSettings(bool wasAlwaysAdmin, bool wasAutoStart)
+		{
+			bool needsAdminRegistration = Properties.Settings.Default.AlwaysAdmin && (!wasAlwaysAdmin || !AdminInfo.IsElevated());
+
+			if (!Properties.Settings.Default.AlwaysAdmin && !Properties.Settings.Default.AutoStart)
+			{
+				if (wasAlwaysAdmin || wasAutoStart)
 				{
 					Program.RemoveTaskScheduler();
 				}
 
-				ApplyTheme(Properties.Settings.Default.DarkMode);
-				_ = SolutionData_OnChanged(true);
+				return false;
+			}
+
+			if (needsAdminRegistration)
+			{
+				if (RestartOurselves())
+				{
+					Application.Exit();
+
+					return true;
+				}
+
+				return false;
+			}
+
+			if (Properties.Settings.Default.AutoStart != wasAutoStart || Properties.Settings.Default.AlwaysAdmin != wasAlwaysAdmin)
+			{
+				Program.UpdateTaskScheduler();
+			}
+
+			return false;
+		}
+
+		/// <summary>
+		/// Reloads VS Code-based IDEs in the sidebar, refreshes quick-action buttons and JumpList, and checks for updates.
+		/// </summary>
+		/// <param name="reRunDiscovery">When <c>true</c>, re-runs discovery on <see cref="ideManager"/> before refreshing UI state.</param>
+		private void RefreshVsCodeIdesAfterSettingsChange(bool reRunDiscovery = true)
+		{
+			string? previousIdentifier = GetSelectedVsCodeInstance()?.Identifier ?? Properties.Settings.Default.SelectedVsCodeEdition;
+
+			if (reRunDiscovery)
+			{
+				this.ideManager.Refresh(IdeType.VsCode);
+			}
+
+			PruneStaleVsCodeUpdateStates();
+
+			bool previousInUpdate = this.bInUpdate;
+
+			this.bInUpdate = true;
+
+			try
+			{
+				InitializeVsCodeSelector(previousIdentifier);
+				SetVsCodeSidebarEnabled(this.ideManager.HasInstalled(IdeType.VsCode));
+
+				if (this.selectVsCodeEdition.SelectedIdeInstance is IIdeInstance selected)
+				{
+					UpdateVsCodeQuickActionButtons(selected);
+				}
+			}
+			finally
+			{
+				this.bInUpdate = previousInUpdate;
+			}
+
+			PersistFallbackVsCodeEditionIfChanged(previousIdentifier);
+			RebuildTaskbarItems();
+			CheckVsCodeUpdatesAsync(forceRefresh: false);
+		}
+
+		/// <summary>
+		/// Removes cached update check results whose IDE identifiers are no longer present after discovery changes.
+		/// </summary>
+		private void PruneStaleVsCodeUpdateStates()
+		{
+			var installedIds = new HashSet<string>(
+				this.ideManager.GetInstances(IdeType.VsCode).Select(i => i.Identifier),
+				StringComparer.OrdinalIgnoreCase);
+
+			foreach (string key in this.vsCodeUpdateStates.Keys.ToList())
+			{
+				if (!installedIds.Contains(key))
+				{
+					this.vsCodeUpdateStates.Remove(key);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Updates <c>SelectedVsCodeEdition</c> when the previously active edition was removed and a fallback edition was chosen.
+		/// </summary>
+		/// <param name="previousIdentifier">The edition identifier active before the refresh.</param>
+		private void PersistFallbackVsCodeEditionIfChanged(string? previousIdentifier)
+		{
+			if (this.selectVsCodeEdition.SelectedIdeInstance is not IIdeInstance currentSelected)
+			{
+				return;
+			}
+
+			if (!string.IsNullOrWhiteSpace(previousIdentifier)
+				&& !string.Equals(currentSelected.Identifier, previousIdentifier, StringComparison.OrdinalIgnoreCase))
+			{
+				Properties.Settings.Default.SelectedVsCodeEdition = currentSelected.Identifier;
+				Properties.Settings.Default.Save();
 			}
 		}
 
@@ -1744,6 +1866,7 @@ namespace VSLauncher
 			{
 				Properties.Settings.Default.SelectedVsCodeEdition = selected.Identifier;
 				Properties.Settings.Default.Save();
+				RebuildTaskbarItems();
 			}
 
 			UpdateVsCodeQuickActionButtons(selected);

@@ -1,4 +1,4 @@
-﻿namespace VSLauncher.Forms
+namespace VSLauncher.Forms
 {
 	partial class dlgSettings
 	{
@@ -36,6 +36,15 @@
 			chkShowPath = new CheckBox();
 			chkAutostart = new CheckBox();
 			chkDarkMode = new CheckBox();
+			grpVsCodeIdes = new GroupBox();
+			lvVsCodeIdes = new ListView();
+			colIdeName = new ColumnHeader();
+			colIdeSource = new ColumnHeader();
+			colIdePath = new ColumnHeader();
+			btnAddVsCodeIde = new Button();
+			btnRemoveVsCodeIde = new Button();
+			btnRescanVsCodeIdes = new Button();
+			grpVsCodeIdes.SuspendLayout();
 			SuspendLayout();
 			// 
 			// btnCancel
@@ -43,10 +52,10 @@
 			btnCancel.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
 			btnCancel.DialogResult = DialogResult.Cancel;
 			btnCancel.Image = Resources.Cancel_24x24;
-			btnCancel.Location = new Point(334, 261);
+			btnCancel.Location = new Point(342, 388);
 			btnCancel.Name = "btnCancel";
 			btnCancel.Size = new Size(100, 40);
-			btnCancel.TabIndex = 5;
+			btnCancel.TabIndex = 6;
 			btnCancel.Text = " Cancel";
 			btnCancel.TextImageRelation = TextImageRelation.ImageBeforeText;
 			btnCancel.UseVisualStyleBackColor = true;
@@ -56,10 +65,10 @@
 			btnOk.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
 			btnOk.DialogResult = DialogResult.OK;
 			btnOk.Image = Resources.Check_24x24;
-			btnOk.Location = new Point(440, 261);
+			btnOk.Location = new Point(448, 388);
 			btnOk.Name = "btnOk";
 			btnOk.Size = new Size(100, 40);
-			btnOk.TabIndex = 6;
+			btnOk.TabIndex = 7;
 			btnOk.Text = " Ok";
 			btnOk.TextImageRelation = TextImageRelation.ImageBeforeText;
 			btnOk.UseVisualStyleBackColor = true;
@@ -115,14 +124,94 @@
 			chkDarkMode.Text = "Enable dark theme";
 			chkDarkMode.UseVisualStyleBackColor = true;
 			// 
+			// grpVsCodeIdes
+			// 
+			grpVsCodeIdes.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+			grpVsCodeIdes.Controls.Add(lvVsCodeIdes);
+			grpVsCodeIdes.Controls.Add(btnAddVsCodeIde);
+			grpVsCodeIdes.Controls.Add(btnRemoveVsCodeIde);
+			grpVsCodeIdes.Controls.Add(btnRescanVsCodeIdes);
+			grpVsCodeIdes.Location = new Point(12, 142);
+			grpVsCodeIdes.Name = "grpVsCodeIdes";
+			grpVsCodeIdes.Size = new Size(536, 236);
+			grpVsCodeIdes.TabIndex = 5;
+			grpVsCodeIdes.TabStop = false;
+			grpVsCodeIdes.Text = "VS Code-based IDEs";
+			// 
+			// lvVsCodeIdes
+			// 
+			lvVsCodeIdes.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+			lvVsCodeIdes.Columns.AddRange(new ColumnHeader[] { colIdeName, colIdeSource, colIdePath });
+			lvVsCodeIdes.FullRowSelect = true;
+			lvVsCodeIdes.HideSelection = false;
+			lvVsCodeIdes.Location = new Point(10, 22);
+			lvVsCodeIdes.MultiSelect = false;
+			lvVsCodeIdes.Name = "lvVsCodeIdes";
+			lvVsCodeIdes.ShowItemToolTips = true;
+			lvVsCodeIdes.Size = new Size(408, 202);
+			lvVsCodeIdes.TabIndex = 0;
+			lvVsCodeIdes.UseCompatibleStateImageBehavior = false;
+			lvVsCodeIdes.View = View.Details;
+			lvVsCodeIdes.SelectedIndexChanged += lvVsCodeIdes_SelectedIndexChanged;
+			// 
+			// colIdeName
+			// 
+			colIdeName.Text = "Name";
+			colIdeName.Width = 125;
+			// 
+			// colIdeSource
+			// 
+			colIdeSource.Text = "Source";
+			colIdeSource.Width = 60;
+			// 
+			// colIdePath
+			// 
+			colIdePath.Text = "Executable Path";
+			colIdePath.Width = 218;
+			// 
+			// btnAddVsCodeIde
+			// 
+			btnAddVsCodeIde.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+			btnAddVsCodeIde.Location = new Point(426, 22);
+			btnAddVsCodeIde.Name = "btnAddVsCodeIde";
+			btnAddVsCodeIde.Size = new Size(100, 30);
+			btnAddVsCodeIde.TabIndex = 1;
+			btnAddVsCodeIde.Text = "Add...";
+			btnAddVsCodeIde.UseVisualStyleBackColor = true;
+			btnAddVsCodeIde.Click += btnAddVsCodeIde_Click;
+			// 
+			// btnRemoveVsCodeIde
+			// 
+			btnRemoveVsCodeIde.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+			btnRemoveVsCodeIde.Enabled = false;
+			btnRemoveVsCodeIde.Location = new Point(426, 58);
+			btnRemoveVsCodeIde.Name = "btnRemoveVsCodeIde";
+			btnRemoveVsCodeIde.Size = new Size(100, 30);
+			btnRemoveVsCodeIde.TabIndex = 2;
+			btnRemoveVsCodeIde.Text = "Remove";
+			btnRemoveVsCodeIde.UseVisualStyleBackColor = true;
+			btnRemoveVsCodeIde.Click += btnRemoveVsCodeIde_Click;
+			// 
+			// btnRescanVsCodeIdes
+			// 
+			btnRescanVsCodeIdes.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+			btnRescanVsCodeIdes.Location = new Point(426, 100);
+			btnRescanVsCodeIdes.Name = "btnRescanVsCodeIdes";
+			btnRescanVsCodeIdes.Size = new Size(100, 30);
+			btnRescanVsCodeIdes.TabIndex = 3;
+			btnRescanVsCodeIdes.Text = "Rescan IDEs";
+			btnRescanVsCodeIdes.UseVisualStyleBackColor = true;
+			btnRescanVsCodeIdes.Click += btnRescanVsCodeIdes_Click;
+			// 
 			// dlgSettings
 			// 
 			this.AcceptButton = btnOk;
 			this.AutoScaleDimensions = new SizeF(7F, 15F);
 			this.AutoScaleMode = AutoScaleMode.Font;
 			this.CancelButton = btnCancel;
-			this.ClientSize = new Size(552, 313);
+			this.ClientSize = new Size(560, 440);
 			this.ControlBox = false;
+			this.Controls.Add(grpVsCodeIdes);
 			this.Controls.Add(chkDarkMode);
 			this.Controls.Add(chkShowPath);
 			this.Controls.Add(chkSync);
@@ -139,6 +228,7 @@
 			this.StartPosition = FormStartPosition.CenterParent;
 			this.Text = "Visual Studio Launcher General Settings";
 			Load += dlgSettings_Load;
+			grpVsCodeIdes.ResumeLayout(false);
 			ResumeLayout(false);
 			PerformLayout();
 		}
@@ -152,5 +242,13 @@
 		private CheckBox chkShowPath;
 		private CheckBox chkAutostart;
 		private CheckBox chkDarkMode;
+		private GroupBox grpVsCodeIdes;
+		private ListView lvVsCodeIdes;
+		private ColumnHeader colIdeName;
+		private ColumnHeader colIdeSource;
+		private ColumnHeader colIdePath;
+		private Button btnAddVsCodeIde;
+		private Button btnRemoveVsCodeIde;
+		private Button btnRescanVsCodeIdes;
 	}
 }

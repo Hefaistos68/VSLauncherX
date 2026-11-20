@@ -496,7 +496,14 @@ namespace VSLauncher.Helpers
 					ApplyNativeScrollbarTheme(flowLayoutPanel, palette.IsDark, lightThemeName: null);
 					break;
 
+				case GroupBox groupBox:
+					groupBox.BackColor = groupBox.Parent is Form ? palette.Window : palette.Surface;
+					groupBox.ForeColor = palette.Text;
+					break;
+
 				case ListView listView:
+					listView.BackColor   = palette.SurfaceAlt;
+					listView.ForeColor   = palette.Text;
 					listView.BorderStyle = palette.IsDark ? BorderStyle.None : BorderStyle.Fixed3D;
 					ApplyNativeScrollbarTheme(listView, palette.IsDark, lightThemeName: "Explorer");
 					break;
