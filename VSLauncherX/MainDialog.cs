@@ -732,11 +732,35 @@ namespace VSLauncher
 
 			VsItem item = ImportHelper.GetItemFromExtension(Path.GetFileNameWithoutExtension(dlg.FileName), dlg.FileName);
 
+			ApplyDefaultEditionForNewWorkspace(item);
+
 			if (ShowItemSettingsDialog(item))
 			{
 				// add the item to the list
 				MergeNewItem(this.olvFiles.SelectedItem, item);
 				_ = SolutionData_OnChanged(true);
+			}
+		}
+
+		/// <summary>
+		/// Pre-selects the preferred installed VS Code edition when adding a new <c>.code-workspace</c> item without an explicit edition.
+		/// </summary>
+		/// <param name="item">The newly created item.</param>
+		private void ApplyDefaultEditionForNewWorkspace(VsItem item)
+		{
+			if (item is not VsCodeProject { ProjectKind: VsCodeProjectKind.Workspace } workspace
+				|| !string.IsNullOrWhiteSpace(workspace.VsVersion))
+			{
+				return;
+			}
+
+			string? preferredId = this.ideManager.ResolvePreferredIdentifier(
+				IdeType.VsCode,
+				this.selectVsCodeEdition.SelectedIdeInstance?.Identifier);
+
+			if (!string.IsNullOrWhiteSpace(preferredId))
+			{
+				workspace.VsVersion = preferredId;
 			}
 		}
 
@@ -1094,6 +1118,7 @@ namespace VSLauncher
 
 			if (item is not null && item.ItemType != ItemTypeEnum.Other)
 			{
+				ApplyDefaultEditionForNewWorkspace(item);
 				MergeNewItem(dropTarget, item);
 
 				return true;

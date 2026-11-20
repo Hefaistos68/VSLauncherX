@@ -77,6 +77,34 @@ namespace VSLauncher.Ide
 		}
 
 		/// <summary>
+		/// Resolves the preferred instance identifier for <paramref name="ideType"/>, preferring <paramref name="preferredIdentifier"/> when installed and falling back to the provider's default instance.
+		/// </summary>
+		/// <param name="ideType">The target IDE family.</param>
+		/// <param name="preferredIdentifier">Optional preferred instance identifier (for example, the active sidebar selection).</param>
+		/// <returns>The resolved instance identifier, or <c>null</c> if no matching IDE is installed.</returns>
+		public string? ResolvePreferredIdentifier(IdeType ideType, string? preferredIdentifier = null)
+		{
+			IIdeProvider? provider = GetProvider(ideType);
+
+			if (provider is null || !provider.IsInstalled)
+			{
+				return null;
+			}
+
+			if (!string.IsNullOrWhiteSpace(preferredIdentifier))
+			{
+				IIdeInstance? matched = provider.FindByIdentifier(preferredIdentifier);
+
+				if (matched is not null && !string.IsNullOrWhiteSpace(matched.Identifier))
+				{
+					return matched.Identifier;
+				}
+			}
+
+			return provider.DefaultInstance?.Identifier;
+		}
+
+		/// <summary>
 		/// Aggregates recent project groups across all registered IDE providers.
 		/// </summary>
 		/// <param name="onlyDefaultProfiles">When <c>true</c>, restricts results to default profiles or instances where supported.</param>

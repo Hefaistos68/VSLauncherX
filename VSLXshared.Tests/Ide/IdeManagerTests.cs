@@ -223,6 +223,26 @@ namespace VSLXshared.Tests.Ide
 		}
 
 		/// <summary>
+		/// Verifies that <see cref="IdeManager.ResolvePreferredIdentifier"/> returns the preferred installed edition, falls back to the provider default, and returns <c>null</c> when the IDE is not installed.
+		/// </summary>
+		[Test]
+		public void ResolvePreferredIdentifier_PrefersInstalledSelectionThenDefaultThenNullWhenMissing()
+		{
+			var codeStable   = CreateMockInstance(IdeType.VsCode, "vscode-stable-user", "1.95.0");
+			var codeInsiders = CreateMockInstance(IdeType.VsCode, "vscode-insiders-user", "1.96.0");
+			var manager      = new IdeManager(new[]
+			{
+				CreateMockProvider(IdeType.VisualStudio, defaultInstance: null).Object,
+				CreateMockProvider(IdeType.VsCode, codeStable, codeStable, codeInsiders).Object
+			});
+
+			manager.ResolvePreferredIdentifier(IdeType.VsCode, "vscode-insiders-user").ShouldBe("vscode-insiders-user");
+			manager.ResolvePreferredIdentifier(IdeType.VsCode, "missing-id").ShouldBe("vscode-stable-user");
+			manager.ResolvePreferredIdentifier(IdeType.VsCode, null).ShouldBe("vscode-stable-user");
+			manager.ResolvePreferredIdentifier(IdeType.VisualStudio, "vs22").ShouldBeNull();
+		}
+
+		/// <summary>
 		/// Verifies provider querying, installation flags, and MRU aggregation across registered providers.
 		/// </summary>
 		[Test]
