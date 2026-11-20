@@ -62,7 +62,7 @@ namespace VSLauncher
 			toolStripSeparator1 = new ToolStripSeparator();
 			toolStripSeparator2 = new ToolStripSeparator();
 			mainPanel = new TableLayoutPanel();
-			tabControlIdes = new TabControl();
+			tabControlIdes = new ThemedTabControl();
 			tabVisualStudio = new TabPage();
 			flowLayoutPanel1 = new FlowLayoutPanel();
 			selectVisualStudioVersion = new VisualStudioCombobox();
@@ -1112,7 +1112,7 @@ namespace VSLauncher
 		private ImageList imageList3;
 		private ImageList imageListMainIcons;
 		private MultiImageRenderer optionsRenderer;
-		private TabControl tabControlIdes;
+		private ThemedTabControl tabControlIdes;
 		private TabPage tabVisualStudio;
 		private TabPage tabVsCode;
 		private FlowLayoutPanel flowLayoutPanel1;

@@ -17,15 +17,31 @@ namespace VSLauncher.Helpers
 	{
 		private const int DwmwaUseImmersiveDarkModeBefore20H1 = 19;
 		private const int DwmwaUseImmersiveDarkMode           = 20;
+		private const uint SwpNoSize                          = 0x0001;
+		private const uint SwpNoMove                          = 0x0002;
+		private const uint SwpNoZOrder                        = 0x0004;
+		private const uint SwpNoActivate                      = 0x0010;
+		private const uint SwpFrameChanged                    = 0x0020;
 
 		[DllImport("dwmapi.dll", PreserveSig = true)]
 		private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
+
+		[DllImport("uxtheme.dll", EntryPoint = "#133", SetLastError = true)]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		private static extern bool AllowDarkModeForWindow(IntPtr hWnd, [MarshalAs(UnmanagedType.Bool)] bool allow);
 
 		[DllImport("uxtheme.dll", EntryPoint = "#135", SetLastError = true, CharSet = CharSet.Unicode)]
 		private static extern int SetPreferredAppMode(int preferredAppMode);
 
 		[DllImport("uxtheme.dll", EntryPoint = "#136", SetLastError = true, CharSet = CharSet.Unicode)]
 		private static extern void FlushMenuThemes();
+
+		[DllImport("uxtheme.dll", CharSet = CharSet.Unicode, ExactSpelling = true)]
+		private static extern int SetWindowTheme(IntPtr hWnd, string? pszSubAppName, string? pszSubIdList);
+
+		[DllImport("user32.dll", SetLastError = true)]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int x, int y, int cx, int cy, uint uFlags);
 
 		private static readonly ThemePalette LightPalette = new ThemePalette
 		{
@@ -72,7 +88,7 @@ namespace VSLauncher.Helpers
 		private static readonly Color DarkFolderIconColor     = Color.FromArgb(235, 195, 95);
 		private static readonly Color DarkGitCleanColor       = Color.FromArgb(72, 218, 120);
 		private static readonly Color DarkGitDirtyColor       = Color.FromArgb(255, 108, 74);
-		private static readonly ConditionalWeakTable<TabControl, TabThemeState> TabThemeStates = new();
+		private static readonly ConditionalWeakTable<Control, NativeScrollbarThemeState> NativeScrollbarStates = new();
 
 		private static Bitmap? darkFolderIcon32;
 		private static Bitmap? darkFolderIcon16;
@@ -239,6 +255,7 @@ namespace VSLauncher.Helpers
 		{
 			if (root is Form form)
 			{
+				ApplyAppDarkModePolicy(palette.IsDark);
 				ToolStripManager.Renderer = new ThemeToolStripRenderer(palette);
 				ApplyTitleBarTheme(form, palette.IsDark);
 			}
@@ -310,6 +327,22 @@ namespace VSLauncher.Helpers
 		}
 
 		/// <summary>
+		/// Updates the process-wide Windows dark mode preference used for native scrollbars and menus.
+		/// </summary>
+		/// <param name="useDarkMode">Whether dark mode is enabled.</param>
+		private static void ApplyAppDarkModePolicy(bool useDarkMode)
+		{
+			try
+			{
+				_ = SetPreferredAppMode(useDarkMode ? 2 : 0);
+				FlushMenuThemes();
+			}
+			catch (Exception ex) when (ex is DllNotFoundException or EntryPointNotFoundException)
+			{
+			}
+		}
+
+		/// <summary>
 		/// Sets the DWM immersive dark mode attribute on a native window handle.
 		/// </summary>
 		/// <param name="handle">The window handle.</param>
@@ -330,8 +363,8 @@ namespace VSLauncher.Helpers
 					_ = DwmSetWindowAttribute(handle, DwmwaUseImmersiveDarkModeBefore20H1, ref darkFlag, sizeof(int));
 				}
 
-				_ = SetPreferredAppMode(useDarkMode ? 2 : 0);
-				FlushMenuThemes();
+				_ = AllowDarkModeForWindow(handle, useDarkMode);
+				ApplyAppDarkModePolicy(useDarkMode);
 			}
 			catch (Exception ex) when (ex is DllNotFoundException or EntryPointNotFoundException)
 			{
@@ -378,10 +411,11 @@ namespace VSLauncher.Helpers
 
 				case IdeCombobox ideCombo:
 					ideCombo.ApplyTheme(palette);
+					ApplyNativeScrollbarTheme(ideCombo, palette.IsDark, lightThemeName: null);
 					break;
 
-				case TabControl tabControl:
-					ApplyTabControlTheme(tabControl, palette);
+				case ThemedTabControl themedTabControl:
+					themedTabControl.ApplyTheme(palette);
 					break;
 
 				case TabPage tabPage:
@@ -392,6 +426,7 @@ namespace VSLauncher.Helpers
 					comboBox.BackColor = palette.SurfaceAlt;
 					comboBox.ForeColor = palette.Text;
 					comboBox.FlatStyle = palette.IsDark ? FlatStyle.Flat : FlatStyle.Standard;
+					ApplyNativeScrollbarTheme(comboBox, palette.IsDark, lightThemeName: null);
 					break;
 
 				case LinkLabel linkLabel:
@@ -458,38 +493,94 @@ namespace VSLauncher.Helpers
 						flowLayoutPanel.BackColor = palette.SurfaceContrast;
 					}
 
+					ApplyNativeScrollbarTheme(flowLayoutPanel, palette.IsDark, lightThemeName: null);
+					break;
+
+				case ListView listView:
+					listView.BorderStyle = palette.IsDark ? BorderStyle.None : BorderStyle.Fixed3D;
+					ApplyNativeScrollbarTheme(listView, palette.IsDark, lightThemeName: "Explorer");
 					break;
 			}
 		}
 
 		/// <summary>
-		/// Applies light or dark theme styling to a <see cref="TabControl"/>, using idempotent owner-draw in dark mode.
+		/// Applies Windows dark or light native scrollbar theming to <paramref name="control"/> immediately and on every subsequent handle creation.
 		/// </summary>
-		/// <param name="tabControl">The tab control to style.</param>
-		/// <param name="palette">The active theme palette.</param>
-		private static void ApplyTabControlTheme(TabControl tabControl, ThemePalette palette)
+		/// <param name="control">The control whose native scrollbars should match the active theme.</param>
+		/// <param name="useDarkMode">Whether dark mode is enabled.</param>
+		/// <param name="lightThemeName">The native visual style name to restore in light mode, or <c>null</c> for default.</param>
+		private static void ApplyNativeScrollbarTheme(Control control, bool useDarkMode, string? lightThemeName)
 		{
-			TabThemeState state = TabThemeStates.GetOrCreateValue(tabControl);
+			NativeScrollbarThemeState state = NativeScrollbarStates.GetOrCreateValue(control);
 
-			state.Palette = palette;
+			state.UseDarkMode    = useDarkMode;
+			state.LightThemeName = lightThemeName;
 
-			tabControl.DrawItem -= OnTabControlDrawItem;
-
-			if (palette.IsDark)
+			if (!state.Hooked)
 			{
-				tabControl.DrawMode  = TabDrawMode.OwnerDrawFixed;
-				tabControl.BackColor = palette.Surface;
-				tabControl.ForeColor = palette.Text;
-				tabControl.DrawItem += OnTabControlDrawItem;
-			}
-			else
-			{
-				tabControl.DrawMode  = TabDrawMode.Normal;
-				tabControl.BackColor = palette.Surface;
-				tabControl.ForeColor = palette.Text;
+				state.Hooked           = true;
+				control.HandleCreated += OnThemedScrollbarHandleCreated;
 			}
 
-			tabControl.Invalidate();
+			if (control.IsHandleCreated)
+			{
+				ApplyNativeScrollbarThemeToHandle(control.Handle, state);
+			}
+		}
+
+		/// <summary>
+		/// Re-applies native dark or light scrollbar styling whenever a tracked control creates or recreates its Win32 handle.
+		/// </summary>
+		/// <param name="sender">The source control.</param>
+		/// <param name="e">The event arguments.</param>
+		private static void OnThemedScrollbarHandleCreated(object? sender, EventArgs e)
+		{
+			if (sender is not Control control
+				|| !control.IsHandleCreated
+				|| !NativeScrollbarStates.TryGetValue(control, out NativeScrollbarThemeState? state))
+			{
+				return;
+			}
+
+			ApplyNativeScrollbarThemeToHandle(control.Handle, state);
+
+			// ObjectListView.OnHandleCreated invokes OnControlCreated right after base.OnHandleCreated,
+			// which resets SetWindowTheme via UseExplorerTheme; re-apply after that message completes.
+			if (control is ObjectListView)
+			{
+				control.BeginInvoke(() =>
+				{
+					if (!control.IsDisposed && control.IsHandleCreated)
+					{
+						ApplyNativeScrollbarThemeToHandle(control.Handle, state);
+					}
+				});
+			}
+		}
+
+		/// <summary>
+		/// Applies <c>AllowDarkModeForWindow</c> and <c>SetWindowTheme</c> to a live window handle and refreshes its non-client frame.
+		/// </summary>
+		/// <param name="handle">The Win32 window handle.</param>
+		/// <param name="state">The desired scrollbar theme state.</param>
+		private static void ApplyNativeScrollbarThemeToHandle(IntPtr handle, NativeScrollbarThemeState state)
+		{
+			if (handle == IntPtr.Zero)
+			{
+				return;
+			}
+
+			try
+			{
+				string? themeName = state.UseDarkMode ? "DarkMode_Explorer" : state.LightThemeName;
+
+				_ = AllowDarkModeForWindow(handle, state.UseDarkMode);
+				_ = SetWindowTheme(handle, themeName, null);
+				_ = SetWindowPos(handle, IntPtr.Zero, 0, 0, 0, 0, SwpNoMove | SwpNoSize | SwpNoZOrder | SwpNoActivate | SwpFrameChanged);
+			}
+			catch (Exception ex) when (ex is DllNotFoundException or EntryPointNotFoundException)
+			{
+			}
 		}
 
 		/// <summary>
@@ -505,52 +596,15 @@ namespace VSLauncher.Helpers
 		}
 
 		/// <summary>
-		/// Paints tab headers for themed <see cref="TabControl"/> instances in dark mode.
+		/// Tracks the native scrollbar dark-mode state for a Win32-backed control across handle recreations.
 		/// </summary>
-		/// <param name="sender">The source <see cref="TabControl"/>.</param>
-		/// <param name="e">The draw item event arguments.</param>
-		private static void OnTabControlDrawItem(object? sender, DrawItemEventArgs e)
+		private sealed class NativeScrollbarThemeState
 		{
-			if (sender is not TabControl tabControl || e.Index < 0 || e.Index >= tabControl.TabPages.Count)
-			{
-				return;
-			}
+			internal bool UseDarkMode { get; set; }
 
-			ThemePalette palette = TabThemeStates.TryGetValue(tabControl, out TabThemeState? state)
-				? state.Palette
-				: GetPalette(Properties.Settings.Default.DarkMode);
+			internal string? LightThemeName { get; set; }
 
-			TabPage tabPage  = tabControl.TabPages[e.Index];
-			bool isSelected  = e.Index == tabControl.SelectedIndex;
-			Color backColor  = isSelected ? palette.Selection : palette.SurfaceAlt;
-			Color textColor  = !tabPage.Enabled
-				? palette.DisabledText
-				: (isSelected ? palette.SelectionText : palette.Text);
-			Rectangle bounds = e.Bounds;
-
-			using var backBrush = new SolidBrush(backColor);
-			using var borderPen = new Pen(palette.Border);
-
-			e.Graphics.FillRectangle(backBrush, bounds);
-			e.Graphics.DrawRectangle(borderPen, bounds.X, bounds.Y, Math.Max(0, bounds.Width - 1), Math.Max(0, bounds.Height - 1));
-
-			Font drawFont = e.Font ?? tabControl.Font;
-
-			TextRenderer.DrawText(
-				e.Graphics,
-				tabPage.Text,
-				drawFont,
-				bounds,
-				textColor,
-				TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine | TextFormatFlags.EndEllipsis);
-		}
-
-		/// <summary>
-		/// Stores the applied <see cref="ThemePalette"/> for an owner-drawn <see cref="TabControl"/>.
-		/// </summary>
-		private sealed class TabThemeState
-		{
-			internal ThemePalette Palette { get; set; }
+			internal bool Hooked { get; set; }
 		}
 
 		/// <summary>
@@ -582,6 +636,7 @@ namespace VSLauncher.Helpers
 
 		private static void ApplyTreeListView(TreeListView treeListView, ThemePalette palette)
 		{
+			treeListView.BorderStyle                = palette.IsDark ? BorderStyle.None : BorderStyle.Fixed3D;
 			treeListView.BackColor                  = palette.Surface;
 			treeListView.ForeColor                  = palette.Text;
 			treeListView.AlternateRowBackColor      = palette.SurfaceAlt;
@@ -627,6 +682,7 @@ namespace VSLauncher.Helpers
 				describedTaskRenderer.DescriptionColor = palette.SubText;
 			}
 
+			ApplyNativeScrollbarTheme(treeListView, palette.IsDark, lightThemeName: null);
 			treeListView.Invalidate();
 		}
 
@@ -861,6 +917,61 @@ namespace VSLauncher.Helpers
 
 				e.Graphics.SmoothingMode = previousMode;
 			}
+
+			/// <inheritdoc/>
+			protected override void OnRenderToolStripBorder(ToolStripRenderEventArgs e)
+			{
+				if (!this.palette.IsDark)
+				{
+					base.OnRenderToolStripBorder(e);
+
+					return;
+				}
+
+				if (e.ToolStrip is StatusStrip)
+				{
+					using var topBorderPen = new Pen(this.palette.Border);
+
+					e.Graphics.DrawLine(topBorderPen, 0, 0, e.ToolStrip.Width, 0);
+
+					return;
+				}
+
+				if (e.ToolStrip is ToolStripDropDown)
+				{
+					using var borderPen = new Pen(this.palette.Border);
+
+					e.Graphics.DrawRectangle(borderPen, 0, 0, Math.Max(0, e.ToolStrip.Width - 1), Math.Max(0, e.ToolStrip.Height - 1));
+
+					return;
+				}
+
+				base.OnRenderToolStripBorder(e);
+			}
+
+			/// <inheritdoc/>
+			protected override void OnRenderStatusStripSizingGrip(ToolStripRenderEventArgs e)
+			{
+				if (!this.palette.IsDark)
+				{
+					base.OnRenderStatusStripSizingGrip(e);
+
+					return;
+				}
+
+				using var dotBrush = new SolidBrush(this.palette.Border);
+
+				int right  = e.ToolStrip.Width - 4;
+				int bottom = e.ToolStrip.Height - 4;
+
+				for (int row = 0; row < 3; row++)
+				{
+					for (int col = 0; col <= row; col++)
+					{
+						e.Graphics.FillRectangle(dotBrush, right - (col * 4), bottom - ((2 - row) * 4), 2, 2);
+					}
+				}
+			}
 		}
 
 		private sealed class ThemeColorTable : ProfessionalColorTable
@@ -880,6 +991,7 @@ namespace VSLauncher.Helpers
 			public override Color MenuItemPressedGradientEnd => this.palette.Selection;
 			public override Color MenuItemBorder => this.palette.Border;
 			public override Color MenuBorder => this.palette.Border;
+			public override Color ToolStripBorder => this.palette.Border;
 			public override Color ToolStripDropDownBackground => this.palette.SurfaceAlt;
 			public override Color ImageMarginGradientBegin => this.palette.SurfaceAlt;
 			public override Color ImageMarginGradientMiddle => this.palette.SurfaceAlt;
@@ -889,8 +1001,11 @@ namespace VSLauncher.Helpers
 			public override Color CheckBackground => this.palette.Button;
 			public override Color CheckSelectedBackground => this.palette.AccentDark;
 			public override Color CheckPressedBackground => this.palette.AccentDark;
+			public override Color StatusStripBorder => this.palette.Border;
 			public override Color StatusStripGradientBegin => this.palette.SurfaceAlt;
 			public override Color StatusStripGradientEnd => this.palette.SurfaceAlt;
+			public override Color GripDark => this.palette.Border;
+			public override Color GripLight => this.palette.SurfaceAlt;
 		}
 	}
 }
