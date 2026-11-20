@@ -31,6 +31,7 @@ namespace VSLauncher
 		private readonly IdeManager ideManager                             = new IdeManager();
 		private readonly VsCodeUpdateService vsCodeUpdateService           = new VsCodeUpdateService();
 		private readonly Dictionary<string, VsCodeUpdateInfo> vsCodeUpdateStates = new Dictionary<string, VsCodeUpdateInfo>(StringComparer.OrdinalIgnoreCase);
+		private readonly Dictionary<string, Bitmap> openInMenuIcons            = new Dictionary<string, Bitmap>(StringComparer.OrdinalIgnoreCase);
 		private readonly CancellationTokenSource vsCodeUpdateCts           = new CancellationTokenSource();
 		private DescribedTaskRenderer? itemRenderer;
 		private VsFolder solutionGroups = new VsFolder();
@@ -43,6 +44,7 @@ namespace VSLauncher
 		private int vsCodeUpdateInstallInProgress;
 		private Bitmap? currentVsButtonBitmap;
 		private Bitmap? currentVsCodeButtonBitmap;
+		private Font? openInDefaultItemBoldFont;
 
 		public JumpList? TaskbarJumpList { get; private set; }
 
@@ -536,6 +538,9 @@ namespace VSLauncher
 			this.currentVsButtonBitmap = null;
 			this.currentVsCodeButtonBitmap?.Dispose();
 			this.currentVsCodeButtonBitmap = null;
+			ClearOpenInMenuIcons();
+			this.openInDefaultItemBoldFont?.Dispose();
+			this.openInDefaultItemBoldFont = null;
 		}
 
 
@@ -905,6 +910,8 @@ namespace VSLauncher
 		private void RefreshVsCodeIdesAfterSettingsChange(bool reRunDiscovery = true)
 		{
 			string? previousIdentifier = GetSelectedVsCodeInstance()?.Identifier ?? Properties.Settings.Default.SelectedVsCodeEdition;
+
+			ClearOpenInMenuIcons();
 
 			if (reRunDiscovery)
 			{
@@ -2697,25 +2704,200 @@ namespace VSLauncher
 			this.settingsToolStripMenuItem.Enabled     = hasSelection;
 			this.favoriteToolStripMenuItem.Enabled     = hasSelection;
 			this.explorerToolStripMenuItem.Enabled     = hasDiskPath;
-			this.openInVsCodeToolStripMenuItem.Enabled = hasDiskPath && this.ideManager.HasInstalled(IdeType.VsCode);
+			ConfigureOpenInMenu(hasDiskPath);
 		}
 
 		/// <summary>
-		/// Handles the Open in VS Code context menu item by opening the selected item's target path directly in VS Code.
+		/// Configures <see cref="openInVsCodeToolStripMenuItem"/> for 0, 1, or multiple installed VS Code-based IDEs.
+		/// </summary>
+		/// <param name="hasDiskPath"><c>true</c> when the selected item resolves to an existing path on disk.</param>
+		private void ConfigureOpenInMenu(bool hasDiskPath)
+		{
+			List<VsCodeInstance> instances = this.ideManager.GetInstances(IdeType.VsCode)
+				.OfType<VsCodeInstance>()
+				.ToList();
+
+			ClearOpenInDropDownItems();
+
+			if (instances.Count == 0)
+			{
+				this.openInVsCodeToolStripMenuItem.Text    = "Open in VS Code";
+				this.openInVsCodeToolStripMenuItem.Image   = null;
+				this.openInVsCodeToolStripMenuItem.Enabled = false;
+				this.openInVsCodeToolStripMenuItem.Tag     = null;
+
+				return;
+			}
+
+			if (instances.Count == 1)
+			{
+				VsCodeInstance singleInstance = instances[0];
+
+				this.openInVsCodeToolStripMenuItem.Text    = $"Open in {singleInstance.ShortName}";
+				this.openInVsCodeToolStripMenuItem.Image   = GetMenuIconBitmap(singleInstance);
+				this.openInVsCodeToolStripMenuItem.Enabled = hasDiskPath;
+				this.openInVsCodeToolStripMenuItem.Tag     = singleInstance;
+
+				return;
+			}
+
+			this.openInVsCodeToolStripMenuItem.Text    = "Open in";
+			this.openInVsCodeToolStripMenuItem.Image   = null;
+			this.openInVsCodeToolStripMenuItem.Enabled = hasDiskPath;
+			this.openInVsCodeToolStripMenuItem.Tag     = null;
+
+			PopulateOpenInDropDownItems(instances);
+			ThemeHelper.ApplyTheme(this.ctxMenu, this.currentTheme);
+		}
+
+		/// <summary>
+		/// Populates the "Open in" submenu with one item per installed VS Code-based IDE and bolds the active sidebar default.
+		/// </summary>
+		/// <param name="instances">The installed VS Code-based IDE instances to list.</param>
+		private void PopulateOpenInDropDownItems(IReadOnlyList<VsCodeInstance> instances)
+		{
+			string? defaultIdentifier = GetSelectedVsCodeInstance()?.Identifier;
+			Font boldFont             = GetOpenInDefaultBoldFont();
+
+			foreach (VsCodeInstance instance in instances)
+			{
+				bool isDefault = defaultIdentifier is not null
+					&& string.Equals(instance.Identifier, defaultIdentifier, StringComparison.OrdinalIgnoreCase);
+
+				var subItem = new ToolStripMenuItem(instance.Name)
+				{
+					Image = GetMenuIconBitmap(instance),
+					Tag   = instance
+				};
+
+				if (isDefault)
+				{
+					subItem.Font = boldFont;
+				}
+
+				subItem.Click += OpenInSubmenuItem_Click;
+				this.openInVsCodeToolStripMenuItem.DropDownItems.Add(subItem);
+			}
+		}
+
+		/// <summary>
+		/// Returns a cached 16x16 <see cref="Bitmap"/> icon for <paramref name="instance"/>, converting it once per identifier.
+		/// </summary>
+		/// <param name="instance">The IDE instance whose icon should be retrieved.</param>
+		/// <returns>A cached 16x16 <see cref="Bitmap"/>.</returns>
+		private Bitmap GetMenuIconBitmap(VsCodeInstance instance)
+		{
+			if (this.openInMenuIcons.TryGetValue(instance.Identifier, out Bitmap? cached))
+			{
+				return cached;
+			}
+
+			using Bitmap rawBitmap = instance.AppIcon.ToBitmap();
+			var scaledBitmap       = new Bitmap(rawBitmap, new Size(16, 16));
+
+			this.openInMenuIcons[instance.Identifier] = scaledBitmap;
+
+			return scaledBitmap;
+		}
+
+		/// <summary>
+		/// Returns a cached bold <see cref="Font"/> matching <see cref="openInVsCodeToolStripMenuItem"/> for highlighting the default submenu item.
+		/// </summary>
+		/// <returns>A cached bold <see cref="Font"/>.</returns>
+		private Font GetOpenInDefaultBoldFont()
+		{
+			Font baseFont = this.openInVsCodeToolStripMenuItem.Font;
+
+			if (this.openInDefaultItemBoldFont is null
+				|| !string.Equals(this.openInDefaultItemBoldFont.FontFamily.Name, baseFont.FontFamily.Name, StringComparison.OrdinalIgnoreCase)
+				|| this.openInDefaultItemBoldFont.SizeInPoints != baseFont.SizeInPoints)
+			{
+				this.openInDefaultItemBoldFont?.Dispose();
+				this.openInDefaultItemBoldFont = new Font(baseFont, FontStyle.Bold);
+			}
+
+			return this.openInDefaultItemBoldFont;
+		}
+
+		/// <summary>
+		/// Unhooks, disposes, and clears any dynamically created items under <see cref="openInVsCodeToolStripMenuItem"/> without disposing cached icon bitmaps.
+		/// </summary>
+		private void ClearOpenInDropDownItems()
+		{
+			List<ToolStripItem> existing = this.openInVsCodeToolStripMenuItem.DropDownItems
+				.Cast<ToolStripItem>()
+				.ToList();
+
+			this.openInVsCodeToolStripMenuItem.DropDownItems.Clear();
+
+			foreach (ToolStripItem item in existing)
+			{
+				item.Click -= OpenInSubmenuItem_Click;
+				item.Image  = null;
+				item.Font   = null;
+				item.Dispose();
+			}
+		}
+
+		/// <summary>
+		/// Disposes and clears all cached 16x16 bitmaps in <see cref="openInMenuIcons"/>.
+		/// </summary>
+		private void ClearOpenInMenuIcons()
+		{
+			if (this.openInVsCodeToolStripMenuItem is not null)
+			{
+				this.openInVsCodeToolStripMenuItem.Image = null;
+				ClearOpenInDropDownItems();
+			}
+
+			foreach (Bitmap bitmap in this.openInMenuIcons.Values)
+			{
+				bitmap.Dispose();
+			}
+
+			this.openInMenuIcons.Clear();
+		}
+
+		/// <summary>
+		/// Handles the Open in context menu item by opening the selected item's target path when no submenu is shown.
 		/// </summary>
 		/// <param name="sender">The sender.</param>
 		/// <param name="e">The event parameters.</param>
 		private void openInVsCodeToolStripMenuItem_Click(object? sender, EventArgs e)
+		{
+			if (this.openInVsCodeToolStripMenuItem.HasDropDownItems)
+			{
+				return;
+			}
+
+			VsCodeInstance? vsCode = (this.openInVsCodeToolStripMenuItem.Tag as VsCodeInstance)
+				?? GetSelectedVsCodeInstance();
+
+			OpenSelectedItemInVsCodeInstance(vsCode);
+		}
+
+		/// <summary>
+		/// Handles clicking a specific IDE entry inside the "Open in" submenu.
+		/// </summary>
+		/// <param name="sender">The clicked submenu item.</param>
+		/// <param name="e">The event parameters.</param>
+		private void OpenInSubmenuItem_Click(object? sender, EventArgs e)
+		{
+			OpenSelectedItemInVsCodeInstance((sender as ToolStripMenuItem)?.Tag as VsCodeInstance);
+		}
+
+		/// <summary>
+		/// Resolves the target disk path for the currently selected item and opens it in <paramref name="instance"/>.
+		/// </summary>
+		/// <param name="instance">The VS Code-based IDE instance to launch.</param>
+		private void OpenSelectedItemInVsCodeInstance(VsCodeInstance? instance)
 		{
 			if (this.olvFiles.SelectedObject is not VsItem item || !HasExistingDiskPath(item))
 			{
 				return;
 			}
 
-			VsCodeInstance? vsCode = (this.selectVsCodeEdition.SelectedIdeInstance as VsCodeInstance)
-				?? (this.ideManager.GetProvider(IdeType.VsCode)?.DefaultInstance as VsCodeInstance);
-
-			if (vsCode is null)
+			if (instance is null)
 			{
 				_ = MessageBox.Show(this, "Visual Studio Code is not installed.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
 
@@ -2732,7 +2914,7 @@ namespace VSLauncher
 				return;
 			}
 
-			vsCode.OpenPath(targetPath);
+			instance.OpenPath(targetPath);
 		}
 
 		/// <summary>
