@@ -243,6 +243,50 @@ namespace VSLXshared.Tests.Ide
 		}
 
 		/// <summary>
+		/// Verifies that <see cref="IdeManager.ApplyDefaultEditionToWorkspaces"/> recursively pins only unset workspace items without overwriting existing editions or non-workspace items.
+		/// </summary>
+		[Test]
+		public void ApplyDefaultEditionToWorkspaces_RecursivelyPinsUnsetWorkspacesOnly()
+		{
+			var codeStable   = CreateMockInstance(IdeType.VsCode, "vscode-stable-user", "1.95.0");
+			var codeInsiders = CreateMockInstance(IdeType.VsCode, "vscode-insiders-user", "1.96.0");
+			var manager      = new IdeManager(new[]
+			{
+				CreateMockProvider(IdeType.VsCode, codeStable, codeStable, codeInsiders).Object
+			});
+
+			var topWorkspace     = new VsCodeProject("top", @"C:\src\top.code-workspace", VsCodeProjectKind.Workspace);
+			var nestedWorkspace  = new VsCodeProject("nested", @"C:\src\sub\nested.code-workspace", VsCodeProjectKind.Workspace);
+			var pinnedWorkspace  = new VsCodeProject("pinned", @"C:\src\sub\pinned.code-workspace", VsCodeProjectKind.Workspace) { VsVersion = "vscode-stable-user" };
+			var nodeProject      = new VsCodeProject("web", @"C:\src\sub\web", VsCodeProjectKind.NodeJs);
+			var solution         = new VsSolution { Name = "App", Path = @"C:\src\sub\App.sln" };
+			var subFolder        = new VsFolder("sub", @"C:\src\sub");
+			var rootItems        = new VsItemList(null);
+
+			subFolder.Items.Add(nestedWorkspace);
+			subFolder.Items.Add(pinnedWorkspace);
+			subFolder.Items.Add(nodeProject);
+			subFolder.Items.Add(solution);
+			rootItems.Add(topWorkspace);
+			rootItems.Add(subFolder);
+
+			manager.ApplyDefaultEditionToWorkspaces(rootItems, "vscode-insiders-user");
+
+			topWorkspace.VsVersion.ShouldBe("vscode-insiders-user");
+			nestedWorkspace.VsVersion.ShouldBe("vscode-insiders-user");
+			pinnedWorkspace.VsVersion.ShouldBe("vscode-stable-user");
+			nodeProject.VsVersion.ShouldBeNullOrEmpty();
+			solution.VsVersion.ShouldBeNullOrEmpty();
+
+			var noCodeManager   = new IdeManager(new[] { CreateMockProvider(IdeType.VsCode, defaultInstance: null).Object });
+			var untouched       = new VsCodeProject("none", @"C:\src\none.code-workspace", VsCodeProjectKind.Workspace);
+
+			noCodeManager.ApplyDefaultEditionToWorkspaces(new VsItem[] { untouched }, "vscode-insiders-user");
+
+			untouched.VsVersion.ShouldBeNullOrEmpty();
+		}
+
+		/// <summary>
 		/// Verifies provider querying, installation flags, and MRU aggregation across registered providers.
 		/// </summary>
 		[Test]

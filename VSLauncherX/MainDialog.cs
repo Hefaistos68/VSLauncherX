@@ -688,9 +688,10 @@ namespace VSLauncher
 			dlgImportFolder dlg = new dlgImportFolder();
 			if (dlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
 			{
-				OLVListItem r = this.olvFiles.SelectedItem;
+				OLVListItem r     = this.olvFiles.SelectedItem;
 				VsItemList source = dlg.Solution.Items;
 
+				ApplyDefaultEditionForNewWorkspaces(source);
 				MergeNewItems(r, source);
 
 				_ = SolutionData_OnChanged(true);
@@ -748,20 +749,18 @@ namespace VSLauncher
 		/// <param name="item">The newly created item.</param>
 		private void ApplyDefaultEditionForNewWorkspace(VsItem item)
 		{
-			if (item is not VsCodeProject { ProjectKind: VsCodeProjectKind.Workspace } workspace
-				|| !string.IsNullOrWhiteSpace(workspace.VsVersion))
-			{
-				return;
-			}
+			ApplyDefaultEditionForNewWorkspaces(new[] { item });
+		}
 
-			string? preferredId = this.ideManager.ResolvePreferredIdentifier(
-				IdeType.VsCode,
+		/// <summary>
+		/// Recursively pre-selects the preferred installed VS Code edition for newly imported <c>.code-workspace</c> items without an explicit edition.
+		/// </summary>
+		/// <param name="items">The imported items or folder trees.</param>
+		private void ApplyDefaultEditionForNewWorkspaces(IEnumerable<VsItem> items)
+		{
+			this.ideManager.ApplyDefaultEditionToWorkspaces(
+				items,
 				this.selectVsCodeEdition.SelectedIdeInstance?.Identifier);
-
-			if (!string.IsNullOrWhiteSpace(preferredId))
-			{
-				workspace.VsVersion = preferredId;
-			}
 		}
 
 		/// <summary>
@@ -1109,6 +1108,7 @@ namespace VSLauncher
 					return false;
 				}
 
+				ApplyDefaultEditionForNewWorkspaces(dlg.Solution.Items);
 				MergeNewItems(dropTarget, dlg.Solution.Items);
 
 				return true;
