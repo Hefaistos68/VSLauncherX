@@ -65,5 +65,20 @@ namespace VSLauncher.Ide
 		/// </summary>
 		/// <returns>A read-only list of uninstall entries.</returns>
 		IReadOnlyList<VsCodeUninstallEntry> GetUninstallEntries();
+
+		/// <summary>
+		/// Enumerates immediate subdirectory paths within the specified directory.
+		/// </summary>
+		/// <param name="path">The parent directory path.</param>
+		/// <returns>A read-only list of subdirectory paths, or an empty list when unavailable.</returns>
+		IReadOnlyList<string> GetDirectories(string? path);
+
+		/// <summary>
+		/// Enumerates file paths matching a search pattern within the specified directory.
+		/// </summary>
+		/// <param name="path">The directory path to search.</param>
+		/// <param name="searchPattern">The search pattern (for example, <c>*.exe</c>).</param>
+		/// <returns>A read-only list of matching file paths, or an empty list when unavailable.</returns>
+		IReadOnlyList<string> GetFiles(string? path, string searchPattern);
 	}
 }

@@ -12,7 +12,7 @@ using VSLXshared;
 namespace VSLauncher.Ide
 {
 	/// <summary>
-	/// Represents a discovered Visual Studio Code installation (Stable or Insiders) and provides profile discovery and quick-launch actions.
+	/// Represents a discovered Visual Studio Code or VS Code-based IDE installation and provides profile discovery and quick-launch actions.
 	/// </summary>
 	public class VsCodeInstance : IIdeInstance
 	{
@@ -39,17 +39,47 @@ namespace VSLauncher.Ide
 			string userDataDirectory,
 			bool isInsiders,
 			IVsCodeEnvironment? environment = null)
+			: this(
+				name,
+				version,
+				location,
+				identifier,
+				userDataDirectory,
+				isInsiders ? VsCodeProductDescriptor.VsCodeInsiders : VsCodeProductDescriptor.VsCodeStable,
+				environment)
+		{
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="VsCodeInstance"/> class from a <see cref="VsCodeProductDescriptor"/>.
+		/// </summary>
+		/// <param name="name">The display name of the IDE installation.</param>
+		/// <param name="version">The product version string.</param>
+		/// <param name="location">The full path to the IDE executable.</param>
+		/// <param name="identifier">The stable unique identifier for this edition and scope.</param>
+		/// <param name="userDataDirectory">The user data root directory containing <c>User\globalStorage</c>.</param>
+		/// <param name="descriptor">The product metadata and capabilities descriptor.</param>
+		/// <param name="environment">Optional environment abstraction for testing.</param>
+		public VsCodeInstance(
+			string name,
+			string version,
+			string location,
+			string identifier,
+			string userDataDirectory,
+			VsCodeProductDescriptor descriptor,
+			IVsCodeEnvironment? environment = null)
 		{
 			ArgumentException.ThrowIfNullOrWhiteSpace(name);
 			ArgumentException.ThrowIfNullOrWhiteSpace(location);
 			ArgumentException.ThrowIfNullOrWhiteSpace(identifier);
+			ArgumentNullException.ThrowIfNull(descriptor);
 
 			this.Name              = name;
 			this.Version           = version ?? string.Empty;
 			this.Location          = location;
 			this.Identifier        = identifier;
 			this.UserDataDirectory = userDataDirectory ?? string.Empty;
-			this.IsInsiders        = isInsiders;
+			this.Descriptor        = descriptor;
 			this.environment       = environment ?? WindowsVsCodeEnvironment.Instance;
 		}
 
@@ -65,12 +95,83 @@ namespace VSLauncher.Ide
 		/// <inheritdoc/>
 		public string Name { get; }
 
+		/// <summary>
+		/// Gets the product descriptor backing this installation.
+		/// </summary>
+		public VsCodeProductDescriptor Descriptor { get; }
+
 		/// <inheritdoc/>
 		public string ShortName
 		{
 			get
 			{
-				return this.IsInsiders ? "VS Code Insiders" : "VS Code";
+				return !string.IsNullOrWhiteSpace(this.Descriptor.ShortName) ? this.Descriptor.ShortName : this.Name;
+			}
+		}
+
+		/// <summary>
+		/// Gets the product flavor identifier (for example, <c>vscode-stable</c> or <c>antigravity-ide</c>).
+		/// </summary>
+		public string FlavorId
+		{
+			get
+			{
+				return this.Descriptor.FlavorId;
+			}
+		}
+
+		/// <summary>
+		/// Gets the official download page URL for this product, if available.
+		/// </summary>
+		public string DownloadUrl
+		{
+			get
+			{
+				return this.Descriptor.DownloadUrl;
+			}
+		}
+
+		/// <summary>
+		/// Gets the remote update-checking strategy supported by this product.
+		/// </summary>
+		public VsCodeUpdateStrategyKind UpdateStrategy
+		{
+			get
+			{
+				return this.Descriptor.UpdateStrategy;
+			}
+		}
+
+		/// <summary>
+		/// Gets the Windows installer family used when applying automated updates.
+		/// </summary>
+		public VsCodeInstallerKind InstallerKind
+		{
+			get
+			{
+				return this.Descriptor.InstallerKind;
+			}
+		}
+
+		/// <summary>
+		/// Gets the <c>owner/repo</c> slug used when <see cref="UpdateStrategy"/> is <see cref="VsCodeUpdateStrategyKind.GitHubReleases"/>.
+		/// </summary>
+		public string GitHubRepo
+		{
+			get
+			{
+				return this.Descriptor.GitHubRepo;
+			}
+		}
+
+		/// <summary>
+		/// Gets the allowlisted HTTPS hosts trusted to serve installer downloads for this product.
+		/// </summary>
+		public IReadOnlyList<string> TrustedDownloadHosts
+		{
+			get
+			{
+				return this.Descriptor.TrustedDownloadHosts;
 			}
 		}
 
@@ -89,9 +190,25 @@ namespace VSLauncher.Ide
 		public string UserDataDirectory { get; }
 
 		/// <summary>
-		/// Gets a value indicating whether this installation is VS Code Insiders.
+		/// Gets a value indicating whether this installation is an Insiders/preview edition.
 		/// </summary>
-		public bool IsInsiders { get; }
+		public bool IsInsiders
+		{
+			get
+			{
+				return this.Descriptor.IsInsiders;
+			}
+		}
+
+		/// <summary>
+		/// Gets a value indicating whether this installation is a machine-wide system install.
+		/// </summary>
+		public bool IsSystemInstall { get; init; }
+
+		/// <summary>
+		/// Gets a value indicating whether this installation was added manually via custom IDE settings.
+		/// </summary>
+		public bool IsCustom { get; init; }
 
 		/// <inheritdoc/>
 		public Icon AppIcon
