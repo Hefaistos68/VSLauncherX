@@ -386,13 +386,14 @@ namespace VSLauncher
 		/// <param name="enabled"><c>true</c> if VS Code is installed; otherwise <c>false</c>.</param>
 		private void SetVsCodeSidebarEnabled(bool enabled)
 		{
-			this.selectVsCodeEdition.Enabled     = enabled;
-			this.btnVsCodeStart.Enabled          = enabled;
-			this.btnVsCodeStartAdmin.Enabled     = enabled;
-			this.btnVsCodeStartNewWindow.Enabled = enabled;
-			this.btnVsCodeStartNoExt.Enabled     = enabled;
-			this.btnVsCodeDownload.Visible       = !enabled;
-			this.btnVsCodeDownload.Enabled       = !enabled;
+			this.selectVsCodeEdition.Enabled      = enabled;
+			this.btnVsCodeStart.Enabled           = enabled;
+			this.btnVsCodeStartAdmin.Enabled      = enabled;
+			this.btnVsCodeStartNewWindow.Enabled  = enabled;
+			this.btnVsCodeStartNoExt.Enabled      = enabled;
+			this.btnVsCodeOpenActivityLog.Enabled = enabled;
+			this.btnVsCodeDownload.Visible        = !enabled;
+			this.btnVsCodeDownload.Enabled        = !enabled;
 		}
 
 		/// <summary>
@@ -2062,6 +2063,39 @@ namespace VSLauncher
 		private void btnVsCodeStartNoExt_Click(object? sender, EventArgs e)
 		{
 			ExecuteSelectedVsCodeAction(vsCode => vsCode.ExecuteWithoutExtensions());
+		}
+
+		/// <summary>
+		/// Handles click on <see cref="btnVsCodeOpenActivityLog"/> to open the selected VS Code edition's logs folder in Explorer.
+		/// </summary>
+		/// <param name="sender">The event source.</param>
+		/// <param name="e">The event arguments.</param>
+		private void btnVsCodeOpenActivityLog_Click(object? sender, EventArgs e)
+		{
+			VsCodeInstance? vsCode = GetSelectedVsCodeInstance();
+
+			if (vsCode is null)
+			{
+				return;
+			}
+
+			string logsPath = Path.Combine(vsCode.UserDataDirectory, "logs");
+
+			if (!Directory.Exists(logsPath))
+			{
+				_ = MessageBox.Show($"VS Code logs folder was not found at '{logsPath}'.", "ActivityLog", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+				return;
+			}
+
+			try
+			{
+				using var process = Process.Start("explorer.exe", $"\"{logsPath}\"");
+			}
+			catch (Win32Exception ex)
+			{
+				_ = MessageBox.Show($"Unable to open VS Code logs folder: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+			}
 		}
 
 		/// <summary>

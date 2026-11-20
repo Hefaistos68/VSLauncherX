@@ -80,6 +80,7 @@ namespace VSLauncher
 			btnVsCodeStartAdmin = new Button();
 			btnVsCodeStartNewWindow = new Button();
 			btnVsCodeStartNoExt = new Button();
+			btnVsCodeOpenActivityLog = new Button();
 			btnVsCodeDownload = new Button();
 			imageListMainIcons = new ImageList(components);
 			toolStripStatusLabel3 = new ToolStripStatusLabel();
@@ -735,6 +736,7 @@ namespace VSLauncher
 			flowLayoutPanelVsCode.Controls.Add(btnVsCodeStartAdmin);
 			flowLayoutPanelVsCode.Controls.Add(btnVsCodeStartNewWindow);
 			flowLayoutPanelVsCode.Controls.Add(btnVsCodeStartNoExt);
+			flowLayoutPanelVsCode.Controls.Add(btnVsCodeOpenActivityLog);
 			flowLayoutPanelVsCode.Dock = DockStyle.Fill;
 			flowLayoutPanelVsCode.FlowDirection = FlowDirection.TopDown;
 			flowLayoutPanelVsCode.Location = new Point(3, 3);
@@ -827,6 +829,24 @@ namespace VSLauncher
 			btnVsCodeStartNoExt.TextImageRelation = TextImageRelation.ImageBeforeText;
 			btnVsCodeStartNoExt.UseVisualStyleBackColor = true;
 			btnVsCodeStartNoExt.Click += btnVsCodeStartNoExt_Click;
+			// 
+			// btnVsCodeOpenActivityLog
+			// 
+			btnVsCodeOpenActivityLog.Font = new Font("Segoe UI", 9F);
+			btnVsCodeOpenActivityLog.ImageAlign = ContentAlignment.MiddleLeft;
+			btnVsCodeOpenActivityLog.Location = new Point(0, 317);
+			btnVsCodeOpenActivityLog.Margin = new Padding(0);
+			btnVsCodeOpenActivityLog.Name = "btnVsCodeOpenActivityLog";
+			btnVsCodeOpenActivityLog.Padding = new Padding(4);
+			btnVsCodeOpenActivityLog.Size = new Size(232, 32);
+			btnVsCodeOpenActivityLog.TabIndex = 5;
+			btnVsCodeOpenActivityLog.Tag = "Open {0} ActivityLog";
+			btnVsCodeOpenActivityLog.Text = "Open ActivityLog";
+			btnVsCodeOpenActivityLog.TextImageRelation = TextImageRelation.ImageBeforeText;
+			tooltipForButtons.SetToolTip(btnVsCodeOpenActivityLog, "Opens the VS Code logs folder in Explorer");
+			btnVsCodeOpenActivityLog.UseMnemonic = false;
+			btnVsCodeOpenActivityLog.UseVisualStyleBackColor = true;
+			btnVsCodeOpenActivityLog.Click += btnVsCodeOpenActivityLog_Click;
 			// 
 			// btnVsCodeDownload
 			// 
@@ -1097,6 +1117,7 @@ namespace VSLauncher
 		private Button btnVsCodeStartAdmin;
 		private Button btnVsCodeStartNewWindow;
 		private Button btnVsCodeStartNoExt;
+		private Button btnVsCodeOpenActivityLog;
 		private Button btnVsCodeDownload;
 		private Button btnMainStartVisualStudio1;
 		private Button btnMainStartVisualStudio2;
