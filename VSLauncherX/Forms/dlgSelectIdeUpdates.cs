@@ -48,6 +48,7 @@ namespace VSLauncher.Forms
 			{
 				this.lvUpdates.Items.Clear();
 				this.ideImageList.Images.Clear();
+				_ = this.ideImageList.Handle;
 
 				foreach (VsCodeUpdateCandidate candidate in this.availableUpdates)
 				{

@@ -2339,7 +2339,7 @@ namespace VSLauncher
 		/// <param name="forceRefresh">When <c>true</c>, bypasses the 24-hour cache.</param>
 		private void CheckVsCodeUpdatesAsync(bool forceRefresh)
 		{
-			if (!this.ideManager.HasInstalled(IdeType.VsCode))
+			if (!this.ideManager.HasInstalled(IdeType.VsCode) || Volatile.Read(ref this.vsCodeUpdateInstallInProgress) != 0)
 			{
 				return;
 			}
@@ -2391,6 +2391,11 @@ namespace VSLauncher
 		/// <param name="results">The update check results keyed by instance identifier.</param>
 		private void ApplyVsCodeUpdateResults(IReadOnlyDictionary<string, VsCodeUpdateInfo> results)
 		{
+			if (Volatile.Read(ref this.vsCodeUpdateInstallInProgress) != 0)
+			{
+				return;
+			}
+
 			foreach (KeyValuePair<string, VsCodeUpdateInfo> pair in results)
 			{
 				this.vsCodeUpdateStates[pair.Key] = pair.Value;
@@ -2532,7 +2537,7 @@ namespace VSLauncher
 				}
 			}
 
-			ShowConsolidatedUpdateFailures(failures);
+			ShowConsolidatedUpdateFailures(failures, ct);
 		}
 
 		/// <summary>
@@ -2669,9 +2674,10 @@ namespace VSLauncher
 		/// Displays a single consolidated warning dialog summarizing all per-IDE failures from an update batch.
 		/// </summary>
 		/// <param name="failures">The collected per-IDE failure messages.</param>
-		private void ShowConsolidatedUpdateFailures(IReadOnlyList<string> failures)
+		/// <param name="cancellationToken">Cancellation token bound to application lifetime.</param>
+		private void ShowConsolidatedUpdateFailures(IReadOnlyList<string> failures, CancellationToken cancellationToken)
 		{
-			if (failures.Count == 0 || this.IsDisposed)
+			if (failures.Count == 0 || cancellationToken.IsCancellationRequested || this.Disposing || this.IsDisposed)
 			{
 				return;
 			}

@@ -37,13 +37,13 @@ namespace VSLauncher.Forms
 		/// </summary>
 		private void InitializeComponent()
 		{
-			this.components   = new System.ComponentModel.Container();
-			this.lblPrompt    = new Label();
-			this.lvUpdates    = new ListView();
-			this.colIde       = new ColumnHeader();
-			this.colInstalled = new ColumnHeader();
-			this.colAvailable = new ColumnHeader();
-			this.ideImageList = new ImageList(this.components);
+			this.components    = new System.ComponentModel.Container();
+			this.lblPrompt     = new Label();
+			this.lvUpdates     = new ListView();
+			this.colIde        = new ColumnHeader();
+			this.colInstalled  = new ColumnHeader();
+			this.colAvailable  = new ColumnHeader();
+			this.ideImageList  = new ImageList(this.components);
 			this.btnSelectAll  = new Button();
 			this.btnSelectNone = new Button();
 			this.btnCancel     = new Button();
