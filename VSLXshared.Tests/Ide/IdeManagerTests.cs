@@ -314,6 +314,58 @@ namespace VSLXshared.Tests.Ide
 			emptyManager.AnyInstalled.ShouldBeFalse();
 		}
 
+		/// <summary>
+		/// Verifies that <see cref="IdeManager.Refresh"/> triggers re-discovery on the registered <see cref="VsCodeIdeProvider"/>.
+		/// </summary>
+		[Test]
+		public void Refresh_ForVsCodeProvider_RebuildsDiscoveredInstances()
+		{
+			string tempDir       = Path.Combine(Path.GetTempPath(), "VSLauncherX_Tests", Guid.NewGuid().ToString("N"));
+			string storeFilePath = Path.Combine(tempDir, "vscode-custom-ides.json");
+			string customExe     = @"D:\Tools\RefreshedFork\RefreshedFork.exe";
+
+			Directory.CreateDirectory(tempDir);
+
+			try
+			{
+				var envMock = new Mock<IVsCodeEnvironment>(MockBehavior.Loose);
+
+				envMock.Setup(e => e.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)).Returns(@"C:\Users\Dev\AppData\Local");
+				envMock.Setup(e => e.GetFolderPath(Environment.SpecialFolder.ApplicationData)).Returns(@"C:\Users\Dev\AppData\Roaming");
+				envMock.Setup(e => e.GetFolderPath(Environment.SpecialFolder.ProgramFiles)).Returns(@"C:\Program Files");
+				envMock.Setup(e => e.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86)).Returns(@"C:\Program Files (x86)");
+				envMock.Setup(e => e.GetUninstallEntries()).Returns(Array.Empty<VsCodeUninstallEntry>());
+
+				var store    = new CustomVsCodeIdeStore(storeFilePath: storeFilePath);
+				var provider = new VsCodeIdeProvider(envMock.Object, store);
+				var manager  = new IdeManager(new IIdeProvider[] { provider });
+
+				manager.GetInstances(IdeType.VsCode).ShouldBeEmpty();
+
+				envMock.Setup(e => e.FileExists(customExe)).Returns(true);
+				envMock.Setup(e => e.GetFileVersion(customExe)).Returns("1.0.0");
+				store.TryAdd(new CustomVsCodeIdeEntry
+				{
+					ExecutablePath = customExe,
+					DisplayName    = "Refreshed Fork"
+				}).ShouldBeTrue();
+
+				manager.Refresh(IdeType.VsCode);
+
+				IIdeInstance refreshed = manager.GetInstances(IdeType.VsCode).ShouldHaveSingleItem();
+
+				refreshed.Location.ShouldBe(customExe);
+				refreshed.Name.ShouldBe("Refreshed Fork");
+			}
+			finally
+			{
+				if (Directory.Exists(tempDir))
+				{
+					Directory.Delete(tempDir, recursive: true);
+				}
+			}
+		}
+
 		private static IIdeInstance CreateMockInstance(IdeType ideType, string identifier, string version)
 		{
 			var mock = new Mock<IIdeInstance>();

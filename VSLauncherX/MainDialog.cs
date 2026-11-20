@@ -31,6 +31,7 @@ namespace VSLauncher
 		private readonly IdeManager ideManager                             = new IdeManager();
 		private readonly VsCodeUpdateService vsCodeUpdateService           = new VsCodeUpdateService();
 		private readonly Dictionary<string, VsCodeUpdateInfo> vsCodeUpdateStates = new Dictionary<string, VsCodeUpdateInfo>(StringComparer.OrdinalIgnoreCase);
+		private readonly Dictionary<string, Bitmap> openInMenuIcons            = new Dictionary<string, Bitmap>(StringComparer.OrdinalIgnoreCase);
 		private readonly CancellationTokenSource vsCodeUpdateCts           = new CancellationTokenSource();
 		private DescribedTaskRenderer? itemRenderer;
 		private VsFolder solutionGroups = new VsFolder();
@@ -41,8 +42,11 @@ namespace VSLauncher
 		private int gitRemoteOperationInProgress;
 		private int vsCodeUpdateCheckInProgress;
 		private int vsCodeUpdateInstallInProgress;
+		private bool vsCodeUpdateTimerStarted;
+		private string? activeVsCodeUpdateStatus;
 		private Bitmap? currentVsButtonBitmap;
 		private Bitmap? currentVsCodeButtonBitmap;
+		private Font? openInDefaultItemBoldFont;
 
 		public JumpList? TaskbarJumpList { get; private set; }
 
@@ -307,9 +311,10 @@ namespace VSLauncher
 		}
 
 		/// <summary>
-		/// Populates the VS Code edition selector and restores the saved edition or default instance.
+		/// Populates the VS Code edition selector and restores the preferred, saved, or default edition.
 		/// </summary>
-		private void InitializeVsCodeSelector()
+		/// <param name="preferredIdentifier">Optional edition identifier to restore before falling back to persisted settings.</param>
+		private void InitializeVsCodeSelector(string? preferredIdentifier = null)
 		{
 			IReadOnlyList<IIdeInstance> vsCodeInstances = this.ideManager.GetInstances(IdeType.VsCode);
 
@@ -320,7 +325,9 @@ namespace VSLauncher
 				return;
 			}
 
-			string savedEdition = Properties.Settings.Default.SelectedVsCodeEdition;
+			string savedEdition = !string.IsNullOrWhiteSpace(preferredIdentifier)
+				? preferredIdentifier
+				: Properties.Settings.Default.SelectedVsCodeEdition;
 
 			if (!string.IsNullOrWhiteSpace(savedEdition))
 			{
@@ -398,6 +405,11 @@ namespace VSLauncher
 			this.btnVsCodeStartNoExt.Enabled      = enabled;
 			this.btnVsCodeOpenActivityLog.Enabled = enabled;
 			this.btnVsCodeInstaller.Visible       = true;
+
+			if (!enabled && this.selectVsCodeEdition.SelectedIdeInstance is null)
+			{
+				ResetVsCodeQuickActionButtons();
+			}
 
 			UpdateVsCodeInstallerButtonState();
 		}
@@ -533,6 +545,9 @@ namespace VSLauncher
 			this.currentVsButtonBitmap = null;
 			this.currentVsCodeButtonBitmap?.Dispose();
 			this.currentVsCodeButtonBitmap = null;
+			ClearOpenInMenuIcons();
+			this.openInDefaultItemBoldFont?.Dispose();
+			this.openInDefaultItemBoldFont = null;
 		}
 
 
@@ -591,6 +606,11 @@ namespace VSLauncher
 			if (this.TaskbarJumpList is null)
 			{
 				return;
+			}
+
+			if (folder is null)
+			{
+				this.TaskbarJumpList.ClearAllUserTasks();
 			}
 
 			folder ??= this.solutionGroups;
@@ -775,7 +795,10 @@ namespace VSLauncher
 
 			if (useVsCodeDialog)
 			{
-				using dlgExecuteVsCode vsCodeDlg = new dlgExecuteVsCode(item, this.ideManager);
+				using dlgExecuteVsCode vsCodeDlg = new dlgExecuteVsCode(
+					item,
+					this.ideManager,
+					this.selectVsCodeEdition.SelectedIdeInstance?.Identifier);
 
 				return vsCodeDlg.ShowDialog(this) == DialogResult.OK;
 			}
@@ -812,43 +835,164 @@ namespace VSLauncher
 		}
 
 		/// <summary>
-		/// mains the settings_ click.
+		/// Opens the general settings dialog and applies saved preferences, theme updates, and IDE changes.
 		/// </summary>
 		/// <param name="sender">The sender.</param>
-		/// <param name="e">The event parameters</param>
+		/// <param name="e">The event parameters.</param>
 		private void mainSettings_Click(object sender, EventArgs e)
 		{
 			bool wasAlwaysAdmin = Properties.Settings.Default.AlwaysAdmin;
-			bool wasAutoStart = Properties.Settings.Default.AutoStart;
-			using dlgSettings dlg = new dlgSettings();
+			bool wasAutoStart   = Properties.Settings.Default.AutoStart;
+			using dlgSettings dlg = new dlgSettings(this.ideManager);
 
-			if (dlg.ShowDialog() == DialogResult.OK)
+			if (dlg.ShowDialog(this) != DialogResult.OK)
 			{
-				bool needsAdminRegistration = Properties.Settings.Default.AlwaysAdmin && (!wasAlwaysAdmin || !AdminInfo.IsElevated());
-
-				if (Properties.Settings.Default.AlwaysAdmin || Properties.Settings.Default.AutoStart)
+				if (dlg.IdesRescanned)
 				{
-					if (needsAdminRegistration)
-					{
-						if (RestartOurselves())
-						{
-							Application.Exit();
-
-							return;
-						}
-					}
-					else if (Properties.Settings.Default.AutoStart != wasAutoStart || Properties.Settings.Default.AlwaysAdmin != wasAlwaysAdmin)
-					{
-						Program.UpdateTaskScheduler();
-					}
+					RefreshVsCodeIdesAfterSettingsChange(reRunDiscovery: false);
 				}
-				else if (wasAlwaysAdmin || wasAutoStart)
+
+				return;
+			}
+
+			if (ApplyStartupRegistrationSettings(wasAlwaysAdmin, wasAutoStart))
+			{
+				return;
+			}
+
+			ApplyTheme(Properties.Settings.Default.DarkMode);
+
+			if (dlg.CustomIdesChanged || dlg.IdesRescanned)
+			{
+				RefreshVsCodeIdesAfterSettingsChange(reRunDiscovery: dlg.CustomIdesChanged);
+			}
+
+			_ = SolutionData_OnChanged(true);
+		}
+
+		/// <summary>
+		/// Applies Windows Task Scheduler startup and elevation changes, returning <c>true</c> when restarting elevated.
+		/// </summary>
+		/// <param name="wasAlwaysAdmin">Previous <c>AlwaysAdmin</c> preference value.</param>
+		/// <param name="wasAutoStart">Previous <c>AutoStart</c> preference value.</param>
+		/// <returns><c>true</c> if the application is restarting as administrator; otherwise <c>false</c>.</returns>
+		private bool ApplyStartupRegistrationSettings(bool wasAlwaysAdmin, bool wasAutoStart)
+		{
+			bool needsAdminRegistration = Properties.Settings.Default.AlwaysAdmin && (!wasAlwaysAdmin || !AdminInfo.IsElevated());
+
+			if (!Properties.Settings.Default.AlwaysAdmin && !Properties.Settings.Default.AutoStart)
+			{
+				if (wasAlwaysAdmin || wasAutoStart)
 				{
 					Program.RemoveTaskScheduler();
 				}
 
-				ApplyTheme(Properties.Settings.Default.DarkMode);
-				_ = SolutionData_OnChanged(true);
+				return false;
+			}
+
+			if (needsAdminRegistration)
+			{
+				if (RestartOurselves())
+				{
+					Application.Exit();
+
+					return true;
+				}
+
+				return false;
+			}
+
+			if (Properties.Settings.Default.AutoStart != wasAutoStart || Properties.Settings.Default.AlwaysAdmin != wasAlwaysAdmin)
+			{
+				Program.UpdateTaskScheduler();
+			}
+
+			return false;
+		}
+
+		/// <summary>
+		/// Reloads VS Code-based IDEs in the sidebar, refreshes quick-action buttons and JumpList, and checks for updates.
+		/// </summary>
+		/// <param name="reRunDiscovery">When <c>true</c>, re-runs discovery on <see cref="ideManager"/> before refreshing UI state.</param>
+		private void RefreshVsCodeIdesAfterSettingsChange(bool reRunDiscovery = true)
+		{
+			string? previousIdentifier = GetSelectedVsCodeInstance()?.Identifier ?? Properties.Settings.Default.SelectedVsCodeEdition;
+
+			ClearOpenInMenuIcons();
+
+			if (reRunDiscovery)
+			{
+				this.ideManager.Refresh(IdeType.VsCode);
+			}
+
+			PruneStaleVsCodeUpdateStates();
+
+			bool previousInUpdate = this.bInUpdate;
+
+			this.bInUpdate = true;
+
+			try
+			{
+				InitializeVsCodeSelector(previousIdentifier);
+				SetVsCodeSidebarEnabled(this.ideManager.HasInstalled(IdeType.VsCode));
+
+				if (this.selectVsCodeEdition.SelectedIdeInstance is IIdeInstance selected)
+				{
+					UpdateVsCodeQuickActionButtons(selected);
+				}
+			}
+			finally
+			{
+				this.bInUpdate = previousInUpdate;
+			}
+
+			PersistFallbackVsCodeEditionIfChanged(previousIdentifier);
+			RebuildTaskbarItems();
+			this.olvFiles.BuildList(true);
+			EnsureVsCodeUpdateTimerStarted();
+			CheckVsCodeUpdatesAsync(forceRefresh: false);
+		}
+
+		/// <summary>
+		/// Removes cached update check results whose IDE identifiers are no longer present after discovery changes.
+		/// </summary>
+		private void PruneStaleVsCodeUpdateStates()
+		{
+			var installedIds = new HashSet<string>(
+				this.ideManager.GetInstances(IdeType.VsCode).Select(i => i.Identifier),
+				StringComparer.OrdinalIgnoreCase);
+
+			foreach (string key in this.vsCodeUpdateStates.Keys.ToList())
+			{
+				if (!installedIds.Contains(key))
+				{
+					this.vsCodeUpdateStates.Remove(key);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Updates <c>SelectedVsCodeEdition</c> when the previously active edition was removed and a fallback edition was chosen.
+		/// </summary>
+		/// <param name="previousIdentifier">The edition identifier active before the refresh.</param>
+		private void PersistFallbackVsCodeEditionIfChanged(string? previousIdentifier)
+		{
+			if (this.selectVsCodeEdition.SelectedIdeInstance is not IIdeInstance currentSelected)
+			{
+				if (!string.IsNullOrEmpty(Properties.Settings.Default.SelectedVsCodeEdition))
+				{
+					Properties.Settings.Default.SelectedVsCodeEdition = string.Empty;
+					Properties.Settings.Default.Save();
+				}
+
+				return;
+			}
+
+			if (!string.IsNullOrWhiteSpace(previousIdentifier)
+				&& !string.Equals(currentSelected.Identifier, previousIdentifier, StringComparison.OrdinalIgnoreCase))
+			{
+				Properties.Settings.Default.SelectedVsCodeEdition = currentSelected.Identifier;
+				Properties.Settings.Default.Save();
 			}
 		}
 
@@ -1744,6 +1888,7 @@ namespace VSLauncher
 			{
 				Properties.Settings.Default.SelectedVsCodeEdition = selected.Identifier;
 				Properties.Settings.Default.Save();
+				RebuildTaskbarItems();
 			}
 
 			UpdateVsCodeQuickActionButtons(selected);
@@ -1756,13 +1901,29 @@ namespace VSLauncher
 		/// <param name="selected">The selected VS Code instance.</param>
 		private void UpdateVsCodeQuickActionButtons(IIdeInstance selected)
 		{
-			Bitmap icon            = selected.AppIcon.ToBitmap();
-			string shortName       = selected.ShortName;
-			string tooltip         = selected.ToString() ?? selected.Name;
+			ApplyVsCodeQuickActionButtons(
+				selected.ShortName,
+				selected.ToString() ?? selected.Name,
+				selected.AppIcon.ToBitmap());
+		}
+
+		/// <summary>
+		/// Resets the VS Code quick-action buttons to default VS Code labels with cleared tooltips and icons.
+		/// </summary>
+		private void ResetVsCodeQuickActionButtons()
+		{
+			ApplyVsCodeQuickActionButtons("VS Code", tooltip: null, icon: null);
+		}
+
+		/// <summary>
+		/// Applies button label formatting, tooltip text, and optional icon bitmap across the VS Code quick-action buttons.
+		/// </summary>
+		/// <param name="shortName">The product short name interpolated into button text formats.</param>
+		/// <param name="tooltip">The tooltip text, or <c>null</c> to clear tooltips.</param>
+		/// <param name="icon">The icon bitmap to assign and track for disposal, or <c>null</c> to clear button icons.</param>
+		private void ApplyVsCodeQuickActionButtons(string shortName, string? tooltip, Bitmap? icon)
+		{
 			Bitmap? previousBitmap = this.currentVsCodeButtonBitmap;
-
-			this.currentVsCodeButtonBitmap = icon;
-
 			Button[] vsCodeButtons =
 			{
 				this.btnVsCodeStart,
@@ -1770,6 +1931,8 @@ namespace VSLauncher
 				this.btnVsCodeStartNewWindow,
 				this.btnVsCodeStartNoExt
 			};
+
+			this.currentVsCodeButtonBitmap = icon;
 
 			foreach (Button button in vsCodeButtons)
 			{
@@ -2160,10 +2323,23 @@ namespace VSLauncher
 				return;
 			}
 
-			this.vsCodeUpdateTimer.Tick += VsCodeUpdateTimer_Tick;
-			this.vsCodeUpdateTimer.Start();
-
+			EnsureVsCodeUpdateTimerStarted();
 			CheckVsCodeUpdatesAsync(forceRefresh: false);
+		}
+
+		/// <summary>
+		/// Starts the periodic VS Code update check timer once when at least one VS Code-based IDE is installed.
+		/// </summary>
+		private void EnsureVsCodeUpdateTimerStarted()
+		{
+			if (this.vsCodeUpdateTimerStarted || this.IsDisposed || !this.ideManager.HasInstalled(IdeType.VsCode))
+			{
+				return;
+			}
+
+			this.vsCodeUpdateTimer.Tick  += VsCodeUpdateTimer_Tick;
+			this.vsCodeUpdateTimer.Start();
+			this.vsCodeUpdateTimerStarted = true;
 		}
 
 		/// <summary>
@@ -2177,12 +2353,23 @@ namespace VSLauncher
 		}
 
 		/// <summary>
-		/// Runs a non-blocking update check for all discovered VS Code editions and updates the installer button on the UI thread.
+		/// Returns all currently discovered <see cref="VsCodeInstance"/> installations.
+		/// </summary>
+		/// <returns>A list of discovered <see cref="VsCodeInstance"/> instances.</returns>
+		private List<VsCodeInstance> GetInstalledVsCodeInstances()
+		{
+			return this.ideManager.GetInstances(IdeType.VsCode)
+				.OfType<VsCodeInstance>()
+				.ToList();
+		}
+
+		/// <summary>
+		/// Runs a non-blocking update check for all discovered VS Code-based IDEs and updates the installer button on the UI thread.
 		/// </summary>
 		/// <param name="forceRefresh">When <c>true</c>, bypasses the 24-hour cache.</param>
 		private void CheckVsCodeUpdatesAsync(bool forceRefresh)
 		{
-			if (!this.ideManager.HasInstalled(IdeType.VsCode))
+			if (!this.ideManager.HasInstalled(IdeType.VsCode) || Volatile.Read(ref this.vsCodeUpdateInstallInProgress) != 0)
 			{
 				return;
 			}
@@ -2205,36 +2392,17 @@ namespace VSLauncher
 				return;
 			}
 
-			List<VsCodeInstance> editions = this.ideManager.GetInstances(IdeType.VsCode)
-				.OfType<VsCodeInstance>()
-				.ToList();
+			List<VsCodeInstance> editions = GetInstalledVsCodeInstances();
 
 			_ = Task.Run(async () =>
 			{
 				try
 				{
-					var results = new Dictionary<string, VsCodeUpdateInfo>(StringComparer.OrdinalIgnoreCase);
+					IReadOnlyDictionary<string, VsCodeUpdateInfo> results = await this.vsCodeUpdateService
+						.CheckAllForUpdatesAsync(editions, forceRefresh, ct)
+						.ConfigureAwait(false);
 
-					foreach (VsCodeInstance edition in editions)
-					{
-						ct.ThrowIfCancellationRequested();
-
-						VsCodeUpdateInfo info = await this.vsCodeUpdateService
-							.CheckForUpdateAsync(edition, forceRefresh, ct)
-							.ConfigureAwait(false);
-
-						results[edition.Identifier] = info;
-					}
-
-					SafeInvokeOnUiThread(() =>
-					{
-						foreach (KeyValuePair<string, VsCodeUpdateInfo> pair in results)
-						{
-							this.vsCodeUpdateStates[pair.Key] = pair.Value;
-						}
-
-						UpdateVsCodeInstallerButtonState();
-					});
+					SafeInvokeOnUiThread(() => ApplyVsCodeUpdateResults(results));
 				}
 				catch (Exception ex)
 				{
@@ -2248,90 +2416,47 @@ namespace VSLauncher
 		}
 
 		/// <summary>
-		/// Synchronizes <see cref="btnVsCodeInstaller"/> text, icon, enabled state, and tooltip with installation and update status.
+		/// Applies completed update check results to <see cref="vsCodeUpdateStates"/>, prunes stale entries, and refreshes button state.
+		/// </summary>
+		/// <param name="results">The update check results keyed by instance identifier.</param>
+		private void ApplyVsCodeUpdateResults(IReadOnlyDictionary<string, VsCodeUpdateInfo> results)
+		{
+			if (Volatile.Read(ref this.vsCodeUpdateInstallInProgress) != 0)
+			{
+				return;
+			}
+
+			foreach (KeyValuePair<string, VsCodeUpdateInfo> pair in results)
+			{
+				this.vsCodeUpdateStates[pair.Key] = pair.Value;
+			}
+
+			PruneStaleVsCodeUpdateStates();
+			UpdateVsCodeInstallerButtonState();
+		}
+
+		/// <summary>
+		/// Synchronizes <see cref="btnVsCodeInstaller"/> text, icon, enabled state, and tooltip with aggregated IDE update status.
 		/// </summary>
 		private void UpdateVsCodeInstallerButtonState()
 		{
-			if (!this.ideManager.HasInstalled(IdeType.VsCode))
-			{
-				this.btnVsCodeInstaller.Text    = "Download VS Code";
-				this.btnVsCodeInstaller.Image   = Resources.Download;
-				this.btnVsCodeInstaller.Enabled = true;
-				this.tooltipForButtons.SetToolTip(this.btnVsCodeInstaller, "Opens the VS Code download page");
+			List<VsCodeInstance> editions = GetInstalledVsCodeInstances();
+			bool installInProgress        = Volatile.Read(ref this.vsCodeUpdateInstallInProgress) != 0;
+			VsCodeUpdateSummary summary   = VsCodeUpdateSummary.Build(
+				editions,
+				this.vsCodeUpdateStates,
+				GetSelectedVsCodeInstance(),
+				installInProgress,
+				this.activeVsCodeUpdateStatus);
 
-				return;
-			}
-
-			this.btnVsCodeInstaller.Image = Resources.Installer;
-
-			if (Volatile.Read(ref this.vsCodeUpdateInstallInProgress) != 0)
-			{
-				this.btnVsCodeInstaller.Text    = "Updating VS Code...";
-				this.btnVsCodeInstaller.Enabled = false;
-				this.tooltipForButtons.SetToolTip(this.btnVsCodeInstaller, "Downloading and installing VS Code update...");
-
-				return;
-			}
-
-			VsCodeInstance? selected = GetSelectedVsCodeInstance();
-
-			if (selected is not null
-				&& this.vsCodeUpdateStates.TryGetValue(selected.Identifier, out VsCodeUpdateInfo? info)
-				&& info.IsUpdateAvailable)
-			{
-				this.btnVsCodeInstaller.Text    = "Update VS Code";
-				this.btnVsCodeInstaller.Enabled = true;
-				this.tooltipForButtons.SetToolTip(this.btnVsCodeInstaller, BuildVsCodeUpdateAvailableTooltip(selected, info));
-
-				return;
-			}
-
-			this.btnVsCodeInstaller.Text    = "VS Code Installer";
-			this.btnVsCodeInstaller.Enabled = false;
-			this.tooltipForButtons.SetToolTip(this.btnVsCodeInstaller, BuildVsCodeUpToDateTooltip(selected));
+			this.btnVsCodeInstaller.Text    = summary.ButtonText;
+			this.btnVsCodeInstaller.Image   = summary.ShowDownloadIcon ? Resources.Download : Resources.Installer;
+			this.btnVsCodeInstaller.Enabled = summary.ButtonEnabled;
+			this.tooltipForButtons.SetToolTip(this.btnVsCodeInstaller, summary.TooltipText);
 		}
 
 		/// <summary>
-		/// Builds the tooltip text displayed when an update is available for <paramref name="selected"/>.
-		/// </summary>
-		private static string BuildVsCodeUpdateAvailableTooltip(VsCodeInstance selected, VsCodeUpdateInfo info)
-		{
-			bool hasCurrent = !string.IsNullOrWhiteSpace(info.CurrentVersion);
-			bool hasLatest  = !string.IsNullOrWhiteSpace(info.LatestVersion);
-
-			if (hasCurrent && hasLatest && !info.CurrentVersion.Equals(info.LatestVersion, StringComparison.OrdinalIgnoreCase))
-			{
-				return $"Update {selected.ShortName} from {info.CurrentVersion} to {info.LatestVersion}";
-			}
-
-			if (hasLatest)
-			{
-				return $"Update {selected.ShortName} to {info.LatestVersion}";
-			}
-
-			return $"Update {selected.ShortName}";
-		}
-
-		/// <summary>
-		/// Builds the tooltip text displayed when no VS Code update is currently available.
-		/// </summary>
-		private string BuildVsCodeUpToDateTooltip(VsCodeInstance? selected)
-		{
-			if (selected is not null
-				&& this.vsCodeUpdateStates.TryGetValue(selected.Identifier, out VsCodeUpdateInfo? info)
-				&& info.CheckSucceeded)
-			{
-				string version   = string.IsNullOrWhiteSpace(info.CurrentVersion) ? selected.Version : info.CurrentVersion;
-				string verSuffix = string.IsNullOrWhiteSpace(version) ? string.Empty : $" ({version})";
-
-				return $"{selected.ShortName}{verSuffix} is up to date";
-			}
-
-			return "Checks daily for VS Code updates";
-		}
-
-		/// <summary>
-		/// Handles click on <see cref="btnVsCodeInstaller"/> to download VS Code when absent or trigger an in-place update when an update is available.
+		/// Handles click on <see cref="btnVsCodeInstaller"/> to download VS Code when absent, update a single IDE directly, or open the multi-IDE update picker.
 		/// </summary>
 		/// <param name="sender">The event source.</param>
 		/// <param name="e">The event arguments.</param>
@@ -2344,23 +2469,50 @@ namespace VSLauncher
 				return;
 			}
 
-			VsCodeInstance? vsCode = GetSelectedVsCodeInstance();
-
-			if (vsCode is null
-				|| !this.vsCodeUpdateStates.TryGetValue(vsCode.Identifier, out VsCodeUpdateInfo? updateInfo)
-				|| !updateInfo.IsUpdateAvailable)
+			if (Volatile.Read(ref this.vsCodeUpdateInstallInProgress) != 0)
 			{
 				return;
 			}
 
-			await RunVsCodeUpdateAsync(vsCode, updateInfo);
+			List<VsCodeInstance> editions                  = GetInstalledVsCodeInstances();
+			VsCodeUpdateSummary summary                    = VsCodeUpdateSummary.Build(
+				editions,
+				this.vsCodeUpdateStates,
+				GetSelectedVsCodeInstance(),
+				installInProgress: false);
+			IReadOnlyList<VsCodeUpdateCandidate> available = summary.AvailableUpdates;
+
+			if (available.Count == 0)
+			{
+				return;
+			}
+
+			if (available.Count == 1)
+			{
+				await RunVsCodeUpdatesAsync(available);
+
+				return;
+			}
+
+			using var dlg = new dlgSelectIdeUpdates(available);
+
+			if (dlg.ShowDialog(this) == DialogResult.OK && dlg.SelectedUpdates.Count > 0)
+			{
+				await RunVsCodeUpdatesAsync(dlg.SelectedUpdates);
+			}
 		}
 
 		/// <summary>
-		/// Downloads, verifies, and launches the official VS Code installer for <paramref name="vsCode"/>, then refreshes update state.
+		/// Sequentially downloads, verifies, and installs updates for <paramref name="targets"/>, isolating per-IDE failures and UAC cancellations.
 		/// </summary>
-		private async Task RunVsCodeUpdateAsync(VsCodeInstance vsCode, VsCodeUpdateInfo updateInfo)
+		/// <param name="targets">The selected IDE update candidates to process.</param>
+		private async Task RunVsCodeUpdatesAsync(IReadOnlyList<VsCodeUpdateCandidate> targets)
 		{
+			if (targets is null || targets.Count == 0)
+			{
+				return;
+			}
+
 			if (Interlocked.CompareExchange(ref this.vsCodeUpdateInstallInProgress, 1, 0) != 0)
 			{
 				return;
@@ -2379,42 +2531,31 @@ namespace VSLauncher
 				return;
 			}
 
+			var failures = new List<string>();
+
+			this.Cursor = Cursors.WaitCursor;
 			UpdateVsCodeInstallerButtonState();
-
-			this.Cursor               = Cursors.WaitCursor;
-			this.mainStatusLabel.Text = $"Downloading {vsCode.ShortName} update...";
-
-			string? installerPath = null;
 
 			try
 			{
-				installerPath = await this.vsCodeUpdateService.DownloadInstallerAsync(updateInfo, ct);
-
-				if (this.IsDisposed || ct.IsCancellationRequested)
+				for (int i = 0; i < targets.Count; i++)
 				{
-					return;
-				}
+					if (this.IsDisposed || ct.IsCancellationRequested)
+					{
+						break;
+					}
 
-				this.mainStatusLabel.Text = $"Updating {vsCode.ShortName}...";
+					string? failure = await RunSingleVsCodeUpdateAsync(targets[i], i, targets.Count, ct);
 
-				int exitCode = await LaunchVsCodeInstallerAsync(installerPath, updateInfo.IsSystemInstall, ct);
-
-				await HandleVsCodeInstallerResultAsync(vsCode, updateInfo, exitCode, ct);
-			}
-			catch (Exception ex) when (ex is OperationCanceledException or ObjectDisposedException)
-			{
-				Debug.WriteLine(ex);
-			}
-			catch (Exception ex)
-			{
-				if (!this.IsDisposed)
-				{
-					_ = MessageBox.Show(this, $"Unable to update {vsCode.ShortName}: {ex.Message}", "VS Code Update", MessageBoxButtons.OK, MessageBoxIcon.Error);
+					if (!string.IsNullOrWhiteSpace(failure))
+					{
+						failures.Add(failure);
+					}
 				}
 			}
 			finally
 			{
-				VsCodeUpdateService.TryDeleteInstallerFile(installerPath);
+				this.activeVsCodeUpdateStatus = null;
 				Interlocked.Exchange(ref this.vsCodeUpdateInstallInProgress, 0);
 
 				if (!this.IsDisposed)
@@ -2425,16 +2566,179 @@ namespace VSLauncher
 					UpdateVsCodeInstallerButtonState();
 				}
 			}
+
+			ShowConsolidatedUpdateFailures(failures, ct);
 		}
 
 		/// <summary>
-		/// Refreshes version metadata, action button tooltips, and update state after a successful installer exit, or displays a warning on non-zero failure exit codes.
+		/// Downloads, executes, and verifies a single IDE update candidate while always deleting its temporary installer file.
 		/// </summary>
-		private async Task HandleVsCodeInstallerResultAsync(VsCodeInstance vsCode, VsCodeUpdateInfo updateInfo, int exitCode, CancellationToken cancellationToken)
+		/// <param name="candidate">The IDE update candidate to apply.</param>
+		/// <param name="index">The zero-based batch index.</param>
+		/// <param name="total">The total number of candidates in the batch.</param>
+		/// <param name="ct">Cancellation token bound to application lifetime.</param>
+		/// <returns>A failure description when the update failed, or <c>null</c> on success or user cancellation.</returns>
+		private async Task<string?> RunSingleVsCodeUpdateAsync(
+			VsCodeUpdateCandidate candidate,
+			int index,
+			int total,
+			CancellationToken ct)
+		{
+			VsCodeInstance vsCode       = candidate.Instance;
+			VsCodeUpdateInfo updateInfo = candidate.UpdateInfo;
+
+			if (updateInfo.InstallerKind == VsCodeInstallerKind.ExternalDownload)
+			{
+				return OpenExternalUpdateDownload(vsCode, updateInfo);
+			}
+
+			string? installerPath = null;
+
+			try
+			{
+				UpdateActiveVsCodeProgress(FormatUpdateProgressLabel("Downloading", vsCode, index, total));
+
+				installerPath = await this.vsCodeUpdateService.DownloadInstallerAsync(updateInfo, vsCode, ct);
+
+				if (this.IsDisposed || ct.IsCancellationRequested)
+				{
+					return null;
+				}
+
+				UpdateActiveVsCodeProgress(FormatUpdateProgressLabel("Updating", vsCode, index, total));
+
+				int exitCode = await LaunchVsCodeInstallerAsync(
+					installerPath,
+					updateInfo.IsSystemInstall,
+					updateInfo.InstallerKind,
+					ct);
+
+				return await HandleVsCodeInstallerResultAsync(vsCode, updateInfo, exitCode, ct);
+			}
+			catch (Exception ex) when (ex is OperationCanceledException or ObjectDisposedException)
+			{
+				Debug.WriteLine(ex);
+
+				return !this.IsDisposed && !ct.IsCancellationRequested
+					? $"{vsCode.Name}: {ex.Message}"
+					: null;
+			}
+			catch (Exception ex)
+			{
+				Debug.WriteLine(ex);
+
+				return $"{vsCode.Name}: {ex.Message}";
+			}
+			finally
+			{
+				VsCodeUpdateService.TryDeleteInstallerFile(installerPath);
+			}
+		}
+
+		/// <summary>
+		/// Opens a validated external download URL in the default browser for IDEs without a silent installer.
+		/// </summary>
+		/// <param name="vsCode">The target IDE instance.</param>
+		/// <param name="updateInfo">The update metadata containing the download URL.</param>
+		/// <returns>An error description when the URL is invalid or fails to open; otherwise <c>null</c>.</returns>
+		private static string? OpenExternalUpdateDownload(VsCodeInstance vsCode, VsCodeUpdateInfo updateInfo)
+		{
+			if (!VsCodeUpdateService.IsTrustedDownloadUrl(updateInfo.DownloadUrl, vsCode))
+			{
+				return $"{vsCode.Name}: Download URL is missing or untrusted.";
+			}
+
+			try
+			{
+				var psi = new ProcessStartInfo
+				{
+					FileName        = updateInfo.DownloadUrl,
+					UseShellExecute = true
+				};
+
+				using var process = Process.Start(psi);
+
+				return null;
+			}
+			catch (Exception ex) when (ex is Win32Exception or InvalidOperationException)
+			{
+				Debug.WriteLine(ex);
+
+				return $"{vsCode.Name}: {ex.Message}";
+			}
+		}
+
+		/// <summary>
+		/// Updates the active batch progress text in both the status bar and sidebar update button.
+		/// </summary>
+		/// <param name="progressLabel">The current progress message.</param>
+		private void UpdateActiveVsCodeProgress(string progressLabel)
+		{
+			if (this.IsDisposed)
+			{
+				return;
+			}
+
+			this.activeVsCodeUpdateStatus = progressLabel;
+			this.mainStatusLabel.Text     = progressLabel;
+
+			UpdateVsCodeInstallerButtonState();
+		}
+
+		/// <summary>
+		/// Formats a progress label for an IDE update step with an optional <c>(i/n)</c> suffix for multi-IDE batches.
+		/// </summary>
+		/// <param name="verb">The action verb (for example, <c>Downloading</c> or <c>Updating</c>).</param>
+		/// <param name="vsCode">The IDE currently being updated.</param>
+		/// <param name="index">The zero-based batch index.</param>
+		/// <param name="total">The total number of selected IDEs.</param>
+		/// <returns>The formatted progress string.</returns>
+		private static string FormatUpdateProgressLabel(string verb, VsCodeInstance vsCode, int index, int total)
+		{
+			return total > 1
+				? $"{verb} {vsCode.ShortName} ({index + 1}/{total})..."
+				: $"{verb} {vsCode.ShortName}...";
+		}
+
+		/// <summary>
+		/// Displays a single consolidated warning dialog summarizing all per-IDE failures from an update batch.
+		/// </summary>
+		/// <param name="failures">The collected per-IDE failure messages.</param>
+		/// <param name="cancellationToken">Cancellation token bound to application lifetime.</param>
+		private void ShowConsolidatedUpdateFailures(IReadOnlyList<string> failures, CancellationToken cancellationToken)
+		{
+			if (failures.Count == 0 || cancellationToken.IsCancellationRequested || this.Disposing || this.IsDisposed)
+			{
+				return;
+			}
+
+			string header  = failures.Count == 1
+				? "An IDE update could not be completed:"
+				: "Some IDE updates could not be completed:";
+			string details = string.Join(Environment.NewLine, failures.Select(f => $"- {f}"));
+			string message = $"{header}{Environment.NewLine}{Environment.NewLine}{details}";
+
+			_ = MessageBox.Show(this, message, "IDE Updates", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+		}
+
+		/// <summary>
+		/// Refreshes version metadata, dropdown display, action button tooltips, and update state after a successful installer exit,
+		/// or returns a failure message on non-zero failure exit codes.
+		/// </summary>
+		/// <param name="vsCode">The updated IDE instance.</param>
+		/// <param name="updateInfo">The update metadata applied by the installer.</param>
+		/// <param name="exitCode">The installer process exit code, or <c>-1</c> if UAC elevation was cancelled.</param>
+		/// <param name="cancellationToken">Cancellation token bound to application lifetime.</param>
+		/// <returns>An error description when <paramref name="exitCode"/> represents a failure; otherwise <c>null</c>.</returns>
+		private async Task<string?> HandleVsCodeInstallerResultAsync(
+			VsCodeInstance vsCode,
+			VsCodeUpdateInfo updateInfo,
+			int exitCode,
+			CancellationToken cancellationToken)
 		{
 			if (this.IsDisposed || cancellationToken.IsCancellationRequested)
 			{
-				return;
+				return null;
 			}
 
 			if (exitCode == 0)
@@ -2449,6 +2753,7 @@ namespace VSLauncher
 				if (!this.IsDisposed)
 				{
 					this.vsCodeUpdateStates[vsCode.Identifier] = refreshed;
+					this.selectVsCodeEdition.Invalidate();
 
 					if (string.Equals(GetSelectedVsCodeInstance()?.Identifier, vsCode.Identifier, StringComparison.OrdinalIgnoreCase))
 					{
@@ -2456,21 +2761,29 @@ namespace VSLauncher
 					}
 				}
 
-				return;
+				return null;
 			}
 
-			if (exitCode != -1)
-			{
-				_ = MessageBox.Show(this, $"{vsCode.ShortName} installer exited with code {exitCode}.", "VS Code Update", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-			}
+			return exitCode != -1
+				? $"{vsCode.Name}: Installer exited with code {exitCode}."
+				: null;
 		}
 
 		/// <summary>
-		/// Launches the downloaded VS Code installer and waits for completion, returning <c>-1</c> if the user cancelled a UAC prompt.
+		/// Launches the downloaded IDE installer and waits for completion, returning <c>-1</c> if the user cancelled a UAC prompt.
 		/// </summary>
-		private static async Task<int> LaunchVsCodeInstallerAsync(string installerPath, bool isSystemInstall, CancellationToken cancellationToken)
+		/// <param name="installerPath">Path to the downloaded installer executable.</param>
+		/// <param name="isSystemInstall"><c>true</c> for machine-wide installations requiring elevation.</param>
+		/// <param name="installerKind">The installer family determining silent arguments.</param>
+		/// <param name="cancellationToken">Cancellation token bound to application lifetime.</param>
+		/// <returns>The installer exit code, or <c>-1</c> when UAC elevation was declined.</returns>
+		private static async Task<int> LaunchVsCodeInstallerAsync(
+			string installerPath,
+			bool isSystemInstall,
+			VsCodeInstallerKind installerKind,
+			CancellationToken cancellationToken)
 		{
-			ProcessStartInfo startInfo = VsCodeUpdateService.BuildInstallerStartInfo(installerPath, isSystemInstall);
+			ProcessStartInfo startInfo = VsCodeUpdateService.BuildInstallerStartInfo(installerPath, isSystemInstall, installerKind);
 
 			try
 			{
@@ -2478,7 +2791,7 @@ namespace VSLauncher
 
 				if (process is null)
 				{
-					throw new InvalidOperationException("Failed to start the VS Code installer.");
+					throw new InvalidOperationException("Failed to start the IDE installer.");
 				}
 
 				await process.WaitForExitAsync(cancellationToken);
@@ -2574,25 +2887,200 @@ namespace VSLauncher
 			this.settingsToolStripMenuItem.Enabled     = hasSelection;
 			this.favoriteToolStripMenuItem.Enabled     = hasSelection;
 			this.explorerToolStripMenuItem.Enabled     = hasDiskPath;
-			this.openInVsCodeToolStripMenuItem.Enabled = hasDiskPath && this.ideManager.HasInstalled(IdeType.VsCode);
+			ConfigureOpenInMenu(hasDiskPath);
 		}
 
 		/// <summary>
-		/// Handles the Open in VS Code context menu item by opening the selected item's target path directly in VS Code.
+		/// Configures <see cref="openInVsCodeToolStripMenuItem"/> for 0, 1, or multiple installed VS Code-based IDEs.
+		/// </summary>
+		/// <param name="hasDiskPath"><c>true</c> when the selected item resolves to an existing path on disk.</param>
+		private void ConfigureOpenInMenu(bool hasDiskPath)
+		{
+			List<VsCodeInstance> instances = this.ideManager.GetInstances(IdeType.VsCode)
+				.OfType<VsCodeInstance>()
+				.ToList();
+
+			ClearOpenInDropDownItems();
+
+			if (instances.Count == 0)
+			{
+				this.openInVsCodeToolStripMenuItem.Text    = "Open in VS Code";
+				this.openInVsCodeToolStripMenuItem.Image   = null;
+				this.openInVsCodeToolStripMenuItem.Enabled = false;
+				this.openInVsCodeToolStripMenuItem.Tag     = null;
+
+				return;
+			}
+
+			if (instances.Count == 1)
+			{
+				VsCodeInstance singleInstance = instances[0];
+
+				this.openInVsCodeToolStripMenuItem.Text    = $"Open in {singleInstance.ShortName}";
+				this.openInVsCodeToolStripMenuItem.Image   = GetMenuIconBitmap(singleInstance);
+				this.openInVsCodeToolStripMenuItem.Enabled = hasDiskPath;
+				this.openInVsCodeToolStripMenuItem.Tag     = singleInstance;
+
+				return;
+			}
+
+			this.openInVsCodeToolStripMenuItem.Text    = "Open in";
+			this.openInVsCodeToolStripMenuItem.Image   = null;
+			this.openInVsCodeToolStripMenuItem.Enabled = hasDiskPath;
+			this.openInVsCodeToolStripMenuItem.Tag     = null;
+
+			PopulateOpenInDropDownItems(instances);
+			ThemeHelper.ApplyTheme(this.ctxMenu, this.currentTheme);
+		}
+
+		/// <summary>
+		/// Populates the "Open in" submenu with one item per installed VS Code-based IDE and bolds the active sidebar default.
+		/// </summary>
+		/// <param name="instances">The installed VS Code-based IDE instances to list.</param>
+		private void PopulateOpenInDropDownItems(IReadOnlyList<VsCodeInstance> instances)
+		{
+			string? defaultIdentifier = GetSelectedVsCodeInstance()?.Identifier;
+			Font boldFont             = GetOpenInDefaultBoldFont();
+
+			foreach (VsCodeInstance instance in instances)
+			{
+				bool isDefault = defaultIdentifier is not null
+					&& string.Equals(instance.Identifier, defaultIdentifier, StringComparison.OrdinalIgnoreCase);
+
+				var subItem = new ToolStripMenuItem(instance.Name)
+				{
+					Image = GetMenuIconBitmap(instance),
+					Tag   = instance
+				};
+
+				if (isDefault)
+				{
+					subItem.Font = boldFont;
+				}
+
+				subItem.Click += OpenInSubmenuItem_Click;
+				this.openInVsCodeToolStripMenuItem.DropDownItems.Add(subItem);
+			}
+		}
+
+		/// <summary>
+		/// Returns a cached 16x16 <see cref="Bitmap"/> icon for <paramref name="instance"/>, converting it once per identifier.
+		/// </summary>
+		/// <param name="instance">The IDE instance whose icon should be retrieved.</param>
+		/// <returns>A cached 16x16 <see cref="Bitmap"/>.</returns>
+		private Bitmap GetMenuIconBitmap(VsCodeInstance instance)
+		{
+			if (this.openInMenuIcons.TryGetValue(instance.Identifier, out Bitmap? cached))
+			{
+				return cached;
+			}
+
+			using Bitmap rawBitmap = instance.AppIcon.ToBitmap();
+			var scaledBitmap       = new Bitmap(rawBitmap, new Size(16, 16));
+
+			this.openInMenuIcons[instance.Identifier] = scaledBitmap;
+
+			return scaledBitmap;
+		}
+
+		/// <summary>
+		/// Returns a cached bold <see cref="Font"/> matching <see cref="openInVsCodeToolStripMenuItem"/> for highlighting the default submenu item.
+		/// </summary>
+		/// <returns>A cached bold <see cref="Font"/>.</returns>
+		private Font GetOpenInDefaultBoldFont()
+		{
+			Font baseFont = this.openInVsCodeToolStripMenuItem.Font;
+
+			if (this.openInDefaultItemBoldFont is null
+				|| !string.Equals(this.openInDefaultItemBoldFont.FontFamily.Name, baseFont.FontFamily.Name, StringComparison.OrdinalIgnoreCase)
+				|| this.openInDefaultItemBoldFont.SizeInPoints != baseFont.SizeInPoints)
+			{
+				this.openInDefaultItemBoldFont?.Dispose();
+				this.openInDefaultItemBoldFont = new Font(baseFont, FontStyle.Bold);
+			}
+
+			return this.openInDefaultItemBoldFont;
+		}
+
+		/// <summary>
+		/// Unhooks, disposes, and clears any dynamically created items under <see cref="openInVsCodeToolStripMenuItem"/> without disposing cached icon bitmaps.
+		/// </summary>
+		private void ClearOpenInDropDownItems()
+		{
+			List<ToolStripItem> existing = this.openInVsCodeToolStripMenuItem.DropDownItems
+				.Cast<ToolStripItem>()
+				.ToList();
+
+			this.openInVsCodeToolStripMenuItem.DropDownItems.Clear();
+
+			foreach (ToolStripItem item in existing)
+			{
+				item.Click -= OpenInSubmenuItem_Click;
+				item.Image  = null;
+				item.Font   = null;
+				item.Dispose();
+			}
+		}
+
+		/// <summary>
+		/// Disposes and clears all cached 16x16 bitmaps in <see cref="openInMenuIcons"/>.
+		/// </summary>
+		private void ClearOpenInMenuIcons()
+		{
+			if (this.openInVsCodeToolStripMenuItem is not null)
+			{
+				this.openInVsCodeToolStripMenuItem.Image = null;
+				ClearOpenInDropDownItems();
+			}
+
+			foreach (Bitmap bitmap in this.openInMenuIcons.Values)
+			{
+				bitmap.Dispose();
+			}
+
+			this.openInMenuIcons.Clear();
+		}
+
+		/// <summary>
+		/// Handles the Open in context menu item by opening the selected item's target path when no submenu is shown.
 		/// </summary>
 		/// <param name="sender">The sender.</param>
 		/// <param name="e">The event parameters.</param>
 		private void openInVsCodeToolStripMenuItem_Click(object? sender, EventArgs e)
+		{
+			if (this.openInVsCodeToolStripMenuItem.HasDropDownItems)
+			{
+				return;
+			}
+
+			VsCodeInstance? vsCode = (this.openInVsCodeToolStripMenuItem.Tag as VsCodeInstance)
+				?? GetSelectedVsCodeInstance();
+
+			OpenSelectedItemInVsCodeInstance(vsCode);
+		}
+
+		/// <summary>
+		/// Handles clicking a specific IDE entry inside the "Open in" submenu.
+		/// </summary>
+		/// <param name="sender">The clicked submenu item.</param>
+		/// <param name="e">The event parameters.</param>
+		private void OpenInSubmenuItem_Click(object? sender, EventArgs e)
+		{
+			OpenSelectedItemInVsCodeInstance((sender as ToolStripMenuItem)?.Tag as VsCodeInstance);
+		}
+
+		/// <summary>
+		/// Resolves the target disk path for the currently selected item and opens it in <paramref name="instance"/>.
+		/// </summary>
+		/// <param name="instance">The VS Code-based IDE instance to launch.</param>
+		private void OpenSelectedItemInVsCodeInstance(VsCodeInstance? instance)
 		{
 			if (this.olvFiles.SelectedObject is not VsItem item || !HasExistingDiskPath(item))
 			{
 				return;
 			}
 
-			VsCodeInstance? vsCode = (this.selectVsCodeEdition.SelectedIdeInstance as VsCodeInstance)
-				?? (this.ideManager.GetProvider(IdeType.VsCode)?.DefaultInstance as VsCodeInstance);
-
-			if (vsCode is null)
+			if (instance is null)
 			{
 				_ = MessageBox.Show(this, "Visual Studio Code is not installed.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
 
@@ -2609,7 +3097,7 @@ namespace VSLauncher
 				return;
 			}
 
-			vsCode.OpenPath(targetPath);
+			instance.OpenPath(targetPath);
 		}
 
 		/// <summary>

@@ -85,6 +85,46 @@ namespace VSLauncher.Ide
 			return entries;
 		}
 
+		/// <inheritdoc/>
+		public IReadOnlyList<string> GetDirectories(string? path)
+		{
+			if (string.IsNullOrWhiteSpace(path) || !Directory.Exists(path))
+			{
+				return Array.Empty<string>();
+			}
+
+			try
+			{
+				return Directory.GetDirectories(path);
+			}
+			catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException or SecurityException)
+			{
+				Debug.WriteLine(ex);
+
+				return Array.Empty<string>();
+			}
+		}
+
+		/// <inheritdoc/>
+		public IReadOnlyList<string> GetFiles(string? path, string searchPattern)
+		{
+			if (string.IsNullOrWhiteSpace(path) || string.IsNullOrWhiteSpace(searchPattern) || !Directory.Exists(path))
+			{
+				return Array.Empty<string>();
+			}
+
+			try
+			{
+				return Directory.GetFiles(path, searchPattern);
+			}
+			catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException or SecurityException)
+			{
+				Debug.WriteLine(ex);
+
+				return Array.Empty<string>();
+			}
+		}
+
 		/// <summary>
 		/// Reads Uninstall registry entries from a specific hive and registry view.
 		/// </summary>

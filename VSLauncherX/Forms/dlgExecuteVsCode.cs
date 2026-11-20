@@ -18,6 +18,7 @@ namespace VSLauncher
 		private const string WorkspaceFileFilter = "VS Code Workspaces (*.code-workspace)|*.code-workspace|All files (*.*)|*.*";
 
 		private readonly IdeManager ideManager;
+		private readonly string? defaultEditionIdentifier;
 		private readonly VsOptions pendingBeforeAfterOptions;
 		private string? missingEditionIdentifier;
 		private string? initialPath;
@@ -28,7 +29,8 @@ namespace VSLauncher
 		/// </summary>
 		/// <param name="item">The <see cref="VsCodeProject"/> or <see cref="VsFolder"/> item to configure.</param>
 		/// <param name="ideManager">The IDE manager providing installed VS Code editions and profiles.</param>
-		public dlgExecuteVsCode(VsItem item, IdeManager ideManager)
+		/// <param name="defaultEditionIdentifier">Optional default VS Code edition identifier from the sidebar selector.</param>
+		public dlgExecuteVsCode(VsItem item, IdeManager ideManager, string? defaultEditionIdentifier = null)
 		{
 			ArgumentNullException.ThrowIfNull(item);
 			ArgumentNullException.ThrowIfNull(ideManager);
@@ -38,6 +40,7 @@ namespace VSLauncher
 
 			this.Item                      = item;
 			this.ideManager                = ideManager;
+			this.defaultEditionIdentifier  = defaultEditionIdentifier;
 			this.pendingBeforeAfterOptions = new VsOptions
 			{
 				RunBefore = item.RunBefore?.Clone(),
@@ -190,7 +193,7 @@ namespace VSLauncher
 				return;
 			}
 
-			string? defaultEditionId = this.ideManager.ResolvePreferredIdentifier(IdeType.VsCode);
+			string? defaultEditionId = this.ideManager.ResolvePreferredIdentifier(IdeType.VsCode, this.defaultEditionIdentifier);
 
 			if (!string.IsNullOrWhiteSpace(defaultEditionId))
 			{

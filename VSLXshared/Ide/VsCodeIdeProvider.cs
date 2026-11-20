@@ -13,21 +13,16 @@ using VSLauncher.Helpers;
 namespace VSLauncher.Ide
 {
 	/// <summary>
-	/// Provides Visual Studio Code discovery, <c>state.vscdb</c> MRU loading, and CLI / <c>cli.js --wait</c> launch preparation.
+	/// Provides Visual Studio Code and VS Code-based fork discovery, <c>state.vscdb</c> MRU loading, and CLI / <c>cli.js --wait</c> launch preparation.
 	/// </summary>
 	public class VsCodeIdeProvider : IIdeProvider
 	{
-		private const string VsCodeDownloadUrl        = "https://code.visualstudio.com/download";
-		private const string RecentlyOpenedKey        = "history.recentlyOpenedPathsList";
-		private const string StableExeName            = "Code.exe";
-		private const string InsidersExeName          = "Code - Insiders.exe";
-		private const string StableIdentifierUser     = "vscode-stable-user";
-		private const string StableIdentifierSystem   = "vscode-stable-system";
-		private const string InsidersIdentifierUser   = "vscode-insiders-user";
-		private const string InsidersIdentifierSystem = "vscode-insiders-system";
+		private const string VsCodeDownloadUrl = "https://code.visualstudio.com/download";
+		private const string RecentlyOpenedKey = "history.recentlyOpenedPathsList";
 
 		private readonly IVsCodeEnvironment environment;
-		private readonly IReadOnlyList<VsCodeInstance> instances;
+		private readonly CustomVsCodeIdeStore customStore;
+		private volatile IReadOnlyList<VsCodeInstance> instances;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="VsCodeIdeProvider"/> class using local Windows discovery.
@@ -40,11 +35,13 @@ namespace VSLauncher.Ide
 		/// Initializes a new instance of the <see cref="VsCodeIdeProvider"/> class using the supplied environment abstraction.
 		/// </summary>
 		/// <param name="environment">The host environment abstraction.</param>
-		public VsCodeIdeProvider(IVsCodeEnvironment environment)
+		/// <param name="customStore">Optional custom IDE store used to load manually registered IDEs.</param>
+		public VsCodeIdeProvider(IVsCodeEnvironment environment, CustomVsCodeIdeStore? customStore = null)
 		{
 			ArgumentNullException.ThrowIfNull(environment);
 
 			this.environment = environment;
+			this.customStore = customStore ?? new CustomVsCodeIdeStore(environment);
 			this.instances   = DiscoverInstances();
 		}
 
@@ -98,8 +95,20 @@ namespace VSLauncher.Ide
 		{
 			get
 			{
-				return this.instances.FirstOrDefault(i => !i.IsInsiders) ?? this.instances.FirstOrDefault();
+				IReadOnlyList<VsCodeInstance> current = this.instances;
+
+				return current.FirstOrDefault(i => i.Identifier.StartsWith("vscode-stable-", StringComparison.OrdinalIgnoreCase))
+					?? current.FirstOrDefault(i => i.Identifier.StartsWith("vscode-insiders-", StringComparison.OrdinalIgnoreCase))
+					?? current.FirstOrDefault();
 			}
+		}
+
+		/// <summary>
+		/// Re-runs discovery across standard paths, generic program directories, registry, <c>PATH</c>, and the custom IDE store, replacing the cached instance list atomically.
+		/// </summary>
+		public void Refresh()
+		{
+			this.instances = DiscoverInstances();
 		}
 
 		/// <inheritdoc/>
@@ -244,7 +253,7 @@ namespace VSLauncher.Ide
 		}
 
 		/// <summary>
-		/// Probes all six Windows discovery sources in priority order and materializes <see cref="VsCodeInstance"/> entries.
+		/// Probes all five Windows discovery sources in priority order and materializes <see cref="VsCodeInstance"/> entries.
 		/// </summary>
 		/// <returns>A read-only list of discovered installations.</returns>
 		private IReadOnlyList<VsCodeInstance> DiscoverInstances()
@@ -253,48 +262,76 @@ namespace VSLauncher.Ide
 			string programFiles   = this.environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
 			string programFiles86 = this.environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
 			string appData        = this.environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-			var state             = new DiscoveryState(appData);
+			var state             = new DiscoveryState(appData, programFiles, programFiles86);
 
-			TryAddStandardCandidate(state, localAppData, @"Programs\Microsoft VS Code", StableExeName, isInsiders: false, InstallScope.User);
-			TryAddStandardCandidate(state, programFiles, "Microsoft VS Code", StableExeName, isInsiders: false, InstallScope.System);
-			TryAddStandardCandidate(state, programFiles86, "Microsoft VS Code", StableExeName, isInsiders: false, InstallScope.System);
-			TryAddStandardCandidate(state, localAppData, @"Programs\Microsoft VS Code Insiders", InsidersExeName, isInsiders: true, InstallScope.User);
-			TryAddStandardCandidate(state, programFiles, "Microsoft VS Code Insiders", InsidersExeName, isInsiders: true, InstallScope.System);
-
+			DiscoverKnownStandardCandidates(state, localAppData, programFiles, programFiles86);
+			DiscoverGenericProgramDirectories(state, localAppData, programFiles, programFiles86);
 			DiscoverFromRegistry(state);
 			DiscoverFromPath(state);
+			DiscoverFromCustomStore(state);
 
-			bool hasBothStableScopes   = HasBothScopes(state.Candidates, isInsiders: false);
-			bool hasBothInsidersScopes = HasBothScopes(state.Candidates, isInsiders: true);
-			var result                 = new List<VsCodeInstance>(state.Candidates.Count);
-
-			foreach (DiscoveredCandidate candidate in state.Candidates)
-			{
-				bool hasBothScopes = candidate.IsInsiders ? hasBothInsidersScopes : hasBothStableScopes;
-				string displayName = ResolveDisplayName(candidate.IsInsiders, candidate.Scope, hasBothScopes);
-
-				result.Add(new VsCodeInstance(
-					displayName,
-					candidate.Version,
-					candidate.CanonicalPath,
-					candidate.Identifier,
-					candidate.UserDataDirectory,
-					candidate.IsInsiders,
-					this.environment));
-			}
-
-			return result;
+			return BuildInstances(state.Candidates);
 		}
 
 		/// <summary>
-		/// Attempts to register a standard User or System installation candidate if its root folder and executable exist.
+		/// Probes standard per-user and machine-wide directories for every product in <see cref="VsCodeProductDescriptor.KnownProducts"/>.
 		/// </summary>
-		private void TryAddStandardCandidate(
+		/// <param name="state">The shared discovery state.</param>
+		/// <param name="localAppData">The resolved <c>%LocalAppData%</c> path.</param>
+		/// <param name="programFiles">The resolved <c>%ProgramFiles%</c> path.</param>
+		/// <param name="programFiles86">The resolved <c>%ProgramFiles(x86)%</c> path.</param>
+		private void DiscoverKnownStandardCandidates(
+			DiscoveryState state,
+			string? localAppData,
+			string? programFiles,
+			string? programFiles86)
+		{
+			foreach (VsCodeProductDescriptor descriptor in VsCodeProductDescriptor.KnownProducts)
+			{
+				AddStandardCandidatesForDescriptor(state, descriptor, localAppData, programFiles, programFiles86);
+			}
+		}
+
+		/// <summary>
+		/// Probes User and System standard subdirectories for a single <see cref="VsCodeProductDescriptor"/>.
+		/// </summary>
+		/// <param name="state">The shared discovery state.</param>
+		/// <param name="descriptor">The product descriptor to probe.</param>
+		/// <param name="localAppData">The resolved <c>%LocalAppData%</c> path.</param>
+		/// <param name="programFiles">The resolved <c>%ProgramFiles%</c> path.</param>
+		/// <param name="programFiles86">The resolved <c>%ProgramFiles(x86)%</c> path.</param>
+		private void AddStandardCandidatesForDescriptor(
+			DiscoveryState state,
+			VsCodeProductDescriptor descriptor,
+			string? localAppData,
+			string? programFiles,
+			string? programFiles86)
+		{
+			foreach (string relativeDir in descriptor.UserRelativeDirs)
+			{
+				TryAddStandardDirectoryCandidates(state, localAppData, relativeDir, descriptor, InstallScope.User);
+			}
+
+			foreach (string relativeDir in descriptor.SystemRelativeDirs)
+			{
+				TryAddStandardDirectoryCandidates(state, programFiles, relativeDir, descriptor, InstallScope.System);
+				TryAddStandardDirectoryCandidates(state, programFiles86, relativeDir, descriptor, InstallScope.System);
+			}
+		}
+
+		/// <summary>
+		/// Probes known executable filenames inside a standard root-relative installation directory.
+		/// </summary>
+		/// <param name="state">The shared discovery state.</param>
+		/// <param name="rootFolder">The base special folder path.</param>
+		/// <param name="relativeSubDir">The product-specific subdirectory under <paramref name="rootFolder"/>.</param>
+		/// <param name="descriptor">The product descriptor.</param>
+		/// <param name="scope">The installation scope.</param>
+		private void TryAddStandardDirectoryCandidates(
 			DiscoveryState state,
 			string? rootFolder,
 			string relativeSubDir,
-			string exeName,
-			bool isInsiders,
+			VsCodeProductDescriptor descriptor,
 			InstallScope scope)
 		{
 			if (string.IsNullOrWhiteSpace(rootFolder))
@@ -302,36 +339,145 @@ namespace VSLauncher.Ide
 				return;
 			}
 
-			string candidatePath = Path.Combine(rootFolder, relativeSubDir, exeName);
+			string installDir = Path.Combine(rootFolder, relativeSubDir);
 
-			TryAddCandidate(state, candidatePath, isInsiders, scope);
+			TryAddDescriptorExecutablesInDir(state, installDir, descriptor, scope);
 		}
 
 		/// <summary>
-		/// Probes Windows Uninstall registry entries for custom VS Code installations.
+		/// Probes immediate subdirectories of standard Windows program roots for VS Code-based forks containing both <c>product.json</c> and <c>cli.js</c>.
 		/// </summary>
-		private void DiscoverFromRegistry(DiscoveryState state)
+		/// <param name="state">The shared discovery state.</param>
+		/// <param name="localAppData">The resolved <c>%LocalAppData%</c> path.</param>
+		/// <param name="programFiles">The resolved <c>%ProgramFiles%</c> path.</param>
+		/// <param name="programFiles86">The resolved <c>%ProgramFiles(x86)%</c> path.</param>
+		private void DiscoverGenericProgramDirectories(
+			DiscoveryState state,
+			string? localAppData,
+			string? programFiles,
+			string? programFiles86)
 		{
-			IReadOnlyList<VsCodeUninstallEntry> entries = this.environment.GetUninstallEntries();
-
-			foreach (VsCodeUninstallEntry entry in entries)
+			if (!string.IsNullOrWhiteSpace(localAppData))
 			{
-				if (!entry.DisplayName.StartsWith("Microsoft Visual Studio Code", StringComparison.OrdinalIgnoreCase))
+				ProbeProgramRootDirectory(state, Path.Combine(localAppData, "Programs"), InstallScope.User);
+			}
+
+			ProbeProgramRootDirectory(state, programFiles, InstallScope.System);
+			ProbeProgramRootDirectory(state, programFiles86, InstallScope.System);
+		}
+
+		/// <summary>
+		/// Enumerates immediate subdirectories under <paramref name="rootDirectory"/> and probes each for a valid VS Code layout.
+		/// </summary>
+		/// <param name="state">The shared discovery state.</param>
+		/// <param name="rootDirectory">The parent program directory to inspect.</param>
+		/// <param name="scope">The scope assigned to discovered installations under <paramref name="rootDirectory"/>.</param>
+		private void ProbeProgramRootDirectory(DiscoveryState state, string? rootDirectory, InstallScope scope)
+		{
+			if (string.IsNullOrWhiteSpace(rootDirectory))
+			{
+				return;
+			}
+
+			IReadOnlyList<string> subDirs = GetDirectoriesSafe(rootDirectory);
+
+			foreach (string subDir in subDirs.OrderBy(d => d, StringComparer.OrdinalIgnoreCase))
+			{
+				if (!string.IsNullOrWhiteSpace(subDir))
 				{
-					continue;
+					TryAddGenericInstallDirectory(state, subDir, scope);
 				}
-
-				string stablePath   = Path.Combine(entry.InstallLocation, StableExeName);
-				string insidersPath = Path.Combine(entry.InstallLocation, InsidersExeName);
-
-				TryAddCandidate(state, stablePath, isInsiders: false, InstallScope.Custom);
-				TryAddCandidate(state, insidersPath, isInsiders: true, InstallScope.Custom);
 			}
 		}
 
 		/// <summary>
-		/// Probes directories on <c>PATH</c> for <c>code.cmd</c> / <c>code-insiders.cmd</c> and resolves their sibling executables.
+		/// Validates that <paramref name="installDir"/> contains both <c>resources\app\product.json</c> and <c>resources\app\out\cli.js</c>, resolves its main executable, and records it.
 		/// </summary>
+		/// <param name="state">The shared discovery state.</param>
+		/// <param name="installDir">The candidate installation directory.</param>
+		/// <param name="scope">The installation scope.</param>
+		/// <returns><c>true</c> if a candidate was added; otherwise <c>false</c>.</returns>
+		private bool TryAddGenericInstallDirectory(DiscoveryState state, string installDir, InstallScope scope)
+		{
+			string productJsonPath = Path.Combine(installDir, "resources", "app", "product.json");
+			string cliJsPath       = Path.Combine(installDir, "resources", "app", "out", "cli.js");
+
+			if (!this.environment.FileExists(productJsonPath) || !this.environment.FileExists(cliJsPath))
+			{
+				return false;
+			}
+
+			JObject? productJson = VsCodeProductDescriptor.TryReadProductJson(this.environment, productJsonPath);
+
+			if (productJson is null)
+			{
+				return false;
+			}
+
+			string? executablePath = FindMainExecutableInDirectory(installDir, productJson);
+
+			if (string.IsNullOrWhiteSpace(executablePath))
+			{
+				return false;
+			}
+
+			VsCodeProductDescriptor? descriptor = ResolveDescriptorFromProductJson(productJson, executablePath);
+
+			if (descriptor is null)
+			{
+				return false;
+			}
+
+			return TryAddCandidate(state, executablePath, descriptor, scope, isCustom: false);
+		}
+
+		/// <summary>
+		/// Probes Windows Uninstall registry entries for known VS Code products and generic forks with <c>product.json</c> and <c>cli.js</c>.
+		/// </summary>
+		/// <param name="state">The shared discovery state.</param>
+		private void DiscoverFromRegistry(DiscoveryState state)
+		{
+			IReadOnlyList<VsCodeUninstallEntry> entries = this.environment.GetUninstallEntries() ?? Array.Empty<VsCodeUninstallEntry>();
+
+			foreach (VsCodeUninstallEntry entry in entries)
+			{
+				ProcessUninstallEntry(state, entry);
+			}
+		}
+
+		/// <summary>
+		/// Inspects a single Windows Uninstall entry by known display-name prefix or verified VS Code directory layout.
+		/// </summary>
+		/// <param name="state">The shared discovery state.</param>
+		/// <param name="entry">The uninstall registry entry.</param>
+		private void ProcessUninstallEntry(DiscoveryState state, VsCodeUninstallEntry? entry)
+		{
+			if (entry is null || string.IsNullOrWhiteSpace(entry.InstallLocation))
+			{
+				return;
+			}
+
+			IReadOnlyList<VsCodeProductDescriptor> matchingDescriptors = FindMatchingDescriptorsByUninstallPrefix(entry.DisplayName);
+			bool addedKnown                                            = false;
+
+			foreach (VsCodeProductDescriptor descriptor in matchingDescriptors)
+			{
+				if (TryAddDescriptorExecutablesInDir(state, entry.InstallLocation, descriptor, InstallScope.Custom))
+				{
+					addedKnown = true;
+				}
+			}
+
+			if (!addedKnown)
+			{
+				TryAddGenericInstallDirectory(state, entry.InstallLocation, InstallScope.Custom);
+			}
+		}
+
+		/// <summary>
+		/// Probes directories on <c>PATH</c> for known CLI wrapper scripts and resolves their parent executables.
+		/// </summary>
+		/// <param name="state">The shared discovery state.</param>
 		private void DiscoverFromPath(DiscoveryState state)
 		{
 			string? pathValue = this.environment.GetEnvironmentVariable("PATH");
@@ -347,25 +493,41 @@ namespace VSLauncher.Ide
 			{
 				string dir = rawEntry.Trim().Trim('"');
 
-				if (string.IsNullOrWhiteSpace(dir))
+				if (!string.IsNullOrWhiteSpace(dir))
 				{
-					continue;
+					ProbePathDirectory(state, dir);
 				}
+			}
+		}
 
-				TryAddFromPathCommand(state, dir, "code.cmd", StableExeName, isInsiders: false);
-				TryAddFromPathCommand(state, dir, "code-insiders.cmd", InsidersExeName, isInsiders: true);
+		/// <summary>
+		/// Checks a single <c>PATH</c> directory for any known product's CLI wrapper scripts.
+		/// </summary>
+		/// <param name="state">The shared discovery state.</param>
+		/// <param name="binDirectory">The directory entry from <c>PATH</c>.</param>
+		private void ProbePathDirectory(DiscoveryState state, string binDirectory)
+		{
+			foreach (VsCodeProductDescriptor descriptor in VsCodeProductDescriptor.KnownProducts)
+			{
+				foreach (string cmdFileName in descriptor.PathCommandNames)
+				{
+					TryAddFromPathCommand(state, binDirectory, cmdFileName, descriptor);
+				}
 			}
 		}
 
 		/// <summary>
 		/// Checks a single <c>PATH</c> directory for a CLI wrapper script and adds its parent directory executable if present.
 		/// </summary>
+		/// <param name="state">The shared discovery state.</param>
+		/// <param name="binDirectory">The directory containing CLI scripts.</param>
+		/// <param name="cmdFileName">The wrapper script filename.</param>
+		/// <param name="descriptor">The associated product descriptor.</param>
 		private void TryAddFromPathCommand(
 			DiscoveryState state,
 			string binDirectory,
 			string cmdFileName,
-			string exeFileName,
-			bool isInsiders)
+			VsCodeProductDescriptor descriptor)
 		{
 			try
 			{
@@ -376,9 +538,22 @@ namespace VSLauncher.Ide
 					return;
 				}
 
-				string siblingExePath = Path.Combine(binDirectory, "..", exeFileName);
+				foreach (string exeFileName in descriptor.ExecutableNames)
+				{
+					string siblingExePath = Path.Combine(binDirectory, "..", exeFileName);
 
-				TryAddCandidate(state, siblingExePath, isInsiders, InstallScope.Custom);
+					if (TryAddCandidate(state, siblingExePath, descriptor, InstallScope.Custom, isCustom: false))
+					{
+						return;
+					}
+
+					string appParentExePath = Path.Combine(binDirectory, "..", "..", "..", exeFileName);
+
+					if (TryAddCandidate(state, appParentExePath, descriptor, InstallScope.Custom, isCustom: false))
+					{
+						return;
+					}
+				}
 			}
 			catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
 			{
@@ -387,48 +562,204 @@ namespace VSLauncher.Ide
 		}
 
 		/// <summary>
-		/// Validates, canonicalizes, deduplicates, and records a discovered executable candidate.
+		/// Loads manually registered entries from <see cref="CustomVsCodeIdeStore"/> without mutating missing entries, deduplicates against auto-discovered installs, and applies user overrides.
 		/// </summary>
-		private void TryAddCandidate(
-			DiscoveryState state,
-			string candidatePath,
-			bool isInsiders,
-			InstallScope scope)
+		/// <param name="state">The shared discovery state.</param>
+		private void DiscoverFromCustomStore(DiscoveryState state)
 		{
-			string? canonicalPath = TryGetCanonicalPath(candidatePath);
+			IReadOnlyList<CustomVsCodeIdeEntry> entries = this.customStore.Load() ?? Array.Empty<CustomVsCodeIdeEntry>();
+
+			foreach (CustomVsCodeIdeEntry entry in entries)
+			{
+				AddCustomStoreEntry(state, entry);
+			}
+		}
+
+		/// <summary>
+		/// Validates, inspects, and records a single entry loaded from <see cref="CustomVsCodeIdeStore"/>.
+		/// </summary>
+		/// <param name="state">The shared discovery state.</param>
+		/// <param name="entry">The persisted custom IDE entry.</param>
+		private void AddCustomStoreEntry(DiscoveryState state, CustomVsCodeIdeEntry? entry)
+		{
+			if (entry is null || string.IsNullOrWhiteSpace(entry.ExecutablePath))
+			{
+				return;
+			}
+
+			string? canonicalPath = TryGetCanonicalPath(entry.ExecutablePath);
 
 			if (string.IsNullOrWhiteSpace(canonicalPath) || !this.environment.FileExists(canonicalPath))
 			{
 				return;
 			}
 
-			if (!state.SeenPaths.Add(canonicalPath))
-			{
-				return;
-			}
+			string installDir                  = Path.GetDirectoryName(canonicalPath) ?? string.Empty;
+			VsCodeProductDescriptor descriptor = ResolveCustomStoreDescriptor(installDir, canonicalPath, entry);
+			string? userDataOverride           = string.IsNullOrWhiteSpace(entry.UserDataDirectory)
+				? null
+				: TryGetCanonicalPath(entry.UserDataDirectory.Trim()) ?? entry.UserDataDirectory.Trim();
 
-			string identifier = AssignIdentifier(isInsiders, scope, canonicalPath, state.UsedIdentifiers);
-			string version    = ResolveVersion(canonicalPath);
-			string userData   = string.IsNullOrWhiteSpace(state.AppData)
-				? string.Empty
-				: Path.Combine(state.AppData, isInsiders ? "Code - Insiders" : "Code");
-
-			state.Candidates.Add(new DiscoveredCandidate(canonicalPath, version, userData, isInsiders, scope, identifier));
+			TryAddCandidate(state, canonicalPath, descriptor, InstallScope.Custom, isCustom: true, userDataOverride: userDataOverride);
 		}
 
 		/// <summary>
-		/// Assigns a deterministic identifier matching the edition and scope, falling back to a path hash for custom installs.
+		/// Resolves a descriptor for a custom store executable using <c>product.json</c> when present and applying user display-name overrides.
+		/// </summary>
+		/// <param name="installDir">The directory containing the executable.</param>
+		/// <param name="canonicalPath">The canonical executable path.</param>
+		/// <param name="entry">The persisted custom IDE entry.</param>
+		/// <returns>The effective product descriptor.</returns>
+		private VsCodeProductDescriptor ResolveCustomStoreDescriptor(
+			string installDir,
+			string canonicalPath,
+			CustomVsCodeIdeEntry entry)
+		{
+			VsCodeProductDescriptor? parsed        = string.IsNullOrWhiteSpace(installDir)
+				? null
+				: ResolveDescriptorFromProductJson(installDir, canonicalPath);
+			VsCodeProductDescriptor baseDescriptor = parsed ?? CreateFallbackCustomDescriptor(canonicalPath, entry.DisplayName);
+
+			if (string.IsNullOrWhiteSpace(entry.DisplayName))
+			{
+				return baseDescriptor;
+			}
+
+			string customName = entry.DisplayName.Trim();
+
+			return baseDescriptor with
+			{
+				DisplayName = customName,
+				ShortName   = customName
+			};
+		}
+
+		/// <summary>
+		/// Probes all executable filenames defined on <paramref name="descriptor"/> within <paramref name="installDir"/>.
+		/// </summary>
+		/// <param name="state">The shared discovery state.</param>
+		/// <param name="installDir">The installation directory to probe.</param>
+		/// <param name="descriptor">The product descriptor.</param>
+		/// <param name="scope">The installation scope.</param>
+		/// <returns><c>true</c> if at least one candidate was added; otherwise <c>false</c>.</returns>
+		private bool TryAddDescriptorExecutablesInDir(
+			DiscoveryState state,
+			string installDir,
+			VsCodeProductDescriptor descriptor,
+			InstallScope scope)
+		{
+			bool added = false;
+
+			foreach (string exeName in descriptor.ExecutableNames)
+			{
+				string candidatePath = Path.Combine(installDir, exeName);
+
+				if (TryAddCandidate(state, candidatePath, descriptor, scope, isCustom: false))
+				{
+					added = true;
+				}
+			}
+
+			return added;
+		}
+
+		/// <summary>
+		/// Validates, canonicalizes, deduplicates, and records a discovered executable candidate.
+		/// </summary>
+		/// <param name="state">The shared discovery state.</param>
+		/// <param name="candidatePath">The candidate executable path.</param>
+		/// <param name="descriptor">The product descriptor.</param>
+		/// <param name="scope">The installation scope.</param>
+		/// <param name="isCustom">Whether the entry originated from <see cref="CustomVsCodeIdeStore"/>.</param>
+		/// <param name="userDataOverride">Optional explicit user data directory override.</param>
+		/// <returns><c>true</c> if the candidate was added; otherwise <c>false</c>.</returns>
+		private bool TryAddCandidate(
+			DiscoveryState state,
+			string candidatePath,
+			VsCodeProductDescriptor descriptor,
+			InstallScope scope,
+			bool isCustom,
+			string? userDataOverride = null)
+		{
+			string? canonicalPath = TryGetCanonicalPath(candidatePath);
+
+			if (string.IsNullOrWhiteSpace(canonicalPath) || !this.environment.FileExists(canonicalPath))
+			{
+				return false;
+			}
+
+			if (!state.SeenPaths.Add(canonicalPath))
+			{
+				return false;
+			}
+
+			string identifier    = AssignIdentifier(descriptor, scope, canonicalPath, state.UsedIdentifiers);
+			string version       = ResolveVersion(canonicalPath);
+			string userData      = ResolveCandidateUserDataDirectory(state.AppData, descriptor, userDataOverride);
+			bool isSystemInstall = scope == InstallScope.System
+				|| IsPathUnderDirectory(canonicalPath, state.ProgramFiles)
+				|| IsPathUnderDirectory(canonicalPath, state.ProgramFiles86);
+
+			state.Candidates.Add(new DiscoveredCandidate(
+				canonicalPath,
+				version,
+				userData,
+				descriptor,
+				scope,
+				identifier)
+			{
+				IsSystemInstall = isSystemInstall,
+				IsCustom        = isCustom
+			});
+
+			return true;
+		}
+
+		/// <summary>
+		/// Materializes final <see cref="VsCodeInstance"/> objects with per-flavor User/System display-name disambiguation.
+		/// </summary>
+		/// <param name="candidates">The ordered list of discovered candidates.</param>
+		/// <returns>A read-only list of materialized instances.</returns>
+		private IReadOnlyList<VsCodeInstance> BuildInstances(List<DiscoveredCandidate> candidates)
+		{
+			var result = new List<VsCodeInstance>(candidates.Count);
+
+			foreach (DiscoveredCandidate candidate in candidates)
+			{
+				bool hasBothScopes = candidate.Scope != InstallScope.Custom
+					&& HasBothScopesForFlavor(candidates, candidate.Descriptor.FlavorId);
+				string displayName = ResolveDisplayName(candidate.Descriptor, candidate.Scope, hasBothScopes);
+
+				result.Add(new VsCodeInstance(
+					displayName,
+					candidate.Version,
+					candidate.CanonicalPath,
+					candidate.Identifier,
+					candidate.UserDataDirectory,
+					candidate.Descriptor,
+					this.environment)
+				{
+					IsSystemInstall = candidate.IsSystemInstall,
+					IsCustom        = candidate.IsCustom
+				});
+			}
+
+			return result;
+		}
+
+		/// <summary>
+		/// Assigns a deterministic identifier matching the flavor and scope, falling back to a path hash for custom or duplicate installs.
 		/// </summary>
 		private static string AssignIdentifier(
-			bool isInsiders,
+			VsCodeProductDescriptor descriptor,
 			InstallScope scope,
 			string canonicalPath,
 			HashSet<string> usedIdentifiers)
 		{
 			string? preferred = scope switch
 			{
-				InstallScope.User   => isInsiders ? InsidersIdentifierUser : StableIdentifierUser,
-				InstallScope.System => isInsiders ? InsidersIdentifierSystem : StableIdentifierSystem,
+				InstallScope.User   => $"{descriptor.FlavorId}-user",
+				InstallScope.System => $"{descriptor.FlavorId}-system",
 				_                   => null
 			};
 
@@ -442,6 +773,325 @@ namespace VSLauncher.Ide
 			usedIdentifiers.Add(customId);
 
 			return customId;
+		}
+
+		/// <summary>
+		/// Resolves a product descriptor from <c>product.json</c> and <c>cli.js</c>, matching a known built-in product when applicable.
+		/// </summary>
+		private VsCodeProductDescriptor? ResolveDescriptorFromProductJson(string installDir, string executablePath)
+		{
+			VsCodeProductDescriptor? parsed = VsCodeProductDescriptor.TryCreateFromProductJson(
+				this.environment,
+				installDir,
+				executablePath);
+
+			if (parsed is null)
+			{
+				return null;
+			}
+
+			return MatchKnownDescriptor(parsed) ?? parsed;
+		}
+
+		/// <summary>
+		/// Resolves a product descriptor from an already-parsed <c>product.json</c> object, matching a known built-in product when applicable.
+		/// </summary>
+		/// <param name="productJson">The parsed <c>product.json</c> root object.</param>
+		/// <param name="executablePath">The full path to the IDE executable.</param>
+		/// <returns>The resolved <see cref="VsCodeProductDescriptor"/>, or <c>null</c> if invalid.</returns>
+		private static VsCodeProductDescriptor? ResolveDescriptorFromProductJson(JObject productJson, string executablePath)
+		{
+			VsCodeProductDescriptor? parsed = VsCodeProductDescriptor.TryCreateFromProductJson(
+				productJson,
+				executablePath);
+
+			if (parsed is null)
+			{
+				return null;
+			}
+
+			return MatchKnownDescriptor(parsed) ?? parsed;
+		}
+
+		/// <summary>
+		/// Matches a parsed <c>product.json</c> descriptor against <see cref="VsCodeProductDescriptor.KnownProducts"/> by flavor, display name, or short name.
+		/// </summary>
+		private static VsCodeProductDescriptor? MatchKnownDescriptor(VsCodeProductDescriptor parsed)
+		{
+			foreach (VsCodeProductDescriptor known in VsCodeProductDescriptor.KnownProducts)
+			{
+				if (known.FlavorId.Equals(parsed.FlavorId, StringComparison.OrdinalIgnoreCase)
+					|| known.DisplayName.Equals(parsed.DisplayName, StringComparison.OrdinalIgnoreCase)
+					|| known.ShortName.Equals(parsed.ShortName, StringComparison.OrdinalIgnoreCase))
+				{
+					return known;
+				}
+			}
+
+			return null;
+		}
+
+		/// <summary>
+		/// Finds known descriptors whose <see cref="VsCodeProductDescriptor.UninstallNamePrefixes"/> match <paramref name="displayName"/>, ordered longest prefix first.
+		/// </summary>
+		private static IReadOnlyList<VsCodeProductDescriptor> FindMatchingDescriptorsByUninstallPrefix(string? displayName)
+		{
+			if (string.IsNullOrWhiteSpace(displayName))
+			{
+				return Array.Empty<VsCodeProductDescriptor>();
+			}
+
+			var matches = new List<(VsCodeProductDescriptor Descriptor, int PrefixLength)>();
+
+			foreach (VsCodeProductDescriptor descriptor in VsCodeProductDescriptor.KnownProducts)
+			{
+				int longestPrefix = 0;
+
+				foreach (string prefix in descriptor.UninstallNamePrefixes)
+				{
+					if (!string.IsNullOrWhiteSpace(prefix)
+						&& displayName.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
+						&& prefix.Length > longestPrefix)
+					{
+						longestPrefix = prefix.Length;
+					}
+				}
+
+				if (longestPrefix > 0)
+				{
+					matches.Add((descriptor, longestPrefix));
+				}
+			}
+
+			return matches
+				.OrderByDescending(m => m.PrefixLength)
+				.Select(m => m.Descriptor)
+				.ToList();
+		}
+
+		/// <summary>
+		/// Selects the primary application executable in a verified VS Code-based installation directory, excluding uninstallers.
+		/// </summary>
+		private string? FindMainExecutableInDirectory(string installDir, JObject productJson)
+		{
+			IReadOnlyList<string> allFiles = GetFilesSafe(installDir, "*.exe");
+
+			if (allFiles.Count == 0)
+			{
+				return ProbeFallbackExecutableNames(installDir, productJson);
+			}
+
+			List<string> candidates = FilterExecutableCandidates(allFiles);
+
+			if (candidates.Count == 0)
+			{
+				return null;
+			}
+
+			return FindPreferredExecutable(installDir, candidates, productJson) ?? candidates[0];
+		}
+
+		/// <summary>
+		/// Filters out null entries and uninstaller executables (<c>unins*.exe</c> / <c>Uninstall*.exe</c>) and sorts deterministically by filename.
+		/// </summary>
+		private static List<string> FilterExecutableCandidates(IReadOnlyList<string> allFiles)
+		{
+			var candidates = new List<string>();
+
+			foreach (string file in allFiles)
+			{
+				if (string.IsNullOrWhiteSpace(file))
+				{
+					continue;
+				}
+
+				string fileName = Path.GetFileName(file);
+
+				if (!IsUninstallerExecutable(fileName))
+				{
+					candidates.Add(file);
+				}
+			}
+
+			candidates.Sort((left, right) => string.Compare(
+				Path.GetFileName(left),
+				Path.GetFileName(right),
+				StringComparison.OrdinalIgnoreCase));
+
+			return candidates;
+		}
+
+		/// <summary>
+		/// Selects the candidate executable matching <c>nameShort</c>, <c>win32DirName</c>, directory name, <c>nameLong</c>, <c>applicationName</c>, or known executable names.
+		/// </summary>
+		private static string? FindPreferredExecutable(string installDir, List<string> candidates, JObject productJson)
+		{
+			foreach (string stem in GetPreferredExecutableStems(installDir, productJson))
+			{
+				string? match = candidates.FirstOrDefault(
+					c => Path.GetFileNameWithoutExtension(c).Equals(stem, StringComparison.OrdinalIgnoreCase));
+
+				if (!string.IsNullOrWhiteSpace(match))
+				{
+					return match;
+				}
+			}
+
+			return FindKnownExecutableMatch(candidates);
+		}
+
+		/// <summary>
+		/// Probes expected executable names directly via <see cref="IVsCodeEnvironment.FileExists"/> when directory enumeration yields no entries.
+		/// </summary>
+		private string? ProbeFallbackExecutableNames(string installDir, JObject productJson)
+		{
+			foreach (string stem in GetPreferredExecutableStems(installDir, productJson))
+			{
+				string candidatePath = Path.Combine(installDir, $"{stem}.exe");
+
+				if (this.environment.FileExists(candidatePath))
+				{
+					return candidatePath;
+				}
+			}
+
+			return null;
+		}
+
+		/// <summary>
+		/// Returns ordered candidate executable name stems derived from <c>product.json</c> and the installation folder name.
+		/// </summary>
+		private static IEnumerable<string> GetPreferredExecutableStems(string installDir, JObject productJson)
+		{
+			string dirName = Path.GetFileName(Path.TrimEndingDirectorySeparator(installDir));
+			string?[] rawStems =
+			[
+				TryGetStringProperty(productJson, "nameShort")?.Trim(),
+				TryGetStringProperty(productJson, "win32DirName")?.Trim(),
+				dirName,
+				TryGetStringProperty(productJson, "nameLong")?.Trim(),
+				TryGetStringProperty(productJson, "applicationName")?.Trim()
+			];
+
+			foreach (string? stem in rawStems)
+			{
+				if (!string.IsNullOrWhiteSpace(stem) && !IsUninstallerExecutable(stem))
+				{
+					yield return stem;
+				}
+			}
+		}
+
+		/// <summary>
+		/// Finds a candidate whose filename matches any executable defined in <see cref="VsCodeProductDescriptor.KnownProducts"/>.
+		/// </summary>
+		private static string? FindKnownExecutableMatch(List<string> candidates)
+		{
+			foreach (VsCodeProductDescriptor descriptor in VsCodeProductDescriptor.KnownProducts)
+			{
+				foreach (string exeName in descriptor.ExecutableNames)
+				{
+					string? match = candidates.FirstOrDefault(
+						c => Path.GetFileName(c).Equals(exeName, StringComparison.OrdinalIgnoreCase));
+
+					if (!string.IsNullOrWhiteSpace(match))
+					{
+						return match;
+					}
+				}
+			}
+
+			return null;
+		}
+
+		/// <summary>
+		/// Returns <c>true</c> if a filename corresponds to an uninstaller executable (<c>unins*.exe</c> / <c>Uninstall*.exe</c>).
+		/// </summary>
+		private static bool IsUninstallerExecutable(string? fileName)
+		{
+			return string.IsNullOrWhiteSpace(fileName)
+				|| fileName.StartsWith("unins", StringComparison.OrdinalIgnoreCase);
+		}
+
+		/// <summary>
+		/// Safely enumerates subdirectories via <see cref="IVsCodeEnvironment.GetDirectories"/>, guarding against null returns from test mocks.
+		/// </summary>
+		private IReadOnlyList<string> GetDirectoriesSafe(string? path)
+		{
+			return this.environment.GetDirectories(path) ?? Array.Empty<string>();
+		}
+
+		/// <summary>
+		/// Safely enumerates files via <see cref="IVsCodeEnvironment.GetFiles"/>, guarding against null returns from test mocks.
+		/// </summary>
+		private IReadOnlyList<string> GetFilesSafe(string? path, string searchPattern)
+		{
+			return this.environment.GetFiles(path, searchPattern) ?? Array.Empty<string>();
+		}
+
+		/// <summary>
+		/// Creates a fallback <see cref="VsCodeProductDescriptor"/> for a custom IDE executable lacking <c>product.json</c> metadata.
+		/// </summary>
+		private static VsCodeProductDescriptor CreateFallbackCustomDescriptor(string canonicalPath, string? customDisplayName)
+		{
+			string exeName       = Path.GetFileName(canonicalPath) ?? string.Empty;
+			string exeStem       = Path.GetFileNameWithoutExtension(canonicalPath) ?? "vscode-custom";
+			string effectiveName = !string.IsNullOrWhiteSpace(customDisplayName) ? customDisplayName.Trim() : exeStem;
+
+			return new VsCodeProductDescriptor
+			{
+				FlavorId           = VsCodeProductDescriptor.Slugify(effectiveName, "vscode-custom"),
+				DisplayName        = effectiveName,
+				ShortName          = effectiveName,
+				ExecutableNames    = string.IsNullOrWhiteSpace(exeName) ? Array.Empty<string>() : [exeName],
+				UserDataFolderName = exeStem,
+				UpdateStrategy     = VsCodeUpdateStrategyKind.Unsupported,
+				InstallerKind      = VsCodeInstallerKind.InnoSetupGeneric,
+				IsInsiders         = false
+			};
+		}
+
+		/// <summary>
+		/// Resolves the effective user data directory for a discovered candidate.
+		/// </summary>
+		private static string ResolveCandidateUserDataDirectory(
+			string appData,
+			VsCodeProductDescriptor descriptor,
+			string? userDataOverride)
+		{
+			if (!string.IsNullOrWhiteSpace(userDataOverride))
+			{
+				return userDataOverride;
+			}
+
+			if (string.IsNullOrWhiteSpace(appData) || string.IsNullOrWhiteSpace(descriptor.UserDataFolderName))
+			{
+				return string.Empty;
+			}
+
+			return Path.Combine(appData, descriptor.UserDataFolderName);
+		}
+
+		/// <summary>
+		/// Determines whether <paramref name="filePath"/> resides within <paramref name="rootDirectory"/>.
+		/// </summary>
+		private static bool IsPathUnderDirectory(string filePath, string? rootDirectory)
+		{
+			if (string.IsNullOrWhiteSpace(rootDirectory))
+			{
+				return false;
+			}
+
+			string? canonicalRoot = TryGetCanonicalPath(rootDirectory);
+
+			if (string.IsNullOrWhiteSpace(canonicalRoot))
+			{
+				return false;
+			}
+
+			string normalizedPrefix = Path.TrimEndingDirectorySeparator(canonicalRoot) + Path.DirectorySeparatorChar;
+
+			return filePath.StartsWith(normalizedPrefix, StringComparison.OrdinalIgnoreCase);
 		}
 
 		/// <summary>
@@ -498,32 +1148,34 @@ namespace VSLauncher.Ide
 		}
 
 		/// <summary>
-		/// Determines whether both User and System installations exist for a given VS Code edition.
+		/// Determines whether both User and System installations exist for a given product flavor.
 		/// </summary>
-		private static bool HasBothScopes(List<DiscoveredCandidate> candidates, bool isInsiders)
+		private static bool HasBothScopesForFlavor(List<DiscoveredCandidate> candidates, string flavorId)
 		{
-			bool hasUser   = candidates.Any(c => c.IsInsiders == isInsiders && c.Scope == InstallScope.User);
-			bool hasSystem = candidates.Any(c => c.IsInsiders == isInsiders && c.Scope == InstallScope.System);
+			bool hasUser   = candidates.Any(c => c.Descriptor.FlavorId.Equals(flavorId, StringComparison.OrdinalIgnoreCase) && c.Scope == InstallScope.User);
+			bool hasSystem = candidates.Any(c => c.Descriptor.FlavorId.Equals(flavorId, StringComparison.OrdinalIgnoreCase) && c.Scope == InstallScope.System);
 
 			return hasUser && hasSystem;
 		}
 
 		/// <summary>
-		/// Computes the display name for a discovered installation according to whether both User and System scopes coexist.
+		/// Computes the display name for a discovered installation according to whether both User and System scopes coexist for its flavor.
 		/// </summary>
-		private static string ResolveDisplayName(bool isInsiders, InstallScope scope, bool hasBothScopes)
+		private static string ResolveDisplayName(VsCodeProductDescriptor descriptor, InstallScope scope, bool hasBothScopes)
 		{
+			string shortName = !string.IsNullOrWhiteSpace(descriptor.ShortName) ? descriptor.ShortName : descriptor.DisplayName;
+
 			if (hasBothScopes && scope == InstallScope.User)
 			{
-				return isInsiders ? "VS Code Insiders (User)" : "VS Code (User)";
+				return $"{shortName} (User)";
 			}
 
 			if (hasBothScopes && scope == InstallScope.System)
 			{
-				return isInsiders ? "VS Code Insiders (System)" : "VS Code (System)";
+				return $"{shortName} (System)";
 			}
 
-			return isInsiders ? "Visual Studio Code - Insiders" : "Visual Studio Code";
+			return descriptor.DisplayName;
 		}
 
 		/// <summary>
@@ -1121,9 +1773,13 @@ namespace VSLauncher.Ide
 			/// Initializes a new instance of the <see cref="DiscoveryState"/> class.
 			/// </summary>
 			/// <param name="appData">The resolved roaming AppData path.</param>
-			public DiscoveryState(string appData)
+			/// <param name="programFiles">The resolved Program Files path.</param>
+			/// <param name="programFiles86">The resolved Program Files (x86) path.</param>
+			public DiscoveryState(string appData, string? programFiles, string? programFiles86)
 			{
-				this.AppData = appData;
+				this.AppData        = appData;
+				this.ProgramFiles   = programFiles;
+				this.ProgramFiles86 = programFiles86;
 			}
 
 			/// <summary>
@@ -1145,6 +1801,16 @@ namespace VSLauncher.Ide
 			/// Gets the roaming AppData path used to construct edition user data directories.
 			/// </summary>
 			public string AppData { get; }
+
+			/// <summary>
+			/// Gets the resolved Program Files root directory.
+			/// </summary>
+			public string? ProgramFiles { get; }
+
+			/// <summary>
+			/// Gets the resolved Program Files (x86) root directory.
+			/// </summary>
+			public string? ProgramFiles86 { get; }
 		}
 
 		/// <summary>
@@ -1154,9 +1820,20 @@ namespace VSLauncher.Ide
 			string CanonicalPath,
 			string Version,
 			string UserDataDirectory,
-			bool IsInsiders,
+			VsCodeProductDescriptor Descriptor,
 			InstallScope Scope,
-			string Identifier);
+			string Identifier)
+		{
+			/// <summary>
+			/// Gets a value indicating whether this installation resides in a machine-wide system location.
+			/// </summary>
+			public bool IsSystemInstall { get; init; }
+
+			/// <summary>
+			/// Gets a value indicating whether this installation originated from <see cref="CustomVsCodeIdeStore"/>.
+			/// </summary>
+			public bool IsCustom { get; init; }
+		}
 
 		/// <summary>
 		/// Normalized VS Code launch target and option flags extracted from an item.

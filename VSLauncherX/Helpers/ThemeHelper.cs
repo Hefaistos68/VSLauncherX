@@ -423,18 +423,11 @@ namespace VSLauncher.Helpers
 					break;
 
 				case ComboBox comboBox:
-					comboBox.BackColor = palette.SurfaceAlt;
-					comboBox.ForeColor = palette.Text;
-					comboBox.FlatStyle = palette.IsDark ? FlatStyle.Flat : FlatStyle.Standard;
-					ApplyNativeScrollbarTheme(comboBox, palette.IsDark, lightThemeName: null);
+					ApplyComboBoxTheme(comboBox, palette);
 					break;
 
 				case LinkLabel linkLabel:
-					linkLabel.BackColor        = linkLabel.Parent is Form ? palette.Window : palette.Surface;
-					linkLabel.ForeColor        = palette.Text;
-					linkLabel.LinkColor        = palette.IsDark ? palette.Accent : SystemColors.HotTrack;
-					linkLabel.ActiveLinkColor  = palette.SelectionText;
-					linkLabel.VisitedLinkColor = palette.AccentDark;
+					ApplyLinkLabelTheme(linkLabel, palette);
 					break;
 
 				case Label label:
@@ -442,65 +435,201 @@ namespace VSLauncher.Helpers
 					break;
 
 				case CheckBox checkBox:
-					checkBox.BackColor               = checkBox.Parent is Form ? palette.Window : palette.Surface;
-					checkBox.ForeColor               = palette.Text;
-					checkBox.UseVisualStyleBackColor = !palette.IsDark;
+					ApplyCheckBoxTheme(checkBox, palette);
 					break;
 
 				case PictureBox pictureBox:
-					pictureBox.BackColor = pictureBox.Parent is Form ? palette.Window : palette.Surface;
+					ApplyPictureBoxTheme(pictureBox, palette);
 					break;
 
 				case TextBoxBase textBox:
-					textBox.BackColor   = palette.SurfaceAlt;
-					textBox.ForeColor   = palette.Text;
-					textBox.BorderStyle = BorderStyle.FixedSingle;
+					ApplyTextBoxTheme(textBox, palette);
 					break;
 
 				case Button button:
-					bool isHeaderButton = button.Parent?.Name == "flowLayoutPanel2";
-					button.FlatStyle                        = FlatStyle.Flat;
-					button.FlatAppearance.BorderColor       = palette.Border;
-					button.FlatAppearance.MouseOverBackColor = palette.Accent;
-					button.FlatAppearance.MouseDownBackColor = palette.AccentDark;
-					button.BackColor                        = isHeaderButton ? palette.SurfaceContrast : palette.Button;
-					button.ForeColor                        = palette.Text;
-					button.UseVisualStyleBackColor          = false;
+					ApplyButtonTheme(button, palette);
 					break;
 
 				case ToolStrip toolStrip:
-					toolStrip.Renderer = new ThemeToolStripRenderer(palette);
-
-					foreach (ToolStripItem item in toolStrip.Items)
-					{
-						item.BackColor = palette.SurfaceAlt;
-						item.ForeColor = palette.Text;
-					}
-
+					ApplyToolStripTheme(toolStrip, palette);
 					break;
 
 				case TableLayoutPanel tableLayoutPanel:
-					if (tableLayoutPanel.Name == "leftSubPanel" || tableLayoutPanel.Name == "flowLayoutPanel2")
-					{
-						tableLayoutPanel.BackColor = palette.SurfaceContrast;
-					}
-
+					ApplyTableLayoutPanelTheme(tableLayoutPanel, palette);
 					break;
 
 				case FlowLayoutPanel flowLayoutPanel:
-					if (flowLayoutPanel.Name == "flowLayoutPanel2")
-					{
-						flowLayoutPanel.BackColor = palette.SurfaceContrast;
-					}
+					ApplyFlowLayoutPanelTheme(flowLayoutPanel, palette);
+					break;
 
-					ApplyNativeScrollbarTheme(flowLayoutPanel, palette.IsDark, lightThemeName: null);
+				case GroupBox groupBox:
+					ApplyGroupBoxTheme(groupBox, palette);
 					break;
 
 				case ListView listView:
-					listView.BorderStyle = palette.IsDark ? BorderStyle.None : BorderStyle.Fixed3D;
-					ApplyNativeScrollbarTheme(listView, palette.IsDark, lightThemeName: "Explorer");
+					ApplyListViewTheme(listView, palette);
 					break;
 			}
+		}
+
+		/// <summary>
+		/// Resolves the surface background color for a control based on whether its parent is a top-level <see cref="Form"/>.
+		/// </summary>
+		/// <param name="control">The control being styled.</param>
+		/// <param name="palette">The active theme palette.</param>
+		/// <returns>The container background <see cref="Color"/>.</returns>
+		private static Color GetContainerSurfaceColor(Control control, ThemePalette palette)
+		{
+			return control.Parent is Form ? palette.Window : palette.Surface;
+		}
+
+		/// <summary>
+		/// Applies light or dark theme styling to a <see cref="ComboBox"/>.
+		/// </summary>
+		/// <param name="comboBox">The combo box to style.</param>
+		/// <param name="palette">The active theme palette.</param>
+		private static void ApplyComboBoxTheme(ComboBox comboBox, ThemePalette palette)
+		{
+			comboBox.BackColor = palette.SurfaceAlt;
+			comboBox.ForeColor = palette.Text;
+			comboBox.FlatStyle = palette.IsDark ? FlatStyle.Flat : FlatStyle.Standard;
+
+			ApplyNativeScrollbarTheme(comboBox, palette.IsDark, lightThemeName: null);
+		}
+
+		/// <summary>
+		/// Applies light or dark theme styling to a <see cref="LinkLabel"/>.
+		/// </summary>
+		/// <param name="linkLabel">The link label to style.</param>
+		/// <param name="palette">The active theme palette.</param>
+		private static void ApplyLinkLabelTheme(LinkLabel linkLabel, ThemePalette palette)
+		{
+			linkLabel.BackColor        = GetContainerSurfaceColor(linkLabel, palette);
+			linkLabel.ForeColor        = palette.Text;
+			linkLabel.LinkColor        = palette.IsDark ? palette.Accent : SystemColors.HotTrack;
+			linkLabel.ActiveLinkColor  = palette.SelectionText;
+			linkLabel.VisitedLinkColor = palette.AccentDark;
+		}
+
+		/// <summary>
+		/// Applies light or dark theme styling to a <see cref="CheckBox"/>.
+		/// </summary>
+		/// <param name="checkBox">The check box to style.</param>
+		/// <param name="palette">The active theme palette.</param>
+		private static void ApplyCheckBoxTheme(CheckBox checkBox, ThemePalette palette)
+		{
+			checkBox.BackColor               = GetContainerSurfaceColor(checkBox, palette);
+			checkBox.ForeColor               = palette.Text;
+			checkBox.UseVisualStyleBackColor = !palette.IsDark;
+		}
+
+		/// <summary>
+		/// Applies light or dark background styling to a <see cref="PictureBox"/>.
+		/// </summary>
+		/// <param name="pictureBox">The picture box to style.</param>
+		/// <param name="palette">The active theme palette.</param>
+		private static void ApplyPictureBoxTheme(PictureBox pictureBox, ThemePalette palette)
+		{
+			pictureBox.BackColor = GetContainerSurfaceColor(pictureBox, palette);
+		}
+
+		/// <summary>
+		/// Applies light or dark theme styling to a <see cref="TextBoxBase"/> control.
+		/// </summary>
+		/// <param name="textBox">The text box to style.</param>
+		/// <param name="palette">The active theme palette.</param>
+		private static void ApplyTextBoxTheme(TextBoxBase textBox, ThemePalette palette)
+		{
+			textBox.BackColor   = palette.SurfaceAlt;
+			textBox.ForeColor   = palette.Text;
+			textBox.BorderStyle = BorderStyle.FixedSingle;
+		}
+
+		/// <summary>
+		/// Applies light or dark flat button styling to a <see cref="Button"/>.
+		/// </summary>
+		/// <param name="button">The button to style.</param>
+		/// <param name="palette">The active theme palette.</param>
+		private static void ApplyButtonTheme(Button button, ThemePalette palette)
+		{
+			bool isHeaderButton = button.Parent?.Name == "flowLayoutPanel2";
+
+			button.FlatStyle                         = FlatStyle.Flat;
+			button.FlatAppearance.BorderColor        = palette.Border;
+			button.FlatAppearance.MouseOverBackColor = palette.Accent;
+			button.FlatAppearance.MouseDownBackColor = palette.AccentDark;
+			button.BackColor                         = isHeaderButton ? palette.SurfaceContrast : palette.Button;
+			button.ForeColor                         = palette.Text;
+			button.UseVisualStyleBackColor           = false;
+		}
+
+		/// <summary>
+		/// Applies custom renderer and item palette colors to a <see cref="ToolStrip"/>.
+		/// </summary>
+		/// <param name="toolStrip">The tool strip to style.</param>
+		/// <param name="palette">The active theme palette.</param>
+		private static void ApplyToolStripTheme(ToolStrip toolStrip, ThemePalette palette)
+		{
+			toolStrip.Renderer = new ThemeToolStripRenderer(palette);
+
+			foreach (ToolStripItem item in toolStrip.Items)
+			{
+				item.BackColor = palette.SurfaceAlt;
+				item.ForeColor = palette.Text;
+			}
+		}
+
+		/// <summary>
+		/// Applies contrast panel background colors to sidebar header <see cref="TableLayoutPanel"/> containers.
+		/// </summary>
+		/// <param name="tableLayoutPanel">The table layout panel to style.</param>
+		/// <param name="palette">The active theme palette.</param>
+		private static void ApplyTableLayoutPanelTheme(TableLayoutPanel tableLayoutPanel, ThemePalette palette)
+		{
+			if (tableLayoutPanel.Name == "leftSubPanel" || tableLayoutPanel.Name == "flowLayoutPanel2")
+			{
+				tableLayoutPanel.BackColor = palette.SurfaceContrast;
+			}
+		}
+
+		/// <summary>
+		/// Applies container contrast colors and native scrollbar theming to a <see cref="FlowLayoutPanel"/>.
+		/// </summary>
+		/// <param name="flowLayoutPanel">The flow layout panel to style.</param>
+		/// <param name="palette">The active theme palette.</param>
+		private static void ApplyFlowLayoutPanelTheme(FlowLayoutPanel flowLayoutPanel, ThemePalette palette)
+		{
+			if (flowLayoutPanel.Name == "flowLayoutPanel2")
+			{
+				flowLayoutPanel.BackColor = palette.SurfaceContrast;
+			}
+
+			ApplyNativeScrollbarTheme(flowLayoutPanel, palette.IsDark, lightThemeName: null);
+		}
+
+		/// <summary>
+		/// Applies light or dark theme styling to a <see cref="GroupBox"/>.
+		/// </summary>
+		/// <param name="groupBox">The group box to style.</param>
+		/// <param name="palette">The active theme palette.</param>
+		private static void ApplyGroupBoxTheme(GroupBox groupBox, ThemePalette palette)
+		{
+			groupBox.BackColor = GetContainerSurfaceColor(groupBox, palette);
+			groupBox.ForeColor = palette.Text;
+		}
+
+		/// <summary>
+		/// Applies light or dark theme styling and native scrollbar theming to a <see cref="ListView"/>.
+		/// </summary>
+		/// <param name="listView">The list view to style.</param>
+		/// <param name="palette">The active theme palette.</param>
+		private static void ApplyListViewTheme(ListView listView, ThemePalette palette)
+		{
+			listView.BackColor   = palette.SurfaceAlt;
+			listView.ForeColor   = palette.Text;
+			listView.BorderStyle = palette.IsDark ? BorderStyle.None : BorderStyle.Fixed3D;
+
+			ApplyNativeScrollbarTheme(listView, palette.IsDark, lightThemeName: "Explorer");
 		}
 
 		/// <summary>

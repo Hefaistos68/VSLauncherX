@@ -124,5 +124,66 @@ namespace VSLXshared.Tests.Ide
 			instance.Version.ShouldBe("1.146.0");
 			instance.ToString().ShouldBe("Visual Studio Code (1.146.0)");
 		}
+
+		/// <summary>
+		/// Verifies that the generalized <see cref="VsCodeInstance"/> constructor exposes fork metadata and capabilities while preserving legacy constructor defaults.
+		/// </summary>
+		[Test]
+		public void Constructor_WithForkMetadata_ExposesCustomShortNameAndCapabilities()
+		{
+			var env        = new Mock<IVsCodeEnvironment>(MockBehavior.Loose);
+			var descriptor = new VsCodeProductDescriptor
+			{
+				FlavorId       = "antigravity-ide",
+				DisplayName    = "Antigravity IDE",
+				ShortName      = "Antigravity IDE",
+				UpdateStrategy = VsCodeUpdateStrategyKind.Unsupported
+			};
+
+			var forkInstance = new VsCodeInstance(
+				"Antigravity IDE",
+				"2.7.0",
+				@"C:\Users\Dev\AppData\Local\Programs\Antigravity IDE\Antigravity IDE.exe",
+				"antigravity-ide-user",
+				@"C:\Users\Dev\AppData\Roaming\Antigravity IDE",
+				descriptor,
+				env.Object)
+			{
+				IsCustom = true
+			};
+
+			forkInstance.ShortName.ShouldBe("Antigravity IDE");
+			forkInstance.FlavorId.ShouldBe("antigravity-ide");
+			forkInstance.UpdateStrategy.ShouldBe(VsCodeUpdateStrategyKind.Unsupported);
+			forkInstance.IsCustom.ShouldBeTrue();
+			forkInstance.IsInsiders.ShouldBeFalse();
+			forkInstance.IsSystemInstall.ShouldBeFalse();
+
+			var legacyStable = new VsCodeInstance(
+				"Visual Studio Code",
+				"1.146.0",
+				StableExePath,
+				"vscode-stable-user",
+				@"C:\Users\Dev\AppData\Roaming\Code",
+				isInsiders: false,
+				env.Object);
+
+			var legacyInsiders = new VsCodeInstance(
+				"Visual Studio Code - Insiders",
+				"1.147.0-insider",
+				@"C:\Users\Dev\AppData\Local\Programs\Microsoft VS Code Insiders\Code - Insiders.exe",
+				"vscode-insiders-user",
+				@"C:\Users\Dev\AppData\Roaming\Code - Insiders",
+				isInsiders: true,
+				env.Object);
+
+			legacyStable.ShortName.ShouldBe("VS Code");
+			legacyStable.FlavorId.ShouldBe("vscode-stable");
+			legacyStable.IsCustom.ShouldBeFalse();
+			legacyStable.IsInsiders.ShouldBeFalse();
+			legacyInsiders.ShortName.ShouldBe("VS Code Insiders");
+			legacyInsiders.FlavorId.ShouldBe("vscode-insiders");
+			legacyInsiders.IsInsiders.ShouldBeTrue();
+		}
 	}
 }

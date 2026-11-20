@@ -77,6 +77,19 @@ namespace VSLauncher.Ide
 		}
 
 		/// <summary>
+		/// Re-runs discovery on the registered provider for <paramref name="ideType"/> when live refresh is supported.
+		/// </summary>
+		/// <param name="ideType">The target IDE family.</param>
+		public void Refresh(IdeType ideType)
+		{
+			if (this.providers.TryGetValue(ideType, out IIdeProvider? provider)
+				&& provider is VsCodeIdeProvider vsCodeProvider)
+			{
+				vsCodeProvider.Refresh();
+			}
+		}
+
+		/// <summary>
 		/// Resolves the preferred instance identifier for <paramref name="ideType"/>, preferring <paramref name="preferredIdentifier"/> when installed and falling back to the provider's default instance.
 		/// </summary>
 		/// <param name="ideType">The target IDE family.</param>
