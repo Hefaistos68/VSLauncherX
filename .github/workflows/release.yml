@@ -1,0 +1,284 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to publish (e.g. v0.2.0). Leave empty to derive from AssemblyVersion in VSLauncherX.csproj.'
+        required: false
+        type: string
+      prerelease:
+        description: 'Mark GitHub Release as a prerelease'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build, Package, and Release (win-x64)
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve release version metadata
+        id: meta
+        shell: pwsh
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          INPUT_TAG: ${{ inputs.tag }}
+          INPUT_PRERELEASE: ${{ inputs.prerelease }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          if ($env:EVENT_NAME -eq 'push') {
+            $tag = $env:REF_NAME.Trim()
+          } elseif (-not [string]::IsNullOrWhiteSpace($env:INPUT_TAG)) {
+            $tag = $env:INPUT_TAG.Trim()
+            if ($tag -match '^\d') {
+              $tag = "v$tag"
+            }
+          } else {
+            [xml]$csproj = Get-Content 'VSLauncherX/VSLauncherX.csproj' -Raw
+            $asmVer = ($csproj.Project.PropertyGroup | Where-Object { $_.AssemblyVersion } | Select-Object -First 1).AssemblyVersion
+            if ([string]::IsNullOrWhiteSpace($asmVer)) {
+              throw 'AssemblyVersion not found in VSLauncherX/VSLauncherX.csproj.'
+            }
+            $parts = $asmVer.Trim().Split('.')
+            $shortVer = if ($parts.Length -ge 3) { "$($parts[0]).$($parts[1]).$($parts[2])" } else { $asmVer.Trim() }
+            $tag = "v$shortVer"
+          }
+
+          if ($tag -notmatch '^v(\d+)\.(\d+)\.(\d+)([-.][0-9A-Za-z.]+)?$') {
+            throw "Invalid release tag format '$tag'. Expected semantic version tag like v0.2.0 or v0.2.0-beta.1."
+          }
+
+          $version = $tag.Substring(1)
+          $assemblyVersion = "$($Matches[1]).$($Matches[2]).$($Matches[3]).0"
+          $isPrerelease = ($env:INPUT_PRERELEASE -eq 'true') -or ($version -match '-(alpha|beta|rc|preview|pre)')
+
+          "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "assembly_version=$assemblyVersion" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "is_prerelease=$($isPrerelease.ToString().ToLowerInvariant())" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+          Write-Host "Resolved release tag=$tag version=$version assembly_version=$assemblyVersion prerelease=$isPrerelease"
+
+      - name: Setup .NET 10 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Run unit tests
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          dotnet test VSLXshared.Tests\VSLXshared.Tests.csproj -c Release --nologo
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          dotnet test BackgroundLaunch.Tests\BackgroundLaunch.Tests.csproj -c Release --nologo
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Publish self-contained win-x64 executables
+        shell: pwsh
+        env:
+          APP_VERSION: ${{ steps.meta.outputs.version }}
+          APP_ASSEMBLY_VERSION: ${{ steps.meta.outputs.assembly_version }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          $publishDir = Join-Path $PWD 'artifacts\publish\win-x64'
+          $releaseDir = Join-Path $PWD 'artifacts\release'
+
+          Remove-Item -Path $publishDir, $releaseDir -Recurse -Force -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Path $publishDir, $releaseDir -Force | Out-Null
+
+          dotnet publish BackgroundLaunch\BackgroundLaunch.csproj `
+            -c Release `
+            -r win-x64 `
+            --self-contained true `
+            -p:IsPublishable=true `
+            -p:DebugType=None `
+            -p:DebugSymbols=false `
+            -p:Version=$env:APP_VERSION `
+            -p:AssemblyVersion=$env:APP_ASSEMBLY_VERSION `
+            -p:FileVersion=$env:APP_ASSEMBLY_VERSION `
+            -o $publishDir `
+            --nologo
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          dotnet publish VSLauncherX\VSLauncherX.csproj `
+            -c Release `
+            -r win-x64 `
+            --self-contained true `
+            -p:DebugType=None `
+            -p:DebugSymbols=false `
+            -p:Version=$env:APP_VERSION `
+            -p:AssemblyVersion=$env:APP_ASSEMBLY_VERSION `
+            -p:FileVersion=$env:APP_ASSEMBLY_VERSION `
+            -o $publishDir `
+            --nologo
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          foreach ($requiredFile in @('VSLauncherX.exe', 'BackgroundLaunch.exe', 'VSLXshared.dll')) {
+            $fullPath = Join-Path $publishDir $requiredFile
+            if (-not (Test-Path $fullPath)) {
+              throw "Expected release binary missing from publish output: $fullPath"
+            }
+          }
+
+      - name: Package portable ZIP archive
+        shell: pwsh
+        env:
+          APP_VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $publishDir = Join-Path $PWD 'artifacts\publish\win-x64'
+          $zipPath = Join-Path $PWD "artifacts\release\VSLauncherX-$($env:APP_VERSION)-win-x64-portable.zip"
+
+          Compress-Archive -Path (Join-Path $publishDir '*') -DestinationPath $zipPath -CompressionLevel Optimal -Force
+
+      - name: Build Inno Setup Windows installer
+        shell: pwsh
+        env:
+          APP_VERSION: ${{ steps.meta.outputs.version }}
+          APP_ASSEMBLY_VERSION: ${{ steps.meta.outputs.assembly_version }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          function Find-Iscc {
+            $cmd = Get-Command iscc -ErrorAction SilentlyContinue
+            if ($cmd) { return $cmd.Source }
+            foreach ($candidate in @(
+              'C:\Program Files (x86)\Inno Setup 6\ISCC.exe',
+              'C:\Program Files\Inno Setup 6\ISCC.exe'
+            )) {
+              if (Test-Path $candidate) { return $candidate }
+            }
+            return $null
+          }
+
+          $iscc = Find-Iscc
+          if (-not $iscc) {
+            choco install innosetup -y --no-progress
+            if ($LASTEXITCODE -ne 0) {
+              throw "Chocolatey failed to install Inno Setup (exit code $LASTEXITCODE)."
+            }
+            $iscc = Find-Iscc
+          }
+
+          if (-not $iscc) {
+            throw 'ISCC.exe could not be located after installing Inno Setup.'
+          }
+
+          $publishDir = Join-Path $PWD 'artifacts\publish\win-x64'
+          $releaseDir = Join-Path $PWD 'artifacts\release'
+          $baseName = "VSLauncherX-$($env:APP_VERSION)-win-x64-setup"
+
+          & $iscc `
+            "/DAppVersion=$($env:APP_VERSION)" `
+            "/DAppFileVersion=$($env:APP_ASSEMBLY_VERSION)" `
+            "/DPublishDir=$publishDir" `
+            "/DOutputDir=$releaseDir" `
+            "/DOutputBaseFilename=$baseName" `
+            "Setup\VSLauncherX.iss"
+
+          if ($LASTEXITCODE -ne 0) {
+            throw "ISCC.exe failed with exit code $LASTEXITCODE."
+          }
+
+      - name: Generate SHA-256 checksums
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $releaseDir = Join-Path $PWD 'artifacts\release'
+          $checksumPath = Join-Path $releaseDir 'SHA256SUMS.txt'
+
+          $lines = Get-ChildItem -Path $releaseDir -File |
+            Where-Object { $_.Name -ne 'SHA256SUMS.txt' } |
+            Sort-Object Name |
+            ForEach-Object {
+              $hash = (Get-FileHash -Path $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+              "$hash  $($_.Name)"
+            }
+
+          Set-Content -Path $checksumPath -Value $lines -Encoding utf8NoBOM
+          Get-Content -Path $checksumPath
+
+      - name: Upload workflow release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: VSLauncherX-${{ steps.meta.outputs.version }}-win-x64
+          path: artifacts/release/*
+          if-no-files-found: error
+
+      - name: Create or update GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT_NAME: ${{ github.event_name }}
+          RELEASE_TAG: ${{ steps.meta.outputs.tag }}
+          APP_VERSION: ${{ steps.meta.outputs.version }}
+          IS_PRERELEASE: ${{ steps.meta.outputs.is_prerelease }}
+          TARGET_COMMIT: ${{ github.sha }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $releaseDir = Join-Path $PWD 'artifacts\release'
+          $setupExe = Join-Path $releaseDir "VSLauncherX-$($env:APP_VERSION)-win-x64-setup.exe"
+          $portableZip = Join-Path $releaseDir "VSLauncherX-$($env:APP_VERSION)-win-x64-portable.zip"
+          $checksums = Join-Path $releaseDir 'SHA256SUMS.txt'
+
+          $assets = @($setupExe, $portableZip, $checksums)
+          foreach ($asset in $assets) {
+            if (-not (Test-Path $asset)) {
+              throw "Release asset missing: $asset"
+            }
+          }
+
+          $PSNativeCommandUseErrorActionPreference = $false
+          $ErrorActionPreference = 'Continue'
+          gh release view $env:RELEASE_TAG 2>$null | Out-Null
+          $releaseExists = ($LASTEXITCODE -eq 0)
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+
+          if ($releaseExists) {
+            gh release upload $env:RELEASE_TAG @assets --clobber
+          } else {
+            $argsList = @(
+              'release', 'create', $env:RELEASE_TAG,
+              $setupExe, $portableZip, $checksums,
+              '--title', "VSLauncherX $($env:RELEASE_TAG)",
+              '--generate-notes'
+            )
+
+            if ($env:EVENT_NAME -eq 'push') {
+              $argsList += '--verify-tag'
+            } else {
+              $argsList += @('--target', $env:TARGET_COMMIT)
+            }
+
+            if ($env:IS_PRERELEASE -eq 'true') {
+              $argsList += '--prerelease'
+            }
+
+            & gh @argsList
+          }
+
+          if ($LASTEXITCODE -ne 0) {
+            throw "GitHub Release publication failed with exit code $LASTEXITCODE."
+          }
