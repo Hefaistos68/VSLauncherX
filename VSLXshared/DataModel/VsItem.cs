@@ -98,6 +98,11 @@ namespace VSLauncher.DataModel
 		public ItemTypeEnum ItemType { get; set; }
 
 		/// <summary>
+		/// Gets or sets the IDE associated with this item.
+		/// </summary>
+		public IdeType IdeType { get; set; } = IdeType.VisualStudio;
+
+		/// <summary>
 		/// Gets or sets a value indicating whether checked.
 		/// </summary>
 		[JsonIgnore]

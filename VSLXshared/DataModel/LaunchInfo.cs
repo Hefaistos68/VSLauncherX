@@ -14,5 +14,10 @@
 		/// Gets or sets the solution, project or Folder to launch
 		/// </summary>
 		public VsFolder? Solution { get; set; }
+
+		/// <summary>
+		/// Gets or sets the default target identifiers configured per IDE.
+		/// </summary>
+		public IdeDefaultTarget[]? DefaultTargets { get; set; }
 	}
 }

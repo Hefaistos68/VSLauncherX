@@ -20,14 +20,40 @@ namespace VSLauncher.Helpers
     public class ItemLauncher
     {
         /// <summary>
+        /// Initializes a new instance of the <see cref="ItemLauncher"/> class for a single item using per-IDE default targets.
+        /// </summary>
+        /// <param name="item">The item to launch.</param>
+        /// <param name="defaultTargets">Optional per-IDE default instance identifiers.</param>
+        /// <param name="legacyTarget">Optional legacy Visual Studio executable path for backward compatibility.</param>
+        public ItemLauncher(VsItem item, IdeDefaultTarget[]? defaultTargets, string? legacyTarget = null)
+        {
+            SingleItem     = item ?? throw new ArgumentNullException(nameof(item));
+            DefaultTargets = defaultTargets;
+            LegacyTarget   = legacyTarget;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ItemLauncher"/> class for a folder using per-IDE default targets.
+        /// </summary>
+        /// <param name="folder">The folder to launch.</param>
+        /// <param name="defaultTargets">Optional per-IDE default instance identifiers.</param>
+        /// <param name="legacyTarget">Optional legacy Visual Studio executable path for backward compatibility.</param>
+        public ItemLauncher(VsFolder folder, IdeDefaultTarget[]? defaultTargets, string? legacyTarget = null)
+        {
+            Solution       = folder ?? throw new ArgumentNullException(nameof(folder));
+            DefaultTargets = defaultTargets;
+            LegacyTarget   = legacyTarget;
+        }
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="ItemLauncher"/> class.
         /// </summary>
         /// <param name="item">The item.</param>
         /// <param name="target">The target.</param>
         public ItemLauncher(VsItem item, VisualStudioInstance target)
+            : this(item, CreateLegacyDefaultTargets(target), target?.Location)
         {
             Target = target;
-            SingleItem = item;
         }
 
         /// <summary>
@@ -36,8 +62,8 @@ namespace VSLauncher.Helpers
         /// <param name="item">The item.</param>
         /// <param name="target">The target.</param>
         public ItemLauncher(VsFolder item, VisualStudioInstance target)
+            : this(item, CreateLegacyDefaultTargets(target), target?.Location)
         {
-            Solution = item;
             Target = target;
         }
 
@@ -54,7 +80,17 @@ namespace VSLauncher.Helpers
         /// <summary>
         /// Gets the target.
         /// </summary>
-        public VisualStudioInstance Target { get; }
+        public VisualStudioInstance? Target { get; }
+
+        /// <summary>
+        /// Gets the per-IDE default target identifiers.
+        /// </summary>
+        public IdeDefaultTarget[]? DefaultTargets { get; }
+
+        /// <summary>
+        /// Gets the optional legacy Visual Studio executable path.
+        /// </summary>
+        public string? LegacyTarget { get; }
 
         /// <summary>
         /// Gets the last exception.
@@ -124,14 +160,30 @@ namespace VSLauncher.Helpers
         {
             var li = new LaunchInfo()
             {
-                Solution = Solution ?? new VsFolder(SingleItem ?? throw new InvalidOperationException("No item specified to launch.")),
-                Target   = Target?.Location
+                Solution       = Solution ?? new VsFolder(SingleItem ?? throw new InvalidOperationException("No item specified to launch.")),
+                Target         = LegacyTarget ?? Target?.Location,
+                DefaultTargets = DefaultTargets
             };
 
             JsonSerializerSettings settings = FileHelper.CreateSafeJsonSettings(indented: false);
-            string s = JsonConvert.SerializeObject(li, settings);
+            string s                        = JsonConvert.SerializeObject(li, settings);
 
             return "b64:" + Convert.ToBase64String(Encoding.UTF8.GetBytes(s));
+        }
+
+        /// <summary>
+        /// Builds a single-entry default targets array from a legacy <see cref="VisualStudioInstance"/>.
+        /// </summary>
+        /// <param name="target">The selected Visual Studio instance.</param>
+        /// <returns>An array containing the Visual Studio target identifier, or <c>null</c> if unavailable.</returns>
+        private static IdeDefaultTarget[]? CreateLegacyDefaultTargets(VisualStudioInstance? target)
+        {
+            if (target is null || string.IsNullOrWhiteSpace(target.Identifier))
+            {
+                return null;
+            }
+
+            return new[] { new IdeDefaultTarget(IdeType.VisualStudio, target.Identifier) };
         }
     }
 }

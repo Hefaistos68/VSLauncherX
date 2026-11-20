@@ -8,6 +8,7 @@ using Newtonsoft.Json;
 using VSLauncher.DataModel;
 using VSLauncher.Forms;
 using VSLauncher.Helpers;
+using VSLauncher.Ide;
 
 using VSLXshared.Helpers;
 using System.Reflection;
@@ -24,16 +25,24 @@ namespace VSLauncher
 		/// <summary>
 		/// used to indicate that some internal update is going on
 		/// </summary>
-		private readonly bool bInUpdate;
+		private bool bInUpdate;
 
 		private readonly VisualStudioInstanceManager visualStudioInstances = new VisualStudioInstanceManager();
+		private readonly IdeManager ideManager                             = new IdeManager();
+		private readonly VsCodeUpdateService vsCodeUpdateService           = new VsCodeUpdateService();
+		private readonly Dictionary<string, VsCodeUpdateInfo> vsCodeUpdateStates = new Dictionary<string, VsCodeUpdateInfo>(StringComparer.OrdinalIgnoreCase);
+		private readonly CancellationTokenSource vsCodeUpdateCts           = new CancellationTokenSource();
 		private DescribedTaskRenderer? itemRenderer;
 		private VsFolder solutionGroups = new VsFolder();
 		private IDataObject? lastDroppedData;
 		private bool solutionDataLoadFailed;
+		private bool isUpdatingTreeExpansion;
 		private int gitRefreshInProgress;
 		private int gitRemoteOperationInProgress;
+		private int vsCodeUpdateCheckInProgress;
+		private int vsCodeUpdateInstallInProgress;
 		private Bitmap? currentVsButtonBitmap;
+		private Bitmap? currentVsCodeButtonBitmap;
 
 		public JumpList? TaskbarJumpList { get; private set; }
 
@@ -73,7 +82,7 @@ namespace VSLauncher
 
 			this.olvFiles.Expanded += delegate (object? sender, TreeBranchExpandedEventArgs e)
 			{
-				if (e.Model is VsFolder sg)
+				if (!this.isUpdatingTreeExpansion && e.Model is VsFolder sg)
 				{
 					sg.Expanded = true;
 				}
@@ -81,16 +90,25 @@ namespace VSLauncher
 
 			this.olvFiles.Collapsed += delegate (object? sender, TreeBranchCollapsedEventArgs e)
 			{
-				if (e.Model is VsFolder sg)
+				if (!this.isUpdatingTreeExpansion && e.Model is VsFolder sg)
 				{
 					sg.Expanded = false;
 				}
+			};
+
+			this.olvFiles.ParentGetter = delegate (object x)
+			{
+				VsFolder? parent = this.solutionGroups.FindParent(x);
+
+				return ReferenceEquals(parent, this.solutionGroups) ? null : parent;
 			};
 
 			this.olvFiles.ChildrenGetter = delegate (object x)
 			{
 				return x is VsFolder sg ? sg.Items : (System.Collections.IEnumerable?)null;
 			};
+
+			this.olvFiles.BeforeSearching += olvFiles_BeforeSearching;
 
 			this.itemRenderer = CreateDescribedRenderer();
 
@@ -114,29 +132,7 @@ namespace VSLauncher
 			this.olvColumnDate.AspectGetter = ColumnHelper.GetAspectForDate;
 
 			// setup the Version column
-			this.olvColumnVersion.AspectGetter = delegate (object rowObject)
-			{
-				if (rowObject is VsItem item)
-				{
-					if (string.IsNullOrEmpty(item.VsVersion))
-					{
-						return "<default>";
-					}
-
-					var vs = visualStudioInstances.GetByIdentifier(item.VsVersion);
-
-					if (vs is null)
-					{
-						return "<default>";
-					}
-
-					string s = $"{vs.Year} ({vs.ShortVersion})";
-
-					return s;
-				}
-
-				return null;
-			};
+			this.olvColumnVersion.AspectGetter = rowObject => GetVersionColumnAspect(rowObject);
 
 			// setup the Options column
 			this.olvColumnOptions.AspectGetter = ColumnHelper.GetAspectForOptions;
@@ -192,34 +188,248 @@ namespace VSLauncher
 
 			this.bInUpdate = true;
 
-			if (this.selectVisualStudioVersion.Items.Count > 0)
+			try
 			{
-				if (!string.IsNullOrEmpty(Properties.Settings.Default.SelectedVSversion))
-				{
-					VisualStudioInstance? v = this.selectVisualStudioVersion.Versions.FirstOrDefault(v => v.Identifier == Properties.Settings.Default.SelectedVSversion);
-
-					if (v is not null)
-					{
-						this.selectVisualStudioVersion.SelectedItem = v;
-					}
-					else
-					{
-						this.selectVisualStudioVersion.SelectedIndex = 0;
-					}
-				}
-				else
-				{
-					this.selectVisualStudioVersion.SelectedIndex = 0;
-				}
+				InitializeVisualStudioSelector();
+				InitializeVsCodeSelector();
+				ApplyInstalledIdeState();
 			}
-
-			this.bInUpdate = false;
+			finally
+			{
+				this.bInUpdate = false;
+			}
 
 			LoadSolutionData();
 
 			this.solutionGroups.Items.OnChanged += SolutionData_OnChanged;
 			UpdateList(false);
 		}
+
+		/// <summary>
+		/// Formats the Version / IDE column text for a row in <see cref="olvFiles"/>.
+		/// </summary>
+		/// <param name="rowObject">The row model object.</param>
+		/// <returns>The version or IDE label, or <c>null</c> when <paramref name="rowObject"/> is not a <see cref="VsItem"/>.</returns>
+		private string? GetVersionColumnAspect(object rowObject)
+		{
+			if (rowObject is VsCodeProject codeProject)
+			{
+				return FormatVsCodeEditionLabel(codeProject.VsVersion, "<default>");
+			}
+
+			if (rowObject is VsFolder folder && folder.IsWorkspaceBacked(allowDiskProbe: false) && this.ideManager.HasInstalled(IdeType.VsCode))
+			{
+				return FormatVsCodeEditionLabel(folder.VsCodeOptions?.Edition, "VS Code");
+			}
+
+			if (rowObject is VsItem item)
+			{
+				if (string.IsNullOrEmpty(item.VsVersion))
+				{
+					return "<default>";
+				}
+
+				VisualStudioInstance? vs = this.visualStudioInstances.GetByIdentifier(item.VsVersion);
+
+				if (vs is null)
+				{
+					return "<default>";
+				}
+
+				return $"{vs.Year} ({vs.ShortVersion})";
+			}
+
+			return null;
+		}
+
+		/// <summary>
+		/// Resolves the short display label for a pinned VS Code edition identifier or returns a fallback label.
+		/// </summary>
+		/// <param name="editionIdentifier">The pinned VS Code instance identifier, if any.</param>
+		/// <param name="fallback">The fallback label when unpinned or not installed.</param>
+		/// <returns>The edition's short name or <paramref name="fallback"/>.</returns>
+		private string FormatVsCodeEditionLabel(string? editionIdentifier, string fallback)
+		{
+			if (string.IsNullOrWhiteSpace(editionIdentifier))
+			{
+				return fallback;
+			}
+
+			return this.ideManager.GetProvider(IdeType.VsCode)?.FindByIdentifier(editionIdentifier)?.ShortName ?? fallback;
+		}
+
+		/// <summary>
+		/// Returns the currently selected default instance targets from the Visual Studio and VS Code sidebar selectors.
+		/// </summary>
+		/// <returns>An array of configured <see cref="IdeDefaultTarget"/> entries.</returns>
+		internal IdeDefaultTarget[] GetCurrentDefaultTargets()
+		{
+			var targets = new List<IdeDefaultTarget>(2);
+
+			if (this.selectVisualStudioVersion.SelectedItem is VisualStudioInstance vs && !string.IsNullOrWhiteSpace(vs.Identifier))
+			{
+				targets.Add(new IdeDefaultTarget(IdeType.VisualStudio, vs.Identifier));
+			}
+
+			if (this.selectVsCodeEdition.SelectedIdeInstance is IIdeInstance vsCode && !string.IsNullOrWhiteSpace(vsCode.Identifier))
+			{
+				targets.Add(new IdeDefaultTarget(IdeType.VsCode, vsCode.Identifier));
+			}
+
+			return targets.ToArray();
+		}
+
+		/// <summary>
+		/// Restores the previously selected Visual Studio instance or selects the first installed instance.
+		/// </summary>
+		private void InitializeVisualStudioSelector()
+		{
+			if (this.selectVisualStudioVersion.Items.Count <= 0)
+			{
+				return;
+			}
+
+			string savedVsVersion = Properties.Settings.Default.SelectedVSversion;
+
+			if (!string.IsNullOrEmpty(savedVsVersion))
+			{
+				VisualStudioInstance? savedInstance = this.selectVisualStudioVersion.Versions.FirstOrDefault(v => v.Identifier == savedVsVersion);
+
+				if (savedInstance is not null)
+				{
+					this.selectVisualStudioVersion.SelectedItem = savedInstance;
+
+					return;
+				}
+			}
+
+			this.selectVisualStudioVersion.SelectedIndex = 0;
+		}
+
+		/// <summary>
+		/// Populates the VS Code edition selector and restores the saved edition or default instance.
+		/// </summary>
+		private void InitializeVsCodeSelector()
+		{
+			IReadOnlyList<IIdeInstance> vsCodeInstances = this.ideManager.GetInstances(IdeType.VsCode);
+
+			this.selectVsCodeEdition.LoadInstances(vsCodeInstances);
+
+			if (this.selectVsCodeEdition.Items.Count <= 0)
+			{
+				return;
+			}
+
+			string savedEdition = Properties.Settings.Default.SelectedVsCodeEdition;
+
+			if (!string.IsNullOrWhiteSpace(savedEdition))
+			{
+				this.selectVsCodeEdition.SelectByIdentifier(savedEdition);
+			}
+
+			if (this.selectVsCodeEdition.SelectedIndex >= 0)
+			{
+				return;
+			}
+
+			IIdeInstance? defaultInstance = this.ideManager.GetProvider(IdeType.VsCode)?.DefaultInstance;
+
+			if (defaultInstance is not null)
+			{
+				this.selectVsCodeEdition.SelectedIdeInstance = defaultInstance;
+			}
+			else
+			{
+				this.selectVsCodeEdition.SelectedIndex = 0;
+			}
+		}
+
+		/// <summary>
+		/// Enables or disables sidebar controls and selects the initial IDE tab based on installed IDEs.
+		/// </summary>
+		private void ApplyInstalledIdeState()
+		{
+			bool hasVs   = this.ideManager.HasInstalled(IdeType.VisualStudio);
+			bool hasCode = this.ideManager.HasInstalled(IdeType.VsCode);
+
+			SetVisualStudioSidebarEnabled(hasVs);
+			SetVsCodeSidebarEnabled(hasCode);
+
+			TabPage targetTab     = ResolveInitialIdeTab(hasVs, hasCode);
+			bool previousInUpdate = this.bInUpdate;
+
+			this.bInUpdate = true;
+
+			try
+			{
+				this.tabControlIdes.SelectedTab = targetTab;
+			}
+			finally
+			{
+				this.bInUpdate = previousInUpdate;
+			}
+		}
+
+		/// <summary>
+		/// Enables or disables the Visual Studio selector and launch action buttons while keeping the installer button active.
+		/// </summary>
+		/// <param name="enabled"><c>true</c> if Visual Studio is installed; otherwise <c>false</c>.</param>
+		private void SetVisualStudioSidebarEnabled(bool enabled)
+		{
+			this.selectVisualStudioVersion.Enabled = enabled;
+			this.btnMainStartVisualStudio1.Enabled = enabled;
+			this.btnMainStartVisualStudio2.Enabled = enabled;
+			this.btnMainStartVisualStudio3.Enabled = enabled;
+			this.btnMainStartVisualStudio4.Enabled = enabled;
+			this.btnMainStartVisualStudio5.Enabled = enabled;
+			this.btnMainOpenActivityLog.Enabled    = enabled;
+		}
+
+		/// <summary>
+		/// Enables or disables VS Code quick-launch controls and refreshes the VS Code installer/update button state.
+		/// </summary>
+		/// <param name="enabled"><c>true</c> if VS Code is installed; otherwise <c>false</c>.</param>
+		private void SetVsCodeSidebarEnabled(bool enabled)
+		{
+			this.selectVsCodeEdition.Enabled      = enabled;
+			this.btnVsCodeStart.Enabled           = enabled;
+			this.btnVsCodeStartAdmin.Enabled      = enabled;
+			this.btnVsCodeStartNewWindow.Enabled  = enabled;
+			this.btnVsCodeStartNoExt.Enabled      = enabled;
+			this.btnVsCodeOpenActivityLog.Enabled = enabled;
+			this.btnVsCodeInstaller.Visible       = true;
+
+			UpdateVsCodeInstallerButtonState();
+		}
+
+		/// <summary>
+		/// Determines which sidebar IDE tab should be active on startup.
+		/// </summary>
+		/// <param name="hasVs">Whether Visual Studio is installed.</param>
+		/// <param name="hasCode">Whether VS Code is installed.</param>
+		/// <returns>The <see cref="TabPage"/> to select.</returns>
+		private TabPage ResolveInitialIdeTab(bool hasVs, bool hasCode)
+		{
+			if (!hasVs && hasCode)
+			{
+				return this.tabVsCode;
+			}
+
+			if (hasVs && !hasCode)
+			{
+				return this.tabVisualStudio;
+			}
+
+			if (hasVs && hasCode)
+			{
+				return string.Equals(Properties.Settings.Default.SelectedIdeTab, "VsCode", StringComparison.OrdinalIgnoreCase)
+					? this.tabVsCode
+					: this.tabVisualStudio;
+			}
+
+			return this.tabVisualStudio;
+		}
+
 		/// <summary>
 		/// Handles the load event.
 		/// </summary>
@@ -248,6 +458,7 @@ namespace VSLauncher
 			}
 
 			FindVisualStudioInstaller();
+			InitializeVsCodeUpdateCheck();
 
 			SetupTaskbarTasks();
 
@@ -313,8 +524,15 @@ namespace VSLauncher
 				SaveSolutionData();
 			}
 
+			this.vsCodeUpdateTimer.Stop();
+			this.vsCodeUpdateCts.Cancel();
+			this.vsCodeUpdateCts.Dispose();
+			this.vsCodeUpdateService.Dispose();
+
 			this.currentVsButtonBitmap?.Dispose();
 			this.currentVsButtonBitmap = null;
+			this.currentVsCodeButtonBitmap?.Dispose();
+			this.currentVsCodeButtonBitmap = null;
 		}
 
 
@@ -342,25 +560,21 @@ namespace VSLauncher
 		/// <param name="item">The item.</param>
 		private void AddItemToTaskbar(VsItem item)
 		{
-			if (this.TaskbarJumpList is null)
+			if (this.TaskbarJumpList is null || !this.ideManager.AnyInstalled)
 			{
 				return;
 			}
 
-			VisualStudioInstance? targetVs = this.visualStudioInstances.GetByIdentifier(item.VsVersion);
-
-			if (targetVs is null)
-			{
-				return;
-			}
-
-			ItemLauncher il = item is VsFolder folderItem
-				? new ItemLauncher(folderItem, targetVs)
-				: new ItemLauncher(item, targetVs);
+			IdeDefaultTarget[] defaultTargets = GetCurrentDefaultTargets();
+			string? legacyTarget              = this.selectVisualStudioVersion.SelectedItem?.Location;
+			ItemLauncher il                   = item is VsFolder folderItem
+				? new ItemLauncher(folderItem, defaultTargets, legacyTarget)
+				: new ItemLauncher(item, defaultTargets, legacyTarget);
 
 			// Add a jump task to the jump list.
 			string exePath = Environment.ProcessPath ?? Path.ChangeExtension(Assembly.GetExecutingAssembly().Location, ".exe");
-			var jll = new JumpListLink(il.GetLauncherPath(), item.Name ?? string.Empty);
+			var jll        = new JumpListLink(il.GetLauncherPath(), item.Name ?? string.Empty);
+
 			jll.Arguments     = il.CreateLaunchInfoString();
 			jll.IconReference = new Microsoft.WindowsAPICodePack.Shell.IconReference(exePath, 0);
 			jll.ShowCommand   = Microsoft.WindowsAPICodePack.Shell.WindowShowCommand.Hide;
@@ -444,15 +658,24 @@ namespace VSLauncher
 		}
 		private void mainOpenInExplorer_Click(object sender, EventArgs e)
 		{
-			if (this.olvFiles.SelectedItem != null)
-			{
-				VsItem item = (VsItem)this.olvFiles.SelectedItem.RowObject;
+			OpenSelectedItemInExplorer();
+		}
 
-				if (item is not VsFolder && !string.IsNullOrWhiteSpace(item.Path))
-				{
-					using var process = Process.Start("explorer.exe", $"/select, \"{item.Path}\"");
-				}
+		/// <summary>
+		/// Opens Windows Explorer for the selected item's directory or selects the target file.
+		/// </summary>
+		private void OpenSelectedItemInExplorer()
+		{
+			if (this.olvFiles.SelectedObject is not VsItem item || string.IsNullOrWhiteSpace(item.Path))
+			{
+				return;
 			}
+
+			string arguments = Directory.Exists(item.Path)
+				? $"\"{item.Path}\""
+				: $"/select, \"{item.Path}\"";
+
+			using Process? process = Process.Start("explorer.exe", arguments);
 		}
 
 		/// <summary>
@@ -475,16 +698,17 @@ namespace VSLauncher
 		}
 
 		/// <summary>
-		/// Handles importing from VS button.
+		/// Handles importing recent projects from installed IDEs.
 		/// </summary>
 		/// <param name="sender">The sender.</param>
 		/// <param name="e">The event parameters</param>
 		private void mainImportVS_Click(object sender, EventArgs e)
 		{
-			dlgImportVisualStudio dlg = new dlgImportVisualStudio();
+			using dlgImportVisualStudio dlg = new dlgImportVisualStudio(this.ideManager);
+
 			if (dlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
 			{
-				OLVListItem r = this.olvFiles.SelectedItem;
+				OLVListItem r     = this.olvFiles.SelectedItem;
 				VsItemList source = dlg.Solution.Items;
 
 				MergeNewItems(r, source);
@@ -501,18 +725,51 @@ namespace VSLauncher
 				Title  = "Select a solution or project file"
 			};
 
-			if (dlg.ShowDialog() == DialogResult.OK)
+			if (dlg.ShowDialog(this) != DialogResult.OK)
 			{
-				VsItem item = ImportHelper.GetItemFromExtension(Path.GetFileNameWithoutExtension(dlg.FileName), dlg.FileName);
-				using dlgExecuteVisualStudio dlg2 = new dlgExecuteVisualStudio(item);
-
-				if (dlg2.ShowDialog() == DialogResult.OK && dlg2.Item is not null)
-				{
-					// add the item to the list
-					MergeNewItem(this.olvFiles.SelectedItem, dlg2.Item);
-					_ = SolutionData_OnChanged(true);
-				}
+				return;
 			}
+
+			VsItem item = ImportHelper.GetItemFromExtension(Path.GetFileNameWithoutExtension(dlg.FileName), dlg.FileName);
+
+			if (ShowItemSettingsDialog(item))
+			{
+				// add the item to the list
+				MergeNewItem(this.olvFiles.SelectedItem, item);
+				_ = SolutionData_OnChanged(true);
+			}
+		}
+
+		/// <summary>
+		/// Displays the tool-appropriate settings dialog for <paramref name="item"/>.
+		/// </summary>
+		/// <param name="item">The item whose settings should be configured.</param>
+		/// <returns><c>true</c> if the user accepted the changes; otherwise <c>false</c>.</returns>
+		private bool ShowItemSettingsDialog(VsItem item)
+		{
+			bool useVsCodeDialog = item is VsCodeProject
+				|| (item is VsFolder && this.tabControlIdes.SelectedTab == this.tabVsCode);
+
+			if (useVsCodeDialog)
+			{
+				using dlgExecuteVsCode vsCodeDlg = new dlgExecuteVsCode(item, this.ideManager);
+
+				return vsCodeDlg.ShowDialog(this) == DialogResult.OK;
+			}
+
+			using dlgExecuteVisualStudio vsDlg = new dlgExecuteVisualStudio(item);
+
+			if (vsDlg.ShowDialog(this) != DialogResult.OK)
+			{
+				return false;
+			}
+
+			if (item is VsFolder folder)
+			{
+				folder.Refresh();
+			}
+
+			return true;
 		}
 		/// <summary>
 		/// Handles the refresh button.
@@ -655,33 +912,65 @@ namespace VSLauncher
 		/// <param name="e">The event parameters</param>
 		private void olvFiles_SelectedIndexChanged(object? sender, EventArgs e)
 		{
-			bool enableOpenInExplorer = false;
+			VsItem? selectedItem = this.olvFiles.SelectedItem?.RowObject as VsItem;
 
 			// update status bar text with info on selected item
-			if (this.olvFiles.SelectedItem != null)
+			if (selectedItem is VsSolution s)
 			{
-				object item = this.olvFiles.SelectedItem.RowObject;
-				if (item is VsSolution s)
-				{
-					this.mainStatusLabel.Text = $"Visual Studio Solution: {s.Projects?.Count} Projects, {s.TypeAsName()}";
-					enableOpenInExplorer = true;
-				}
-				else if (item is VsProject p)
-				{
-					this.mainStatusLabel.Text = $"Visual Studio Project: {p.TypeAsName()}, .NET {p.FrameworkVersion}";
-					enableOpenInExplorer = true;
-				}
-				else if (item is VsFolder sg)
-				{
-					this.mainStatusLabel.Text = $"Contains {sg.ContainedSolutionsCount()} solution{((sg.ContainedSolutionsCount() != 1) ? 's' : "")}";
-				}
+				this.mainStatusLabel.Text = $"Visual Studio Solution: {s.Projects?.Count} Projects, {s.TypeAsName()}";
+			}
+			else if (selectedItem is VsProject p)
+			{
+				this.mainStatusLabel.Text = $"Visual Studio Project: {p.TypeAsName()}, .NET {p.FrameworkVersion}";
+			}
+			else if (selectedItem is VsCodeProject cp)
+			{
+				this.mainStatusLabel.Text = $"VS Code: {cp.TypeAsName()}";
+			}
+			else if (selectedItem is VsFolder sg)
+			{
+				this.mainStatusLabel.Text = FormatFolderStatusText(sg);
+			}
+			else if (selectedItem is not null)
+			{
+				this.mainStatusLabel.Text = selectedItem.Path ?? string.Empty;
 			}
 			else
 			{
 				this.mainStatusLabel.Text = string.Empty;
 			}
 
-			btnExplorer.Enabled = enableOpenInExplorer;
+			this.btnExplorer.Enabled = HasExistingDiskPath(selectedItem);
+		}
+
+		/// <summary>
+		/// Formats the status bar summary text for a selected <see cref="VsFolder"/>.
+		/// </summary>
+		/// <param name="folder">The selected folder.</param>
+		/// <returns>The formatted summary string.</returns>
+		private static string FormatFolderStatusText(VsFolder folder)
+		{
+			int solutions = folder.ContainedSolutionsCount();
+			int projects  = folder.ContainedProjectsCount();
+
+			if (solutions == 0 && projects == 0)
+			{
+				return folder.IsWorkspaceBacked() ? "VS Code Workspace Folder" : "Contains 0 solutions";
+			}
+
+			var parts = new List<string>(2);
+
+			if (solutions > 0)
+			{
+				parts.Add($"{solutions} solution{(solutions != 1 ? "s" : "")}");
+			}
+
+			if (projects > 0)
+			{
+				parts.Add($"{projects} project{(projects != 1 ? "s" : "")}");
+			}
+
+			return "Contains " + string.Join(" and ", parts);
 		}
 
 		/// <summary>
@@ -743,41 +1032,69 @@ namespace VSLauncher
 				return;
 			}
 
-			if (this.lastDroppedData is null)
+			if (this.lastDroppedData is not null)
 			{
-				this.lastDroppedData = dataObject;
-				string[]? files = dataObject.GetData(DataFormats.FileDrop) as string[];
-
-				if (files is null || files.Length == 0)
-				{
-					return;
-				}
-
-				foreach (string file in files)
-				{
-					VsItem item = ImportHelper.GetItemFromExtension(Path.GetFileNameWithoutExtension(file), file);
-
-					if (item != null && item.ItemType != ItemTypeEnum.Other)
-					{
-						MergeNewItem(e.DropTargetItem, item);
-					}
-					else if (item?.ItemType == ItemTypeEnum.Other && Directory.Exists(file))
-					{
-						// check if the file is actually a folder, then invoke the import folder dialog
-						using dlgImportFolder dlg = new dlgImportFolder(file);
-
-						if (dlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
-						{
-							VsItemList source = dlg.Solution.Items;
-							MergeNewItems(e.DropTargetItem, source);
-							_ = SolutionData_OnChanged(true);
-						}
-					}
-				}
-
-				_ = SolutionData_OnChanged(true);
-				e.Handled = true;
+				return;
 			}
+
+			this.lastDroppedData = dataObject;
+			string[]? files      = dataObject.GetData(DataFormats.FileDrop) as string[];
+
+			if (files is null || files.Length == 0)
+			{
+				return;
+			}
+
+			bool changed = false;
+
+			foreach (string file in files)
+			{
+				if (ImportDroppedFile(file, e.DropTargetItem))
+				{
+					changed = true;
+				}
+			}
+
+			if (changed)
+			{
+				_ = SolutionData_OnChanged(true);
+			}
+
+			e.Handled = true;
+		}
+
+		/// <summary>
+		/// Imports a single dropped file or directory into the main tree.
+		/// </summary>
+		/// <param name="file">The dropped filesystem path.</param>
+		/// <param name="dropTarget">The optional target list item receiving the drop.</param>
+		/// <returns><c>true</c> if items were added to the tree; otherwise <c>false</c>.</returns>
+		private bool ImportDroppedFile(string file, OLVListItem? dropTarget)
+		{
+			if (Directory.Exists(file))
+			{
+				using dlgImportFolder dlg = new dlgImportFolder(file);
+
+				if (dlg.ShowDialog(this) != DialogResult.OK)
+				{
+					return false;
+				}
+
+				MergeNewItems(dropTarget, dlg.Solution.Items);
+
+				return true;
+			}
+
+			VsItem item = ImportHelper.GetItemFromExtension(Path.GetFileNameWithoutExtension(file), file);
+
+			if (item is not null && item.ItemType != ItemTypeEnum.Other)
+			{
+				MergeNewItem(dropTarget, item);
+
+				return true;
+			}
+
+			return false;
 		}
 
 		/// <summary>
@@ -946,15 +1263,12 @@ namespace VSLauncher
 		/// <param name="e">The event parameters</param>
 		private void settingsToolStripMenuItem_Click(object sender, EventArgs e)
 		{
-			if (this.olvFiles.SelectedItem is null)
+			if (this.olvFiles.SelectedItem?.RowObject is not VsItem item)
 			{
 				return;
 			}
 
-			object item = this.olvFiles.SelectedItem.RowObject;
-			using dlgExecuteVisualStudio dlg = new dlgExecuteVisualStudio(item);
-
-			if (dlg.ShowDialog() == DialogResult.OK)
+			if (ShowItemSettingsDialog(item))
 			{
 				_ = SolutionData_OnChanged(true);
 			}
@@ -1050,63 +1364,13 @@ namespace VSLauncher
 		}
 
 		/// <summary>
-		/// Resolves the Visual Studio instance to use for launching a given item.
-		/// </summary>
-		/// <param name="item">The item to launch.</param>
-		/// <returns>The resolved <see cref="VisualStudioInstance"/>, or <c>null</c> if none are installed.</returns>
-		private VisualStudioInstance? ResolveTargetVisualStudio(VsItem item)
-		{
-			VisualStudioInstance? selectedVs = this.selectVisualStudioVersion.SelectedItem;
-
-			if (item is VsFolder f)
-			{
-				return (!string.IsNullOrEmpty(f.VsVersion) ? this.visualStudioInstances.FindByIdentifier(f.VsVersion) : null)
-					?? selectedVs
-					?? this.visualStudioInstances.HighestVersion();
-			}
-
-			if (item is VsSolution s)
-			{
-				return this.visualStudioInstances.FindByIdentifier(s.VsVersion)
-					?? this.visualStudioInstances.FindByVersion(s.RequiredVersion)
-					?? selectedVs
-					?? this.visualStudioInstances.HighestVersion();
-			}
-
-			return this.visualStudioInstances.FindByIdentifier(item.VsVersion)
-				?? selectedVs
-				?? this.visualStudioInstances.HighestVersion();
-		}
-
-		/// <summary>
 		/// Handles the run as admin menu item.
 		/// </summary>
 		/// <param name="sender">The sender.</param>
 		/// <param name="e">The event parameters</param>
 		private void runAsAdminToolStripMenuItem_Click(object sender, EventArgs e)
 		{
-			if (this.olvFiles.SelectedItem?.RowObject is not VsItem item)
-			{
-				return;
-			}
-
-			VisualStudioInstance? vs = ResolveTargetVisualStudio(item);
-
-			if (vs is null)
-			{
-				_ = MessageBox.Show("No Visual Studio installation was found.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-
-				return;
-			}
-
-			if (item is VsFolder sg)
-			{
-				_ = new ItemLauncher(sg, vs).Launch(true);
-			}
-			else
-			{
-				_ = new ItemLauncher(item, vs).Launch(true);
-			}
+			LaunchSelectedItem(forceAdmin: true);
 		}
 
 		/// <summary>
@@ -1116,58 +1380,170 @@ namespace VSLauncher
 		/// <param name="e">The event parameters</param>
 		private void runToolStripMenuItem_Click(object sender, EventArgs e)
 		{
+			LaunchSelectedItem(forceAdmin: false);
+		}
+
+		/// <summary>
+		/// Validates IDE availability, confirms multi-item folder launches, and invokes <see cref="ItemLauncher"/> for the selected item.
+		/// </summary>
+		/// <param name="forceAdmin">Whether to force UAC elevation for the launched process.</param>
+		private void LaunchSelectedItem(bool forceAdmin)
+		{
 			if (this.olvFiles.SelectedItem?.RowObject is not VsItem vsi)
 			{
 				return;
 			}
 
-			VisualStudioInstance? vs = ResolveTargetVisualStudio(vsi);
-
-			if (vs is null)
+			if (!this.ideManager.AnyInstalled)
 			{
-				_ = MessageBox.Show("No Visual Studio installation was found.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+				_ = MessageBox.Show(this, "No supported IDE installation was found.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
 
 				return;
 			}
 
-			ItemLauncher? il = null;
+			IdeDefaultTarget[] defaultTargets      = GetCurrentDefaultTargets();
+			Dictionary<IdeType, string> defaultMap = BuildDefaultTargetMap(defaultTargets);
+			string? legacyTarget                   = this.selectVisualStudioVersion.SelectedItem?.Location;
+			ItemLauncher? il                       = CreateLauncherForItem(vsi, defaultTargets, defaultMap, legacyTarget);
 
-			if (vsi is VsFolder f)
+			if (il is null)
 			{
-				if (!Properties.Settings.Default.DontShowMultiplesWarning)
+				return;
+			}
+
+			this.mainStatusLabel.Text = $"Launching '{vsi.Name}'";
+			il.Launch(forceAdmin).Wait();
+
+			if (il.LastException is not null)
+			{
+				_ = MessageBox.Show(this, il.LastException.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+			}
+
+			this.mainStatusLabel.Text = string.Empty;
+		}
+
+		/// <summary>
+		/// Converts configured default targets into a lookup dictionary keyed by <see cref="IdeType"/>.
+		/// </summary>
+		/// <param name="defaultTargets">The configured default target entries.</param>
+		/// <returns>A dictionary mapping each configured IDE family to its target identifier.</returns>
+		private static Dictionary<IdeType, string> BuildDefaultTargetMap(IdeDefaultTarget[] defaultTargets)
+		{
+			var map = new Dictionary<IdeType, string>(defaultTargets.Length);
+
+			foreach (IdeDefaultTarget target in defaultTargets)
+			{
+				if (!string.IsNullOrWhiteSpace(target.TargetIdentifier))
 				{
-					var n = f.ContainedSolutionsCount() + f.ContainedProjectsCount();
+					map[target.IdeType] = target.TargetIdentifier;
+				}
+			}
 
-					if (n > 3)
-					{
-						using var dlg = new dlgWarnMultiple(n);
+			return map;
+		}
 
-						if (dlg.ShowDialog() == DialogResult.Cancel)
-						{
-							return;
-						}
-					}
+		/// <summary>
+		/// Validates IDE availability and confirms multi-item folder launches before constructing an <see cref="ItemLauncher"/>.
+		/// </summary>
+		/// <param name="item">The selected item or folder to launch.</param>
+		/// <param name="defaultTargets">Configured default IDE targets from the sidebar.</param>
+		/// <param name="defaultMap">Lookup map of default target identifiers by IDE family.</param>
+		/// <param name="legacyTarget">Optional legacy Visual Studio executable path.</param>
+		/// <returns>The configured <see cref="ItemLauncher"/>, or <c>null</c> if launch was cancelled or unavailable.</returns>
+		private ItemLauncher? CreateLauncherForItem(
+			VsItem item,
+			IdeDefaultTarget[] defaultTargets,
+			IReadOnlyDictionary<IdeType, string> defaultMap,
+			string? legacyTarget)
+		{
+			if (item is VsFolder folder)
+			{
+				if (!ConfirmFolderLaunch(folder))
+				{
+					return null;
 				}
 
-				il = new ItemLauncher(f, vs);
-			}
-			else if (vsi is VsSolution or VsProject)
-			{
-				il = new ItemLauncher(vsi, vs);
+				return new ItemLauncher(folder, defaultTargets, legacyTarget);
 			}
 
-			if (il != null)
+			if (item is VsSolution or VsProject or VsCodeProject)
 			{
-				this.mainStatusLabel.Text = $"Launching '{vsi.Name}'";
-				il.Launch().Wait();
-
-				if (il.LastException != null)
+				if (this.ideManager.ResolveInstance(item, defaultMap) is null)
 				{
-					_ = MessageBox.Show(il.LastException.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+					string message = item is VsCodeProject
+						? "Visual Studio Code is not installed."
+						: "No compatible IDE installation was found.";
+
+					_ = MessageBox.Show(this, message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+
+					return null;
 				}
 
-				this.mainStatusLabel.Text = "";
+				return new ItemLauncher(item, defaultTargets, legacyTarget);
 			}
+
+			return null;
+		}
+
+		/// <summary>
+		/// Prompts for confirmation when launching a non-workspace folder that expands to more than three launch targets.
+		/// </summary>
+		/// <param name="folder">The folder being launched.</param>
+		/// <returns><c>true</c> to continue launching; <c>false</c> if the user cancelled.</returns>
+		private bool ConfirmFolderLaunch(VsFolder folder)
+		{
+			if (folder.IsWorkspaceBacked() && this.ideManager.HasInstalled(IdeType.VsCode))
+			{
+				return true;
+			}
+
+			if (Properties.Settings.Default.DontShowMultiplesWarning)
+			{
+				return true;
+			}
+
+			int launchCount = CountLaunchTargets(folder);
+
+			if (launchCount <= 3)
+			{
+				return true;
+			}
+
+			using var dlg = new dlgWarnMultiple(launchCount);
+
+			return dlg.ShowDialog(this) != DialogResult.Cancel;
+		}
+
+		/// <summary>
+		/// Counts the number of IDE launch targets produced by executing <paramref name="folder"/>,
+		/// treating each workspace-backed subfolder as a single launch when VS Code is installed.
+		/// </summary>
+		/// <param name="folder">The folder to inspect.</param>
+		/// <returns>The total number of launch operations.</returns>
+		private int CountLaunchTargets(VsFolder folder)
+		{
+			bool hasVsCode = this.ideManager.HasInstalled(IdeType.VsCode);
+
+			if (folder.ItemType == ItemTypeEnum.Project || (folder.IsWorkspaceBacked() && hasVsCode))
+			{
+				return 1;
+			}
+
+			int count = 0;
+
+			foreach (VsItem child in folder.Items)
+			{
+				if (child is VsFolder subFolder)
+				{
+					count += CountLaunchTargets(subFolder);
+				}
+				else if (child is VsSolution or VsProject or VsCodeProject)
+				{
+					count++;
+				}
+			}
+
+			return count;
 		}
 
 		/// <summary>
@@ -1188,17 +1564,13 @@ namespace VSLauncher
 		}
 
 		/// <summary>
-		/// Handles the favorites menu item
+		/// Handles the explorer menu item
 		/// </summary>
 		/// <param name="sender">The sender.</param>
 		/// <param name="e">The e.</param>
 		private void explorerToolStripMenuItem_Click(object sender, EventArgs e)
 		{
-			// open the explorer with the selected item
-			if (this.olvFiles.SelectedObject is VsItem i && !string.IsNullOrWhiteSpace(i.Path))
-			{
-				using var process = Process.Start("explorer.exe", $"/select, \"{i.Path}\"");
-			}
+			OpenSelectedItemInExplorer();
 		}
 
 		#endregion
@@ -1293,6 +1665,87 @@ namespace VSLauncher
 
 				previousBitmap?.Dispose();
 			}
+		}
+
+		/// <summary>
+		/// Persists the active sidebar IDE tab when both Visual Studio and VS Code are installed.
+		/// </summary>
+		/// <param name="sender">The event source.</param>
+		/// <param name="e">The event arguments.</param>
+		private void tabControlIdes_SelectedIndexChanged(object? sender, EventArgs e)
+		{
+			if (this.bInUpdate)
+			{
+				return;
+			}
+
+			bool hasVs   = this.ideManager.HasInstalled(IdeType.VisualStudio);
+			bool hasCode = this.ideManager.HasInstalled(IdeType.VsCode);
+
+			if (!hasVs || !hasCode)
+			{
+				return;
+			}
+
+			Properties.Settings.Default.SelectedIdeTab = this.tabControlIdes.SelectedTab == this.tabVsCode ? "VsCode" : "VisualStudio";
+			Properties.Settings.Default.Save();
+		}
+
+		/// <summary>
+		/// Saves the newly selected VS Code edition and refreshes the VS Code quick-action buttons.
+		/// </summary>
+		/// <param name="sender">The event source.</param>
+		/// <param name="e">The event arguments.</param>
+		private void selectVsCodeEdition_SelectedIndexChanged(object? sender, EventArgs e)
+		{
+			if (this.selectVsCodeEdition.SelectedIdeInstance is not IIdeInstance selected)
+			{
+				return;
+			}
+
+			if (!this.bInUpdate)
+			{
+				Properties.Settings.Default.SelectedVsCodeEdition = selected.Identifier;
+				Properties.Settings.Default.Save();
+			}
+
+			UpdateVsCodeQuickActionButtons(selected);
+			UpdateVsCodeInstallerButtonState();
+		}
+
+		/// <summary>
+		/// Updates the VS Code quick-action buttons with the icon, short name, and tooltip of <paramref name="selected"/>.
+		/// </summary>
+		/// <param name="selected">The selected VS Code instance.</param>
+		private void UpdateVsCodeQuickActionButtons(IIdeInstance selected)
+		{
+			Bitmap icon            = selected.AppIcon.ToBitmap();
+			string shortName       = selected.ShortName;
+			string tooltip         = selected.ToString() ?? selected.Name;
+			Bitmap? previousBitmap = this.currentVsCodeButtonBitmap;
+
+			this.currentVsCodeButtonBitmap = icon;
+
+			Button[] vsCodeButtons =
+			{
+				this.btnVsCodeStart,
+				this.btnVsCodeStartAdmin,
+				this.btnVsCodeStartNewWindow,
+				this.btnVsCodeStartNoExt
+			};
+
+			foreach (Button button in vsCodeButtons)
+			{
+				if (button.Tag is string format)
+				{
+					button.Text = string.Format(format, shortName);
+				}
+
+				this.tooltipForButtons.SetToolTip(button, tooltip);
+				button.Image = icon;
+			}
+
+			previousBitmap?.Dispose();
 		}
 
 		#region Solution Data Handling
@@ -1550,6 +2003,480 @@ namespace VSLauncher
 				Debug.WriteLine(ex);
 			}
 		}
+
+		/// <summary>
+		/// Gets the currently selected VS Code instance from <see cref="selectVsCodeEdition"/>, or <c>null</c> if none is selected.
+		/// </summary>
+		/// <returns>The selected <see cref="VsCodeInstance"/> or <c>null</c>.</returns>
+		private VsCodeInstance? GetSelectedVsCodeInstance()
+		{
+			return this.selectVsCodeEdition.SelectedIdeInstance as VsCodeInstance;
+		}
+
+		/// <summary>
+		/// Runs a quick-launch action against the currently selected VS Code edition while displaying a wait cursor.
+		/// </summary>
+		/// <param name="launchAction">The launch callback to invoke on the selected instance.</param>
+		private void ExecuteSelectedVsCodeAction(Action<VsCodeInstance> launchAction)
+		{
+			VsCodeInstance? vsCode = GetSelectedVsCodeInstance();
+
+			if (vsCode is null)
+			{
+				return;
+			}
+
+			this.Cursor = Cursors.WaitCursor;
+
+			try
+			{
+				launchAction(vsCode);
+			}
+			finally
+			{
+				this.Cursor = Cursors.Default;
+			}
+		}
+
+		/// <summary>
+		/// Handles click on <see cref="btnVsCodeStart"/> to launch the selected VS Code edition.
+		/// </summary>
+		/// <param name="sender">The event source.</param>
+		/// <param name="e">The event arguments.</param>
+		private void btnVsCodeStart_Click(object? sender, EventArgs e)
+		{
+			ExecuteSelectedVsCodeAction(vsCode => vsCode.Execute());
+		}
+
+		/// <summary>
+		/// Handles click on <see cref="btnVsCodeStartAdmin"/> to launch the selected VS Code edition as administrator.
+		/// </summary>
+		/// <param name="sender">The event source.</param>
+		/// <param name="e">The event arguments.</param>
+		private void btnVsCodeStartAdmin_Click(object? sender, EventArgs e)
+		{
+			ExecuteSelectedVsCodeAction(vsCode => vsCode.ExecuteAsAdmin());
+		}
+
+		/// <summary>
+		/// Handles click on <see cref="btnVsCodeStartNewWindow"/> to launch the selected VS Code edition in a new window.
+		/// </summary>
+		/// <param name="sender">The event source.</param>
+		/// <param name="e">The event arguments.</param>
+		private void btnVsCodeStartNewWindow_Click(object? sender, EventArgs e)
+		{
+			ExecuteSelectedVsCodeAction(vsCode => vsCode.ExecuteNewWindow());
+		}
+
+		/// <summary>
+		/// Handles click on <see cref="btnVsCodeStartNoExt"/> to launch the selected VS Code edition with extensions disabled.
+		/// </summary>
+		/// <param name="sender">The event source.</param>
+		/// <param name="e">The event arguments.</param>
+		private void btnVsCodeStartNoExt_Click(object? sender, EventArgs e)
+		{
+			ExecuteSelectedVsCodeAction(vsCode => vsCode.ExecuteWithoutExtensions());
+		}
+
+		/// <summary>
+		/// Handles click on <see cref="btnVsCodeOpenActivityLog"/> to open the selected VS Code edition's logs folder in Explorer.
+		/// </summary>
+		/// <param name="sender">The event source.</param>
+		/// <param name="e">The event arguments.</param>
+		private void btnVsCodeOpenActivityLog_Click(object? sender, EventArgs e)
+		{
+			VsCodeInstance? vsCode = GetSelectedVsCodeInstance();
+
+			if (vsCode is null)
+			{
+				return;
+			}
+
+			string logsPath = Path.Combine(vsCode.UserDataDirectory, "logs");
+
+			if (!Directory.Exists(logsPath))
+			{
+				_ = MessageBox.Show($"VS Code logs folder was not found at '{logsPath}'.", "ActivityLog", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+				return;
+			}
+
+			try
+			{
+				using var process = Process.Start("explorer.exe", $"\"{logsPath}\"");
+			}
+			catch (Win32Exception ex)
+			{
+				_ = MessageBox.Show($"Unable to open VS Code logs folder: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+			}
+		}
+
+		/// <summary>
+		/// Starts the daily VS Code update check timer and triggers an initial background check when VS Code is installed.
+		/// </summary>
+		private void InitializeVsCodeUpdateCheck()
+		{
+			UpdateVsCodeInstallerButtonState();
+
+			if (!this.ideManager.HasInstalled(IdeType.VsCode))
+			{
+				return;
+			}
+
+			this.vsCodeUpdateTimer.Tick += VsCodeUpdateTimer_Tick;
+			this.vsCodeUpdateTimer.Start();
+
+			CheckVsCodeUpdatesAsync(forceRefresh: false);
+		}
+
+		/// <summary>
+		/// Handles periodic ticks to re-evaluate the 24-hour VS Code update check window while the application remains running.
+		/// </summary>
+		/// <param name="sender">The event source.</param>
+		/// <param name="e">The event arguments.</param>
+		private void VsCodeUpdateTimer_Tick(object? sender, EventArgs e)
+		{
+			CheckVsCodeUpdatesAsync(forceRefresh: false);
+		}
+
+		/// <summary>
+		/// Runs a non-blocking update check for all discovered VS Code editions and updates the installer button on the UI thread.
+		/// </summary>
+		/// <param name="forceRefresh">When <c>true</c>, bypasses the 24-hour cache.</param>
+		private void CheckVsCodeUpdatesAsync(bool forceRefresh)
+		{
+			if (!this.ideManager.HasInstalled(IdeType.VsCode))
+			{
+				return;
+			}
+
+			if (Interlocked.CompareExchange(ref this.vsCodeUpdateCheckInProgress, 1, 0) != 0)
+			{
+				return;
+			}
+
+			CancellationToken ct;
+
+			try
+			{
+				ct = this.vsCodeUpdateCts.Token;
+			}
+			catch (ObjectDisposedException)
+			{
+				Interlocked.Exchange(ref this.vsCodeUpdateCheckInProgress, 0);
+
+				return;
+			}
+
+			List<VsCodeInstance> editions = this.ideManager.GetInstances(IdeType.VsCode)
+				.OfType<VsCodeInstance>()
+				.ToList();
+
+			_ = Task.Run(async () =>
+			{
+				try
+				{
+					var results = new Dictionary<string, VsCodeUpdateInfo>(StringComparer.OrdinalIgnoreCase);
+
+					foreach (VsCodeInstance edition in editions)
+					{
+						ct.ThrowIfCancellationRequested();
+
+						VsCodeUpdateInfo info = await this.vsCodeUpdateService
+							.CheckForUpdateAsync(edition, forceRefresh, ct)
+							.ConfigureAwait(false);
+
+						results[edition.Identifier] = info;
+					}
+
+					SafeInvokeOnUiThread(() =>
+					{
+						foreach (KeyValuePair<string, VsCodeUpdateInfo> pair in results)
+						{
+							this.vsCodeUpdateStates[pair.Key] = pair.Value;
+						}
+
+						UpdateVsCodeInstallerButtonState();
+					});
+				}
+				catch (Exception ex)
+				{
+					Debug.WriteLine(ex);
+				}
+				finally
+				{
+					Interlocked.Exchange(ref this.vsCodeUpdateCheckInProgress, 0);
+				}
+			});
+		}
+
+		/// <summary>
+		/// Synchronizes <see cref="btnVsCodeInstaller"/> text, icon, enabled state, and tooltip with installation and update status.
+		/// </summary>
+		private void UpdateVsCodeInstallerButtonState()
+		{
+			if (!this.ideManager.HasInstalled(IdeType.VsCode))
+			{
+				this.btnVsCodeInstaller.Text    = "Download VS Code";
+				this.btnVsCodeInstaller.Image   = Resources.Download;
+				this.btnVsCodeInstaller.Enabled = true;
+				this.tooltipForButtons.SetToolTip(this.btnVsCodeInstaller, "Opens the VS Code download page");
+
+				return;
+			}
+
+			this.btnVsCodeInstaller.Image = Resources.Installer;
+
+			if (Volatile.Read(ref this.vsCodeUpdateInstallInProgress) != 0)
+			{
+				this.btnVsCodeInstaller.Text    = "Updating VS Code...";
+				this.btnVsCodeInstaller.Enabled = false;
+				this.tooltipForButtons.SetToolTip(this.btnVsCodeInstaller, "Downloading and installing VS Code update...");
+
+				return;
+			}
+
+			VsCodeInstance? selected = GetSelectedVsCodeInstance();
+
+			if (selected is not null
+				&& this.vsCodeUpdateStates.TryGetValue(selected.Identifier, out VsCodeUpdateInfo? info)
+				&& info.IsUpdateAvailable)
+			{
+				this.btnVsCodeInstaller.Text    = "Update VS Code";
+				this.btnVsCodeInstaller.Enabled = true;
+				this.tooltipForButtons.SetToolTip(this.btnVsCodeInstaller, BuildVsCodeUpdateAvailableTooltip(selected, info));
+
+				return;
+			}
+
+			this.btnVsCodeInstaller.Text    = "VS Code Installer";
+			this.btnVsCodeInstaller.Enabled = false;
+			this.tooltipForButtons.SetToolTip(this.btnVsCodeInstaller, BuildVsCodeUpToDateTooltip(selected));
+		}
+
+		/// <summary>
+		/// Builds the tooltip text displayed when an update is available for <paramref name="selected"/>.
+		/// </summary>
+		private static string BuildVsCodeUpdateAvailableTooltip(VsCodeInstance selected, VsCodeUpdateInfo info)
+		{
+			bool hasCurrent = !string.IsNullOrWhiteSpace(info.CurrentVersion);
+			bool hasLatest  = !string.IsNullOrWhiteSpace(info.LatestVersion);
+
+			if (hasCurrent && hasLatest && !info.CurrentVersion.Equals(info.LatestVersion, StringComparison.OrdinalIgnoreCase))
+			{
+				return $"Update {selected.ShortName} from {info.CurrentVersion} to {info.LatestVersion}";
+			}
+
+			if (hasLatest)
+			{
+				return $"Update {selected.ShortName} to {info.LatestVersion}";
+			}
+
+			return $"Update {selected.ShortName}";
+		}
+
+		/// <summary>
+		/// Builds the tooltip text displayed when no VS Code update is currently available.
+		/// </summary>
+		private string BuildVsCodeUpToDateTooltip(VsCodeInstance? selected)
+		{
+			if (selected is not null
+				&& this.vsCodeUpdateStates.TryGetValue(selected.Identifier, out VsCodeUpdateInfo? info)
+				&& info.CheckSucceeded)
+			{
+				string version   = string.IsNullOrWhiteSpace(info.CurrentVersion) ? selected.Version : info.CurrentVersion;
+				string verSuffix = string.IsNullOrWhiteSpace(version) ? string.Empty : $" ({version})";
+
+				return $"{selected.ShortName}{verSuffix} is up to date";
+			}
+
+			return "Checks daily for VS Code updates";
+		}
+
+		/// <summary>
+		/// Handles click on <see cref="btnVsCodeInstaller"/> to download VS Code when absent or trigger an in-place update when an update is available.
+		/// </summary>
+		/// <param name="sender">The event source.</param>
+		/// <param name="e">The event arguments.</param>
+		private async void btnVsCodeInstaller_Click(object? sender, EventArgs e)
+		{
+			if (!this.ideManager.HasInstalled(IdeType.VsCode))
+			{
+				OpenVsCodeDownloadPage();
+
+				return;
+			}
+
+			VsCodeInstance? vsCode = GetSelectedVsCodeInstance();
+
+			if (vsCode is null
+				|| !this.vsCodeUpdateStates.TryGetValue(vsCode.Identifier, out VsCodeUpdateInfo? updateInfo)
+				|| !updateInfo.IsUpdateAvailable)
+			{
+				return;
+			}
+
+			await RunVsCodeUpdateAsync(vsCode, updateInfo);
+		}
+
+		/// <summary>
+		/// Downloads, verifies, and launches the official VS Code installer for <paramref name="vsCode"/>, then refreshes update state.
+		/// </summary>
+		private async Task RunVsCodeUpdateAsync(VsCodeInstance vsCode, VsCodeUpdateInfo updateInfo)
+		{
+			if (Interlocked.CompareExchange(ref this.vsCodeUpdateInstallInProgress, 1, 0) != 0)
+			{
+				return;
+			}
+
+			CancellationToken ct;
+
+			try
+			{
+				ct = this.vsCodeUpdateCts.Token;
+			}
+			catch (ObjectDisposedException)
+			{
+				Interlocked.Exchange(ref this.vsCodeUpdateInstallInProgress, 0);
+
+				return;
+			}
+
+			UpdateVsCodeInstallerButtonState();
+
+			this.Cursor               = Cursors.WaitCursor;
+			this.mainStatusLabel.Text = $"Downloading {vsCode.ShortName} update...";
+
+			string? installerPath = null;
+
+			try
+			{
+				installerPath = await this.vsCodeUpdateService.DownloadInstallerAsync(updateInfo, ct);
+
+				if (this.IsDisposed || ct.IsCancellationRequested)
+				{
+					return;
+				}
+
+				this.mainStatusLabel.Text = $"Updating {vsCode.ShortName}...";
+
+				int exitCode = await LaunchVsCodeInstallerAsync(installerPath, updateInfo.IsSystemInstall, ct);
+
+				await HandleVsCodeInstallerResultAsync(vsCode, updateInfo, exitCode, ct);
+			}
+			catch (Exception ex) when (ex is OperationCanceledException or ObjectDisposedException)
+			{
+				Debug.WriteLine(ex);
+			}
+			catch (Exception ex)
+			{
+				if (!this.IsDisposed)
+				{
+					_ = MessageBox.Show(this, $"Unable to update {vsCode.ShortName}: {ex.Message}", "VS Code Update", MessageBoxButtons.OK, MessageBoxIcon.Error);
+				}
+			}
+			finally
+			{
+				VsCodeUpdateService.TryDeleteInstallerFile(installerPath);
+				Interlocked.Exchange(ref this.vsCodeUpdateInstallInProgress, 0);
+
+				if (!this.IsDisposed)
+				{
+					this.Cursor               = Cursors.Default;
+					this.mainStatusLabel.Text = string.Empty;
+
+					UpdateVsCodeInstallerButtonState();
+				}
+			}
+		}
+
+		/// <summary>
+		/// Refreshes version metadata, action button tooltips, and update state after a successful installer exit, or displays a warning on non-zero failure exit codes.
+		/// </summary>
+		private async Task HandleVsCodeInstallerResultAsync(VsCodeInstance vsCode, VsCodeUpdateInfo updateInfo, int exitCode, CancellationToken cancellationToken)
+		{
+			if (this.IsDisposed || cancellationToken.IsCancellationRequested)
+			{
+				return;
+			}
+
+			if (exitCode == 0)
+			{
+				VsCodeUpdateInfo refreshed = await this.vsCodeUpdateService.CheckForUpdateAsync(vsCode, forceRefresh: true, cancellationToken);
+				string fallbackVersion     = string.IsNullOrWhiteSpace(refreshed.CurrentVersion)
+					? updateInfo.LatestVersion
+					: refreshed.CurrentVersion;
+
+				_ = vsCode.RefreshVersion(fallbackVersion);
+
+				if (!this.IsDisposed)
+				{
+					this.vsCodeUpdateStates[vsCode.Identifier] = refreshed;
+
+					if (string.Equals(GetSelectedVsCodeInstance()?.Identifier, vsCode.Identifier, StringComparison.OrdinalIgnoreCase))
+					{
+						UpdateVsCodeQuickActionButtons(vsCode);
+					}
+				}
+
+				return;
+			}
+
+			if (exitCode != -1)
+			{
+				_ = MessageBox.Show(this, $"{vsCode.ShortName} installer exited with code {exitCode}.", "VS Code Update", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+			}
+		}
+
+		/// <summary>
+		/// Launches the downloaded VS Code installer and waits for completion, returning <c>-1</c> if the user cancelled a UAC prompt.
+		/// </summary>
+		private static async Task<int> LaunchVsCodeInstallerAsync(string installerPath, bool isSystemInstall, CancellationToken cancellationToken)
+		{
+			ProcessStartInfo startInfo = VsCodeUpdateService.BuildInstallerStartInfo(installerPath, isSystemInstall);
+
+			try
+			{
+				using Process? process = Process.Start(startInfo);
+
+				if (process is null)
+				{
+					throw new InvalidOperationException("Failed to start the VS Code installer.");
+				}
+
+				await process.WaitForExitAsync(cancellationToken);
+
+				return process.ExitCode;
+			}
+			catch (Win32Exception ex) when (ex.NativeErrorCode == 1223)
+			{
+				// User declined the UAC elevation prompt for a System installation.
+				return -1;
+			}
+		}
+
+		/// <summary>
+		/// Opens the official Visual Studio Code download page in the default browser.
+		/// </summary>
+		private void OpenVsCodeDownloadPage()
+		{
+			string url = this.ideManager.GetProvider(IdeType.VsCode)?.DownloadUrl ?? "https://code.visualstudio.com/download";
+
+			try
+			{
+				var psi = new ProcessStartInfo
+				{
+					FileName        = url,
+					UseShellExecute = true
+				};
+
+				using var process = Process.Start(psi);
+			}
+			catch (Exception ex) when (ex is Win32Exception or InvalidOperationException)
+			{
+				Debug.WriteLine(ex);
+			}
+		}
 		#endregion
 
 		/// <summary>
@@ -1583,30 +2510,84 @@ namespace VSLauncher
 		/// <param name="e">The event parameters</param>
 		private void ctxMenu_Opening(object sender, System.ComponentModel.CancelEventArgs e)
 		{
-			// if the currently selected item is a group, enable the "Add..." menu item, otherwise remove it
-			this.addToolStripMenuItem.Enabled = this.olvFiles.SelectedObject is VsFolder || this.olvFiles.SelectedObject is null;
-			bool bOther = true;
+			VsItem? selectedItem = this.olvFiles.SelectedObject as VsItem;
+			bool hasSelection    = selectedItem is not null;
+			bool hasDiskPath     = HasExistingDiskPath(selectedItem);
 
-			if (this.olvFiles.SelectedObject is VsItem i)
+			// if the currently selected item is a group, enable the "Add..." menu item, otherwise disable it
+			this.addToolStripMenuItem.Enabled = selectedItem is VsFolder || selectedItem is null;
+
+			if (selectedItem is not null)
 			{
-				this.favoriteToolStripMenuItem.Checked = i.IsFavorite;
+				this.favoriteToolStripMenuItem.Checked = selectedItem.IsFavorite;
 
 				// Check if the item is under Git control
-
-				SetupBranchMenu(i);
+				SetupBranchMenu(selectedItem);
 			}
-			if (this.olvFiles.SelectedObject is null)
+			else
 			{
-				// disable all other menu items
-				bOther = false;
+				this.favoriteToolStripMenuItem.Checked = false;
+				this.gitToolStripMenuItem.Enabled      = false;
 			}
 
-			this.runToolStripMenuItem.Enabled = bOther;
-			this.runAsAdminToolStripMenuItem.Enabled = bOther;
-			this.renameToolStripMenuItem.Enabled = bOther;
-			this.removeToolStripMenuItem.Enabled = bOther;
-			this.settingsToolStripMenuItem.Enabled = bOther;
-			this.favoriteToolStripMenuItem.Enabled = bOther;
+			this.runToolStripMenuItem.Enabled          = hasSelection;
+			this.runAsAdminToolStripMenuItem.Enabled   = hasSelection;
+			this.renameToolStripMenuItem.Enabled       = hasSelection;
+			this.removeToolStripMenuItem.Enabled       = hasSelection;
+			this.settingsToolStripMenuItem.Enabled     = hasSelection;
+			this.favoriteToolStripMenuItem.Enabled     = hasSelection;
+			this.explorerToolStripMenuItem.Enabled     = hasDiskPath;
+			this.openInVsCodeToolStripMenuItem.Enabled = hasDiskPath && this.ideManager.HasInstalled(IdeType.VsCode);
+		}
+
+		/// <summary>
+		/// Handles the Open in VS Code context menu item by opening the selected item's target path directly in VS Code.
+		/// </summary>
+		/// <param name="sender">The sender.</param>
+		/// <param name="e">The event parameters.</param>
+		private void openInVsCodeToolStripMenuItem_Click(object? sender, EventArgs e)
+		{
+			if (this.olvFiles.SelectedObject is not VsItem item || !HasExistingDiskPath(item))
+			{
+				return;
+			}
+
+			VsCodeInstance? vsCode = (this.selectVsCodeEdition.SelectedIdeInstance as VsCodeInstance)
+				?? (this.ideManager.GetProvider(IdeType.VsCode)?.DefaultInstance as VsCodeInstance);
+
+			if (vsCode is null)
+			{
+				_ = MessageBox.Show(this, "Visual Studio Code is not installed.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+
+				return;
+			}
+
+			string itemPath    = item.Path!;
+			string? targetPath = (Directory.Exists(itemPath) || Path.GetExtension(itemPath).Equals(".code-workspace", StringComparison.OrdinalIgnoreCase))
+				? itemPath
+				: Path.GetDirectoryName(itemPath);
+
+			if (string.IsNullOrWhiteSpace(targetPath))
+			{
+				return;
+			}
+
+			vsCode.OpenPath(targetPath);
+		}
+
+		/// <summary>
+		/// Determines whether <paramref name="item"/> points to an existing file or directory on disk.
+		/// </summary>
+		/// <param name="item">The item to inspect.</param>
+		/// <returns><c>true</c> if the item's path exists on disk; otherwise <c>false</c>.</returns>
+		private static bool HasExistingDiskPath(VsItem? item)
+		{
+			if (item is null || string.IsNullOrWhiteSpace(item.Path))
+			{
+				return false;
+			}
+
+			return File.Exists(item.Path) || Directory.Exists(item.Path);
 		}
 
 		/// <summary>
@@ -1629,7 +2610,22 @@ namespace VSLauncher
 		/// <returns>The discovered repository path, or <c>null</c> if not inside a Git repository.</returns>
 		private static string? DiscoverRepositoryPath(VsItem item)
 		{
-			string? dir = Path.GetDirectoryName(item.Path);
+			return DiscoverRepositoryPath(item.Path);
+		}
+
+		/// <summary>
+		/// Discovers the Git repository path for a file or directory path.
+		/// </summary>
+		/// <param name="itemPath">The file or directory path to inspect.</param>
+		/// <returns>The discovered repository path, or <c>null</c> if not inside a Git repository.</returns>
+		private static string? DiscoverRepositoryPath(string? itemPath)
+		{
+			if (string.IsNullOrWhiteSpace(itemPath))
+			{
+				return null;
+			}
+
+			string? dir = Directory.Exists(itemPath) ? itemPath : Path.GetDirectoryName(itemPath);
 
 			if (string.IsNullOrWhiteSpace(dir) || !Directory.Exists(dir))
 			{

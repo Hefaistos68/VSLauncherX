@@ -1,271 +1,120 @@
 using System.ComponentModel;
 
 using VSLauncher.DataModel;
-using VSLauncher.Helpers;
-using ThemePalette = VSLauncher.Helpers.ThemeHelper.ThemePalette;
 
 namespace VSLauncher.Controls
 {
-    /// <summary>
-    /// The visual studio combobox.
-    /// </summary>
-    public class VisualStudioCombobox : ComboBox
-    {
-        private VisualStudioInstanceManager visualStudioVersions = new VisualStudioInstanceManager();
-        private bool showDefault;
-        private ThemePalette? currentTheme;
+	/// <summary>
+	/// Designer-compatible Visual Studio instance selector inheriting from <see cref="IdeCombobox"/>.
+	/// </summary>
+	public class VisualStudioCombobox : IdeCombobox
+	{
+		private readonly VisualStudioInstanceManager visualStudioVersions = new VisualStudioInstanceManager();
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="VisualStudioCombobox"/> class.
 		/// </summary>
 		public VisualStudioCombobox()
-        {
-            DrawMode = DrawMode.OwnerDrawFixed;
-            DropDownStyle = ComboBoxStyle.DropDownList;
-            IntegralHeight = false;
-            ItemHeight = 26;
-            DrawItem += CustomDrawItem;
-
-            Items.AddRange(visualStudioVersions.All.ToArray());
-        }
-
-        /// <summary>
-        /// Gets or sets a value indicating whether to show default.
-        /// </summary>
-        [DefaultValue(false)]
-        [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-        public bool ShowDefault
-        {
-            get => showDefault;
-            set
-            {
-                showDefault = value;
-
-                if (value)
-                {
-                    if (Items.Count == 0 || Items[0] is not string)
-                    {
-                        Items.Insert(0, "<default>");
-                    }
-                }
-                else
-                {
-                    if (Items.Count > 0 && Items[0] is string)
-                    {
-                        Items.RemoveAt(0);
-                    }
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets the versions.
-        /// </summary>
-        public List<VisualStudioInstance> Versions { get { return visualStudioVersions.All; } }
-
-        /// <summary>
-        /// Gets the selected item.
-        /// </summary>
-        [Browsable(false)]
-        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-        public new VisualStudioInstance? SelectedItem
-        {
-            get
-            {
-                if (ShowDefault)
-                {
-                    return base.SelectedIndex > 0 ? (VisualStudioInstance)base.SelectedItem : null;
-                }
-
-                return (VisualStudioInstance)base.SelectedItem;
-            }
-            set
-            {
-                base.SelectedItem = value;
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the selected index, accounting for the default item which will result in -1
-        /// </summary>
-        [Browsable(false)]
-        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-        public new int SelectedIndex
-        {
-            get
-            {
-                return ShowDefault ? base.SelectedIndex - 1 : base.SelectedIndex;
-            }
-            set
-            {
-                base.SelectedIndex = value;
-            }
-        }
-
-        /// <summary>
-        /// Gets a value indicating whether default is selected.
-        /// </summary>
-        public bool IsDefaultSelected
-        {
-            get
-            {
-                return ShowDefault && base.SelectedIndex == 0;
-            }
-        }
-
-        /// <summary>
-        /// Selects the default item if existing
-        /// </summary>
-        public void SelectDefault()
-        {
-            if (ShowDefault)
-            {
-                SelectedIndex = 0;
-            }
-        }
-
-        protected override void OnDropDown(EventArgs e)
 		{
-			int selectedRawIndex = base.SelectedIndex; // remember the raw index selected before clearing the list
+			LoadInstances(this.visualStudioVersions.All);
+		}
 
-			Items.Clear();
+		/// <summary>
+		/// Gets the discovered Visual Studio instances.
+		/// </summary>
+		[Browsable(false)]
+		[DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+		public List<VisualStudioInstance> Versions => this.visualStudioVersions.All;
 
-            if (ShowDefault)
-            {
-                Items.Add("<default>");
-            }
+		/// <summary>
+		/// Gets or sets the selected <see cref="VisualStudioInstance"/>, returning <c>null</c> when <c>&lt;default&gt;</c> is selected.
+		/// </summary>
+		[Browsable(false)]
+		[DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+		public new VisualStudioInstance? SelectedItem
+		{
+			get => this.SelectedIdeInstance as VisualStudioInstance;
+			set => this.SelectedIdeInstance = value;
+		}
 
-            Items.AddRange(visualStudioVersions.All.ToArray());
+		/// <summary>
+		/// Gets or sets the selected index, accounting for the default item in the getter while preserving raw index assignment in the setter.
+		/// </summary>
+		[Browsable(false)]
+		[DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+		public new int SelectedIndex
+		{
+			get => this.ShowDefault ? base.SelectedIndex - 1 : base.SelectedIndex;
+			set => base.SelectedIndex = value;
+		}
 
-			base.SelectedIndex = (selectedRawIndex >= 0 && selectedRawIndex < Items.Count) ? selectedRawIndex : -1;
+		/// <summary>
+		/// Selects the active item from a version string (exact or major version), a short name, or an identifier.
+		/// </summary>
+		/// <param name="v">The version, short name, or identifier string.</param>
+		internal void SelectFromVersion(string? v)
+		{
+			if (string.IsNullOrWhiteSpace(v))
+			{
+				if (this.ShowDefault && v is not null)
+				{
+					// v is "" so select the default
+					SelectDefault();
 
-			base.OnDropDown(e);
-        }
+					return;
+				}
 
-        /// <summary>
-        /// Selects the active item from a version string (exact or major version), a shortname or an identifier
-        /// </summary>
-        /// <param name="v">The v.</param>
-        internal void SelectFromVersion(string? v)
-        {
-            if (string.IsNullOrWhiteSpace(v))
-            {
-                if (ShowDefault && v != null)
-                {
-                    // v is "" so select the default
-                    SelectDefault();
+				// any NULL value will return the highest version if available
+				VisualStudioInstance? highest = this.visualStudioVersions.HighestVersion();
 
-                    return;
-                }
+				if (highest is null)
+				{
+					this.SelectedIndex = this.ShowDefault ? 0 : -1;
 
-                // any NULL value will return the highest version if available
-                var highest = visualStudioVersions.HighestVersion();
+					return;
+				}
 
-                if (highest is null)
-                {
-                    SelectedIndex = ShowDefault ? 0 : -1;
+				v = highest.Version;
+			}
 
-                    return;
-                }
+			int matchIndex = FindVisualStudioMatchIndex(v);
 
-                v = highest.Version;
-            }
+			this.SelectedIndex = matchIndex >= 0
+				? (this.ShowDefault ? 1 + matchIndex : matchIndex)
+				: -1;
+		}
 
-            // find either by exact version or by short name containing the version
-            var i = visualStudioVersions.All.FindIndex(x => x.Version == v);
-            if (i >= 0)
-            {
-                SelectedIndex = ShowDefault ? 1 + i : i;
-                return;
-            }
+		/// <summary>
+		/// Finds the zero-based index of the first Visual Studio instance matching <paramref name="value"/>.
+		/// </summary>
+		/// <param name="value">The version, short name, or identifier to match.</param>
+		/// <returns>The matching instance index, or <c>-1</c> if none matches.</returns>
+		private int FindVisualStudioMatchIndex(string value)
+		{
+			List<VisualStudioInstance> versions = this.visualStudioVersions.All;
 
-            var k = visualStudioVersions.All.FindIndex(x => x.Version.StartsWith(v));
-            if (k >= 0)
-            {
-                SelectedIndex = ShowDefault ? 1 + k : k;
-                return;
-            }
+			int index = versions.FindIndex(x => x.Version == value);
 
-            // by year
-            var n = visualStudioVersions.All.FindIndex(x => x.ShortName.Contains(v));
-            if (n >= 0)
-            {
-                SelectedIndex = ShowDefault ? 1 + n : n;
-                return;
-            }
+			if (index >= 0)
+			{
+				return index;
+			}
 
-            // by identifier
-            var o = visualStudioVersions.All.FindIndex(x => x.Identifier == v);
-            if (o >= 0)
-            {
-                SelectedIndex = ShowDefault ? 1 + o : o;
-                return;
-            }
+			index = versions.FindIndex(x => x.Version.StartsWith(value));
 
-            SelectedIndex = -1;
-        }
+			if (index >= 0)
+			{
+				return index;
+			}
 
-        /// <summary>
-        /// Applies themed colors.
-        /// </summary>
-        internal void ApplyTheme(ThemePalette palette)
-        {
-            this.currentTheme = palette;
-            BackColor         = palette.SurfaceAlt;
-            ForeColor         = palette.Text;
-            FlatStyle         = palette.IsDark ? FlatStyle.Flat : FlatStyle.Standard;
-        }
+			index = versions.FindIndex(x => x.ShortName.Contains(value));
 
-        /// <summary>
-        /// Custom draws the item
-        /// </summary>
-        /// <param name="sender">The sender.</param>
-        /// <param name="e">The e.</param>
-        private void CustomDrawItem(object? sender, DrawItemEventArgs e)
-        {
-            if (e.Index < 0 || e.Index >= Items.Count)
-            {
-                return;
-            }
+			if (index >= 0)
+			{
+				return index;
+			}
 
-            var palette = this.currentTheme;
-            bool selected = (e.State & DrawItemState.Selected) == DrawItemState.Selected;
-            Color backColor = selected ? (palette?.Selection ?? SystemColors.Highlight) : (palette?.SurfaceAlt ?? SystemColors.Window);
-            Color textColor = selected ? (palette?.SelectionText ?? SystemColors.HighlightText) : (palette?.Text ?? SystemColors.ControlText);
-            Font drawFont = e.Font ?? Font;
-
-            using (var backBrush = new SolidBrush(backColor))
-            using (var textBrush = new SolidBrush(textColor))
-            {
-                e.Graphics.FillRectangle(backBrush, e.Bounds);
-
-                int height = 16;
-                Rectangle iconRect = new Rectangle(e.Bounds.Left + Margin.Left,
-                                                    e.Bounds.Top + (ItemHeight - height) / 2,
-                                                    height, height);
-
-                if (ShowDefault)
-                {
-                    if (e.Index > 0 && (e.Index - 1) < visualStudioVersions.Count)
-                    {
-                        e.Graphics.DrawIcon(visualStudioVersions[e.Index - 1].AppIcon, iconRect);
-                        e.Graphics.DrawString(visualStudioVersions[e.Index - 1].Name, drawFont, textBrush, e.Bounds.Left + 20, e.Bounds.Top + 4);
-                    }
-                    else if (e.Index == 0)
-                    {
-                        e.Graphics.DrawIcon(Resources.AppLogo, iconRect);
-                        e.Graphics.DrawString("<default>", drawFont, textBrush, e.Bounds.Left + 20, e.Bounds.Top + 4);
-                    }
-                }
-                else if (e.Index < visualStudioVersions.Count)
-                {
-                    e.Graphics.DrawIcon(visualStudioVersions[e.Index].AppIcon, iconRect);
-                    e.Graphics.DrawString(visualStudioVersions[e.Index].Name, drawFont, textBrush, e.Bounds.Left + 20, e.Bounds.Top + 4);
-                }
-            }
-
-            e.DrawFocusRectangle();
-        }
-
-    }
+			return versions.FindIndex(x => x.Identifier == value);
+		}
+	}
 }

@@ -51,6 +51,11 @@ namespace VSLauncher.Helpers
 				return $"{p.Name} - {p.TypeAsName()} Project File";
 			}
 
+			if (row is VsCodeProject cp)
+			{
+				return $"{cp.Name} - {cp.TypeAsName()}";
+			}
+
 			if (row is VsItem sg)
 			{
 				return sg.Name ?? string.Empty;
@@ -153,33 +158,74 @@ namespace VSLauncher.Helpers
 		}
 
 		/// <summary>
+		/// Gets the icon for a VS Code project or workspace item.
+		/// </summary>
+		/// <param name="icons">The icon set to query.</param>
+		/// <param name="project">The VS Code project item.</param>
+		/// <returns>The resolved <see cref="Icon"/>.</returns>
+		private static Icon GetVsCodeProjectIcon(FileIcons icons, VsCodeProject project)
+		{
+			if (project.Warning)
+			{
+				return icons.GetIcon("Warning");
+			}
+
+			string key = project.ProjectKind == VsCodeProjectKind.Workspace ? "CodeWorkspace" : "VsCodeProject";
+
+			return icons.GetIcon(key);
+		}
+
+		/// <summary>
+		/// Resolves the icon or bitmap to display for a tree or list row.
+		/// </summary>
+		/// <param name="row">The row model.</param>
+		/// <param name="icons">The icon set to query.</param>
+		/// <param name="large">Whether to use large folder icons.</param>
+		/// <param name="useFolderCustomIcon">Whether to prefer <see cref="VsFolder.Icon"/> when present.</param>
+		/// <returns>The resolved icon/bitmap object, or an empty string when unavailable.</returns>
+		private static object GetImageForRow(object row, FileIcons icons, bool large, bool useFolderCustomIcon)
+		{
+			if (row is VsFolder f)
+			{
+				if (useFolderCustomIcon && f.Icon is not null)
+				{
+					return f.Icon;
+				}
+
+				return ThemeHelper.GetFolderIcon(large: large);
+			}
+
+			if (row is VsSolution s)
+			{
+				return GetSolutionIcon(icons, s);
+			}
+
+			if (row is VsProject p)
+			{
+				return p.Warning ? icons.GetIcon("Warning") : icons.GetIcon(p.ProjectType);
+			}
+
+			if (row is VsCodeProject cp)
+			{
+				return GetVsCodeProjectIcon(icons, cp);
+			}
+
+			if (row is VsItem item && string.Equals(Path.GetExtension(item.Path), ".slnx", StringComparison.OrdinalIgnoreCase))
+			{
+				return GetSolutionIcon(icons, item);
+			}
+
+			return string.Empty;
+		}
+
+		/// <summary>
 		/// Gets the image name for file.
 		/// </summary>
 		/// <param name="row">The row.</param>
 		/// <returns>An object.</returns>
 		public static object GetImageNameForFile(object row)
 		{
-			if (row is VsFolder)
-			{
-				return ThemeHelper.GetFolderIcon(large: true);
-			}
-
-			if (row is VsSolution s)
-			{
-				return GetSolutionIcon(Program.VisualStudioFileIcons32, s);
-			}
-
-			if (row is VsProject p)
-			{
-				return p.Warning ? Program.VisualStudioFileIcons32.GetIcon("Warning") : Program.VisualStudioFileIcons32.GetIcon(p.ProjectType);
-			}
-
-			if (row is VsItem item && string.Equals(Path.GetExtension(item.Path), ".slnx", StringComparison.OrdinalIgnoreCase))
-			{
-				return GetSolutionIcon(Program.VisualStudioFileIcons32, item);
-			}
-
-			return string.Empty;
+			return GetImageForRow(row, Program.VisualStudioFileIcons32, large: true, useFolderCustomIcon: false);
 		}
 
 		/// <summary>
@@ -189,27 +235,7 @@ namespace VSLauncher.Helpers
 		/// <returns>An object.</returns>
 		public static object GetImageNameForFileImport(object row)
 		{
-			if (row is VsFolder)
-			{
-				return ThemeHelper.GetFolderIcon(large: false);
-			}
-
-			if (row is VsSolution s)
-			{
-				return GetSolutionIcon(Program.VisualStudioFileIcons16, s);
-			}
-
-			if (row is VsProject p)
-			{
-				return p.Warning ? Program.VisualStudioFileIcons16.GetIcon("Warning") : Program.VisualStudioFileIcons16.GetIcon(p.ProjectType);
-			}
-
-			if (row is VsItem item && string.Equals(Path.GetExtension(item.Path), ".slnx", StringComparison.OrdinalIgnoreCase))
-			{
-				return GetSolutionIcon(Program.VisualStudioFileIcons16, item);
-			}
-
-			return string.Empty;
+			return GetImageForRow(row, Program.VisualStudioFileIcons16, large: false, useFolderCustomIcon: false);
 		}
 
 		/// <summary>
@@ -219,27 +245,7 @@ namespace VSLauncher.Helpers
 		/// <returns>An object.</returns>
 		public static object GetImageNameForMru(object row)
 		{
-			if (row is VsFolder f)
-			{
-				return f.Icon is null ? ThemeHelper.GetFolderIcon(large: true) : f.Icon;
-			}
-
-			if (row is VsSolution s)
-			{
-				return GetSolutionIcon(Program.VisualStudioFileIcons32, s);
-			}
-
-			if (row is VsProject p)
-			{
-				return p.Warning ? Program.VisualStudioFileIcons32.GetIcon("Warning") : Program.VisualStudioFileIcons32.GetIcon(p.ProjectType);
-			}
-
-			if (row is VsItem item && string.Equals(Path.GetExtension(item.Path), ".slnx", StringComparison.OrdinalIgnoreCase))
-			{
-				return GetSolutionIcon(Program.VisualStudioFileIcons32, item);
-			}
-
-			return string.Empty;
+			return GetImageForRow(row, Program.VisualStudioFileIcons32, large: true, useFolderCustomIcon: true);
 		}
 
 		/// <summary>
@@ -295,106 +301,177 @@ namespace VSLauncher.Helpers
 		/// <returns>An object.</returns>
 		internal static object? GetDescription(object rowObject)
 		{
-			string? desc;
 			if (rowObject is VsSolution s)
 			{
-				if (s.Warning)
-				{
-					desc = "Could not find " + s.Path;
-				}
-				else
-				{
-					desc = $"Visual Studio Solution: {s.Projects?.Count} Project{((s.Projects?.Count != 1) ? 's' : "")}, {s.TypeAsName()}";
-
-					if (Properties.Settings.Default.ShowPathForSolutions)
-					{
-						desc += $"\r\n{s.Path}";
-					}
-				}
+				return GetSolutionDescription(s);
 			}
-			else if (rowObject is VsProject p)
-			{
-				if (p.Warning)
-				{
-					desc = "Could not find " + p.Path;
-				}
-				else
-				{
-					desc = $"Visual Studio Project: {p.TypeAsName()}, .NET {p.FrameworkVersion}";
 
-					if (Properties.Settings.Default.ShowPathForSolutions)
-					{
-						desc += $"\r\n{p.Path}";
-					}
-				}
+			if (rowObject is VsProject p)
+			{
+				return GetProjectDescription(p);
 			}
-			else if (rowObject is VsFolder f)
+
+			if (rowObject is VsCodeProject cp)
 			{
-				// if the path is empty, its either a group or a visual studio version
-				switch (f.ItemType)
-				{
-					case ItemTypeEnum.VisualStudio:
-						desc = f.Name;
-						break;
-
-					case ItemTypeEnum.Solution:
-						desc = f.Path;
-						break;
-
-					case ItemTypeEnum.Project:
-						desc = f.Path;
-						break;
-
-					case ItemTypeEnum.Other:
-						desc = string.Empty;
-						break;
-
-					case ItemTypeEnum.Folder:
-						{
-							var so = f.ContainedSolutionsCount();
-							var pr = f.ContainedProjectsCount();
-							desc = "Contains ";
-							if(pr > 0)
-							{
-								desc += $"{pr} project{((pr != 1) ? 's' : "")}";
-							}
-							
-							if(so > 0)
-							{
-								if (pr > 0)
-								{
-									desc += " and ";
-								}
-								desc += $"{so} solution{((so != 1) ? 's' : "")}";
-							}
-
-							if(pr == 0 && so == 0)
-							{
-								desc += "nothing yet";
-							}
-						}
-						break;
-
-					default:
-						desc = string.Empty;
-						break;
-				}
-
-				if (f.Warning)
-				{
-					desc = "Could not find " + f.Path;
-				}
+				return GetVsCodeProjectDescription(cp);
 			}
-			else if (rowObject is VsItem item)
+
+			if (rowObject is VsFolder f)
 			{
-				desc = item.Path ?? string.Empty;
+				return GetFolderDescription(f);
 			}
-			else
+
+			if (rowObject is VsItem item)
 			{
-				desc = string.Empty;
+				return item.Path ?? string.Empty;
+			}
+
+			return string.Empty;
+		}
+
+		/// <summary>
+		/// Formats the description line for a Visual Studio solution.
+		/// </summary>
+		/// <param name="solution">The solution item.</param>
+		/// <returns>The formatted description string.</returns>
+		private static string GetSolutionDescription(VsSolution solution)
+		{
+			if (solution.Warning)
+			{
+				return "Could not find " + solution.Path;
+			}
+
+			string desc = $"Visual Studio Solution: {solution.Projects?.Count} Project{((solution.Projects?.Count != 1) ? 's' : "")}, {solution.TypeAsName()}";
+
+			if (Properties.Settings.Default.ShowPathForSolutions)
+			{
+				desc += $"\r\n{solution.Path}";
 			}
 
 			return desc;
+		}
+
+		/// <summary>
+		/// Formats the description line for a Visual Studio project.
+		/// </summary>
+		/// <param name="project">The project item.</param>
+		/// <returns>The formatted description string.</returns>
+		private static string GetProjectDescription(VsProject project)
+		{
+			if (project.Warning)
+			{
+				return "Could not find " + project.Path;
+			}
+
+			string desc = $"Visual Studio Project: {project.TypeAsName()}, .NET {project.FrameworkVersion}";
+
+			if (Properties.Settings.Default.ShowPathForSolutions)
+			{
+				desc += $"\r\n{project.Path}";
+			}
+
+			return desc;
+		}
+
+		/// <summary>
+		/// Formats the description line for a Visual Studio Code project or workspace.
+		/// </summary>
+		/// <param name="project">The VS Code project item.</param>
+		/// <returns>The formatted description string.</returns>
+		private static string GetVsCodeProjectDescription(VsCodeProject project)
+		{
+			if (project.Warning)
+			{
+				return "Could not find " + project.Path;
+			}
+
+			string desc = $"VS Code: {project.TypeAsName()}";
+
+			if (Properties.Settings.Default.ShowPathForSolutions)
+			{
+				desc += $"\r\n{project.Path}";
+			}
+
+			return desc;
+		}
+
+		/// <summary>
+		/// Formats the description line for a <see cref="VsFolder"/> node.
+		/// </summary>
+		/// <param name="folder">The folder item.</param>
+		/// <returns>The formatted description string.</returns>
+		private static string? GetFolderDescription(VsFolder folder)
+		{
+			if (folder.Warning)
+			{
+				return "Could not find " + folder.Path;
+			}
+
+			// if the path is empty, its either a group or a visual studio version
+			return folder.ItemType switch
+			{
+				ItemTypeEnum.VisualStudio => folder.Name,
+				ItemTypeEnum.Solution     => folder.Path,
+				ItemTypeEnum.Project      => folder.Path,
+				ItemTypeEnum.Folder       => BuildFolderCountsDescription(folder),
+				_                         => string.Empty
+			};
+		}
+
+		/// <summary>
+		/// Builds the contained project/solution summary for a folder node, noting workspace-backed folders.
+		/// </summary>
+		/// <param name="folder">The folder item.</param>
+		/// <returns>The formatted description string.</returns>
+		private static string BuildFolderCountsDescription(VsFolder folder)
+		{
+			int so        = folder.ContainedSolutionsCount();
+			int pr        = folder.ContainedProjectsCount();
+			string counts = FormatContainedCounts(pr, so);
+
+			if (!folder.IsWorkspaceBacked(allowDiskProbe: false))
+			{
+				return counts;
+			}
+
+			string desc = (pr == 0 && so == 0)
+				? "VS Code Workspace Folder"
+				: $"{counts} (VS Code Workspace)";
+
+			if (Properties.Settings.Default.ShowPathForSolutions && !string.IsNullOrWhiteSpace(folder.Path))
+			{
+				desc += $"\r\n{folder.Path}";
+			}
+
+			return desc;
+		}
+
+		/// <summary>
+		/// Formats the human-readable project and solution count summary.
+		/// </summary>
+		/// <param name="projects">The number of contained projects.</param>
+		/// <param name="solutions">The number of contained solutions.</param>
+		/// <returns>The formatted counts string.</returns>
+		private static string FormatContainedCounts(int projects, int solutions)
+		{
+			if (projects == 0 && solutions == 0)
+			{
+				return "Contains nothing yet";
+			}
+
+			var parts = new List<string>(2);
+
+			if (projects > 0)
+			{
+				parts.Add($"{projects} project{(projects != 1 ? "s" : "")}");
+			}
+
+			if (solutions > 0)
+			{
+				parts.Add($"{solutions} solution{(solutions != 1 ? "s" : "")}");
+			}
+
+			return "Contains " + string.Join(" and ", parts);
 		}
 
 		/// <summary>

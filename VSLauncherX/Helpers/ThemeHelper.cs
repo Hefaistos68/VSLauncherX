@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
@@ -71,6 +72,7 @@ namespace VSLauncher.Helpers
 		private static readonly Color DarkFolderIconColor     = Color.FromArgb(235, 195, 95);
 		private static readonly Color DarkGitCleanColor       = Color.FromArgb(72, 218, 120);
 		private static readonly Color DarkGitDirtyColor       = Color.FromArgb(255, 108, 74);
+		private static readonly ConditionalWeakTable<TabControl, TabThemeState> TabThemeStates = new();
 
 		private static Bitmap? darkFolderIcon32;
 		private static Bitmap? darkFolderIcon16;
@@ -374,8 +376,16 @@ namespace VSLauncher.Helpers
 					ApplyTreeListView(treeListView, palette);
 					break;
 
-				case VisualStudioCombobox vsCombo:
-					vsCombo.ApplyTheme(palette);
+				case IdeCombobox ideCombo:
+					ideCombo.ApplyTheme(palette);
+					break;
+
+				case TabControl tabControl:
+					ApplyTabControlTheme(tabControl, palette);
+					break;
+
+				case TabPage tabPage:
+					ApplyTabPageTheme(tabPage, palette);
 					break;
 
 				case ComboBox comboBox:
@@ -443,13 +453,104 @@ namespace VSLauncher.Helpers
 					break;
 
 				case FlowLayoutPanel flowLayoutPanel:
-					if (flowLayoutPanel.Name == "flowLayoutPanel2" || flowLayoutPanel.Name == "flowLayoutPanel1")
+					if (flowLayoutPanel.Name == "flowLayoutPanel2")
 					{
 						flowLayoutPanel.BackColor = palette.SurfaceContrast;
 					}
 
 					break;
 			}
+		}
+
+		/// <summary>
+		/// Applies light or dark theme styling to a <see cref="TabControl"/>, using idempotent owner-draw in dark mode.
+		/// </summary>
+		/// <param name="tabControl">The tab control to style.</param>
+		/// <param name="palette">The active theme palette.</param>
+		private static void ApplyTabControlTheme(TabControl tabControl, ThemePalette palette)
+		{
+			TabThemeState state = TabThemeStates.GetOrCreateValue(tabControl);
+
+			state.Palette = palette;
+
+			tabControl.DrawItem -= OnTabControlDrawItem;
+
+			if (palette.IsDark)
+			{
+				tabControl.DrawMode  = TabDrawMode.OwnerDrawFixed;
+				tabControl.BackColor = palette.Surface;
+				tabControl.ForeColor = palette.Text;
+				tabControl.DrawItem += OnTabControlDrawItem;
+			}
+			else
+			{
+				tabControl.DrawMode  = TabDrawMode.Normal;
+				tabControl.BackColor = palette.Surface;
+				tabControl.ForeColor = palette.Text;
+			}
+
+			tabControl.Invalidate();
+		}
+
+		/// <summary>
+		/// Applies light or dark theme styling to a <see cref="TabPage"/>.
+		/// </summary>
+		/// <param name="tabPage">The tab page to style.</param>
+		/// <param name="palette">The active theme palette.</param>
+		private static void ApplyTabPageTheme(TabPage tabPage, ThemePalette palette)
+		{
+			tabPage.BackColor               = palette.Surface;
+			tabPage.ForeColor               = palette.Text;
+			tabPage.UseVisualStyleBackColor = !palette.IsDark;
+		}
+
+		/// <summary>
+		/// Paints tab headers for themed <see cref="TabControl"/> instances in dark mode.
+		/// </summary>
+		/// <param name="sender">The source <see cref="TabControl"/>.</param>
+		/// <param name="e">The draw item event arguments.</param>
+		private static void OnTabControlDrawItem(object? sender, DrawItemEventArgs e)
+		{
+			if (sender is not TabControl tabControl || e.Index < 0 || e.Index >= tabControl.TabPages.Count)
+			{
+				return;
+			}
+
+			ThemePalette palette = TabThemeStates.TryGetValue(tabControl, out TabThemeState? state)
+				? state.Palette
+				: GetPalette(Properties.Settings.Default.DarkMode);
+
+			TabPage tabPage  = tabControl.TabPages[e.Index];
+			bool isSelected  = e.Index == tabControl.SelectedIndex;
+			Color backColor  = isSelected ? palette.Selection : palette.SurfaceAlt;
+			Color textColor  = !tabPage.Enabled
+				? palette.DisabledText
+				: (isSelected ? palette.SelectionText : palette.Text);
+			Rectangle bounds = e.Bounds;
+
+			using var backBrush = new SolidBrush(backColor);
+			using var borderPen = new Pen(palette.Border);
+
+			e.Graphics.FillRectangle(backBrush, bounds);
+			e.Graphics.DrawRectangle(borderPen, bounds.X, bounds.Y, Math.Max(0, bounds.Width - 1), Math.Max(0, bounds.Height - 1));
+
+			Font drawFont = e.Font ?? tabControl.Font;
+
+			TextRenderer.DrawText(
+				e.Graphics,
+				tabPage.Text,
+				drawFont,
+				bounds,
+				textColor,
+				TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine | TextFormatFlags.EndEllipsis);
+		}
+
+		/// <summary>
+		/// Stores the applied <see cref="ThemePalette"/> for an owner-drawn <see cref="TabControl"/>.
+		/// </summary>
+		private sealed class TabThemeState
+		{
+			internal ThemePalette Palette { get; set; }
 		}
 
 		/// <summary>

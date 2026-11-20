@@ -23,6 +23,10 @@ namespace VSLauncher.Helpers
             {
                 return new VsSolution(name, path);
             }
+            else if (ext == ".code-workspace")
+            {
+                return new VsCodeProject(name, path, VsCodeProjectKind.Workspace);
+            }
             else if (ext == ".csproj")
             {
                 return new VsProject(name, path, ProjectTypeEnum.CSProject);

@@ -8,6 +8,7 @@ using System.Reflection;
 using System.Xml.Linq;
 using System.Security.Principal;
 using VSLauncher.Helpers;
+using VSLauncher.Ide;
 using System.Drawing;
 using VSLXshared;
 using System.Windows.Forms;
@@ -17,7 +18,7 @@ namespace VSLauncher.DataModel
     /// <summary>
     /// The visual studio instance.
     /// </summary>
-    public class VisualStudioInstance
+    public class VisualStudioInstance : IIdeInstance
 	{
 		private Icon? cachedAppIcon;
 
@@ -34,6 +35,15 @@ namespace VSLauncher.DataModel
 			Location = location;
 			Identifier = identifier;
 			Year = year;
+		}
+
+		/// <inheritdoc/>
+		public IdeType IdeType
+		{
+			get
+			{
+				return IdeType.VisualStudio;
+			}
 		}
 
 		/// <summary>
@@ -178,6 +188,12 @@ namespace VSLauncher.DataModel
 		public void ExecuteWithInstance(bool bAdmin, string? instanceName)
 		{
 			Execute(BuildStartInfo(bAdmin, instance: instanceName));
+		}
+
+		/// <inheritdoc/>
+		public List<string> GetProfiles()
+		{
+			return GetInstances();
 		}
 
 		/// <summary>
