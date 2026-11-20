@@ -368,6 +368,7 @@ namespace VSLauncher
 
 			if (this.Item is VsFolder folder)
 			{
+				folder.IdeType       = IdeType.VsCode;
 				folder.VsCodeOptions ??= new VsCodeLaunchOptions();
 
 				folder.VsCodeOptions.Edition           = edition;

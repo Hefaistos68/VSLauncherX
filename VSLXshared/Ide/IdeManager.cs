@@ -142,7 +142,7 @@ namespace VSLauncher.Ide
 		/// <returns>The target IDE type and optional explicit instance identifier.</returns>
 		private (IdeType TargetIde, string? ExplicitIdentifier) DetermineTargetIde(VsItem item)
 		{
-			if (item is VsFolder folder && folder.IsWorkspaceBacked() && HasInstalled(IdeType.VsCode))
+			if (item is VsFolder folder && folder.IsVsCodeLaunchTarget() && HasInstalled(IdeType.VsCode))
 			{
 				return (IdeType.VsCode, folder.VsCodeOptions?.Edition);
 			}

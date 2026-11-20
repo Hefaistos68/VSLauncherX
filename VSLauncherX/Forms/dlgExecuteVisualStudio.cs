@@ -191,6 +191,12 @@ namespace VSLauncher
 				}
 
 				this.Item.VsVersion = vsVersionIdentifier;
+
+				if (this.Item is VsFolder vsFolder)
+				{
+					vsFolder.IdeType       = IdeType.VisualStudio;
+					vsFolder.VsCodeOptions = null;
+				}
 			}
 		}
 

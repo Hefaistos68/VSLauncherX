@@ -185,6 +185,27 @@ namespace VSLauncher.DataModel
 		}
 
 		/// <summary>
+		/// Determines whether this folder is explicitly configured to launch directly in Visual Studio Code.
+		/// </summary>
+		/// <returns><c>true</c> if this is a path-backed folder with <see cref="IdeType.VsCode"/> or non-null <see cref="VsCodeOptions"/>; otherwise <c>false</c>.</returns>
+		public bool IsVsCodeConfigured()
+		{
+			return this.ItemType == ItemTypeEnum.Folder
+				&& !string.IsNullOrWhiteSpace(this.Path)
+				&& (this.IdeType == IdeType.VsCode || this.VsCodeOptions is not null);
+		}
+
+		/// <summary>
+		/// Determines whether this folder should launch directly in Visual Studio Code, either because it is explicitly configured for VS Code or because it is workspace-backed.
+		/// </summary>
+		/// <param name="allowDiskProbe">If <c>true</c>, probes the filesystem when checking for a <c>.code-workspace</c> file; if <c>false</c>, uses cached/in-memory state only.</param>
+		/// <returns><c>true</c> if this folder launches directly in VS Code; otherwise <c>false</c>.</returns>
+		public bool IsVsCodeLaunchTarget(bool allowDiskProbe = true)
+		{
+			return IsVsCodeConfigured() || IsWorkspaceBacked(allowDiskProbe);
+		}
+
+		/// <summary>
 		/// Determines whether this folder represents a disk-backed folder with a <c>.code-workspace</c> file or workspace child.
 		/// </summary>
 		/// <param name="allowDiskProbe">If <c>true</c>, probes the filesystem when validating disk state and refreshes the cached disk workspace flag; if <c>false</c>, evaluates only in-memory children and the cached flag without performing disk I/O.</param>

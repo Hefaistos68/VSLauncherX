@@ -138,7 +138,7 @@ namespace BackgroundLaunch
 
 			if (item is VsFolder folder && folder.ItemType == ItemTypeEnum.Folder)
 			{
-				if (!ShouldLaunchFolderAsWorkspace(folder))
+				if (!ShouldLaunchFolderInVsCode(folder))
 				{
 					return null;
 				}
@@ -224,14 +224,14 @@ namespace BackgroundLaunch
 		}
 
 		/// <summary>
-		/// Determines whether a <see cref="VsFolder"/> should launch directly in VS Code as a workspace-backed folder.
+		/// Determines whether a <see cref="VsFolder"/> should launch directly in VS Code because it is explicitly configured for VS Code or workspace-backed.
 		/// </summary>
 		/// <param name="folder">The folder to inspect.</param>
-		/// <returns><c>true</c> if the folder is workspace-backed and VS Code is installed; otherwise <c>false</c>.</returns>
-		private bool ShouldLaunchFolderAsWorkspace(VsFolder folder)
+		/// <returns><c>true</c> if the folder targets VS Code directly and VS Code is installed; otherwise <c>false</c>.</returns>
+		private bool ShouldLaunchFolderInVsCode(VsFolder folder)
 		{
 			return folder.ItemType == ItemTypeEnum.Folder &&
-				folder.IsWorkspaceBacked() &&
+				folder.IsVsCodeLaunchTarget() &&
 				this.ideManager.HasInstalled(IdeType.VsCode);
 		}
 
@@ -474,7 +474,7 @@ namespace BackgroundLaunch
 		{
 			if (item is VsFolder folder && folder.ItemType is ItemTypeEnum.Folder or ItemTypeEnum.VisualStudio)
 			{
-				if (ShouldLaunchFolderAsWorkspace(folder))
+				if (ShouldLaunchFolderInVsCode(folder))
 				{
 					return RunItem(folder, waitForExit: waitForRunAfter);
 				}

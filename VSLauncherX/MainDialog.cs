@@ -217,7 +217,7 @@ namespace VSLauncher
 				return FormatVsCodeEditionLabel(codeProject.VsVersion, "<default>");
 			}
 
-			if (rowObject is VsFolder folder && folder.IsWorkspaceBacked(allowDiskProbe: false) && this.ideManager.HasInstalled(IdeType.VsCode))
+			if (rowObject is VsFolder folder && folder.IsVsCodeLaunchTarget(allowDiskProbe: false) && this.ideManager.HasInstalled(IdeType.VsCode))
 			{
 				return FormatVsCodeEditionLabel(folder.VsCodeOptions?.Edition, "VS Code");
 			}
@@ -955,7 +955,12 @@ namespace VSLauncher
 
 			if (solutions == 0 && projects == 0)
 			{
-				return folder.IsWorkspaceBacked() ? "VS Code Workspace Folder" : "Contains 0 solutions";
+				if (folder.IsWorkspaceBacked())
+				{
+					return "VS Code Workspace Folder";
+				}
+
+				return folder.IsVsCodeConfigured() ? "VS Code Folder" : "Contains 0 solutions";
 			}
 
 			var parts = new List<string>(2);
@@ -1458,6 +1463,13 @@ namespace VSLauncher
 		{
 			if (item is VsFolder folder)
 			{
+				if (folder.IsVsCodeConfigured() && !this.ideManager.HasInstalled(IdeType.VsCode) && folder.Items.Count == 0)
+				{
+					_ = MessageBox.Show(this, "Visual Studio Code is not installed.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+
+					return null;
+				}
+
 				if (!ConfirmFolderLaunch(folder))
 				{
 					return null;
@@ -1492,7 +1504,7 @@ namespace VSLauncher
 		/// <returns><c>true</c> to continue launching; <c>false</c> if the user cancelled.</returns>
 		private bool ConfirmFolderLaunch(VsFolder folder)
 		{
-			if (folder.IsWorkspaceBacked() && this.ideManager.HasInstalled(IdeType.VsCode))
+			if (folder.IsVsCodeLaunchTarget() && this.ideManager.HasInstalled(IdeType.VsCode))
 			{
 				return true;
 			}
@@ -1524,7 +1536,7 @@ namespace VSLauncher
 		{
 			bool hasVsCode = this.ideManager.HasInstalled(IdeType.VsCode);
 
-			if (folder.ItemType == ItemTypeEnum.Project || (folder.IsWorkspaceBacked() && hasVsCode))
+			if (folder.ItemType == ItemTypeEnum.Project || (folder.IsVsCodeLaunchTarget() && hasVsCode))
 			{
 				return 1;
 			}
