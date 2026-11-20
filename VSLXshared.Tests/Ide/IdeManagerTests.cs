@@ -189,6 +189,40 @@ namespace VSLXshared.Tests.Ide
 		}
 
 		/// <summary>
+		/// Verifies that a plain disk folder explicitly configured for VS Code resolves to VS Code even without a <c>.code-workspace</c> file.
+		/// </summary>
+		[Test]
+		public void ResolveInstance_WhenPlainEmptyFolderConfiguredForVsCode_ResolvesVsCodeEditionOrDefault()
+		{
+			string emptyDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+
+			Directory.CreateDirectory(emptyDir);
+
+			try
+			{
+				var vs           = CreateMockInstance(IdeType.VisualStudio, "vs22", "17.10");
+				var codeStable   = CreateMockInstance(IdeType.VsCode, "vscode-stable-user", "1.95.0");
+				var codeInsiders = CreateMockInstance(IdeType.VsCode, "vscode-insiders-user", "1.96.0");
+				var manager      = new IdeManager(new[]
+				{
+					CreateMockProvider(IdeType.VisualStudio, vs, vs).Object,
+					CreateMockProvider(IdeType.VsCode, codeStable, codeStable, codeInsiders).Object
+				});
+				var pinnedFolder  = new VsFolder("notes", emptyDir) { IdeType = IdeType.VsCode, VsCodeOptions = new VsCodeLaunchOptions { Edition = "vscode-insiders-user" } };
+				var defaultFolder = new VsFolder("plain", emptyDir) { IdeType = IdeType.VsCode };
+				var legacyFolder  = new VsFolder("legacy", emptyDir) { VsCodeOptions = new VsCodeLaunchOptions() };
+
+				manager.ResolveInstance(pinnedFolder)!.Identifier.ShouldBe("vscode-insiders-user");
+				manager.ResolveInstance(defaultFolder)!.Identifier.ShouldBe("vscode-stable-user");
+				manager.ResolveInstance(legacyFolder)!.Identifier.ShouldBe("vscode-stable-user");
+			}
+			finally
+			{
+				Directory.Delete(emptyDir, true);
+			}
+		}
+
+		/// <summary>
 		/// Verifies provider querying, installation flags, and MRU aggregation across registered providers.
 		/// </summary>
 		[Test]

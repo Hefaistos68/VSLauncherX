@@ -425,18 +425,18 @@ namespace VSLauncher.Helpers
 		/// <returns>The formatted description string.</returns>
 		private static string BuildFolderCountsDescription(VsFolder folder)
 		{
-			int so        = folder.ContainedSolutionsCount();
-			int pr        = folder.ContainedProjectsCount();
-			string counts = FormatContainedCounts(pr, so);
+			int so            = folder.ContainedSolutionsCount();
+			int pr            = folder.ContainedProjectsCount();
+			string counts     = FormatContainedCounts(pr, so);
+			bool isWorkspace  = folder.IsWorkspaceBacked(allowDiskProbe: false);
+			bool isVsCodeOnly = !isWorkspace && folder.IsVsCodeConfigured();
 
-			if (!folder.IsWorkspaceBacked(allowDiskProbe: false))
+			if (!isWorkspace && !isVsCodeOnly)
 			{
 				return counts;
 			}
 
-			string desc = (pr == 0 && so == 0)
-				? "VS Code Workspace Folder"
-				: $"{counts} (VS Code Workspace)";
+			string desc = FormatVsCodeFolderDescription(counts, pr, so, isWorkspace);
 
 			if (Properties.Settings.Default.ShowPathForSolutions && !string.IsNullOrWhiteSpace(folder.Path))
 			{
@@ -444,6 +444,24 @@ namespace VSLauncher.Helpers
 			}
 
 			return desc;
+		}
+
+		/// <summary>
+		/// Formats the descriptive label for a workspace-backed or VS Code-configured folder.
+		/// </summary>
+		/// <param name="counts">The formatted contained counts summary.</param>
+		/// <param name="projects">The number of contained projects.</param>
+		/// <param name="solutions">The number of contained solutions.</param>
+		/// <param name="isWorkspace"><c>true</c> if the folder is backed by a <c>.code-workspace</c> file; otherwise <c>false</c>.</param>
+		/// <returns>The formatted description line.</returns>
+		private static string FormatVsCodeFolderDescription(string counts, int projects, int solutions, bool isWorkspace)
+		{
+			if (projects == 0 && solutions == 0)
+			{
+				return isWorkspace ? "VS Code Workspace Folder" : "VS Code Folder";
+			}
+
+			return isWorkspace ? $"{counts} (VS Code Workspace)" : $"{counts} (VS Code)";
 		}
 
 		/// <summary>

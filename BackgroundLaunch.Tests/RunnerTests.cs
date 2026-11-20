@@ -330,6 +330,81 @@ namespace BackgroundLaunch.Tests
 		}
 
 		/// <summary>
+		/// Verifies that an empty folder explicitly set to VS Code launches VS Code directly with its configured options even when no project or <c>.code-workspace</c> files exist.
+		/// </summary>
+		[Test]
+		public void RunAll_WhenEmptyFolderSetToVsCodeWithoutWorkspaceOrProjects_LaunchesVsCodeDirectly()
+		{
+			string emptyDir = Path.Combine(tempDir, "empty-vscode-folder");
+
+			Directory.CreateDirectory(emptyDir);
+
+			var launched     = new List<ProcessStartInfo>();
+			var codeStable   = CreateTestVsCodeInstance("vscode-stable-user", @"C:\Code\Code.exe");
+			var codeInsiders = CreateTestVsCodeInstance("vscode-insiders-user", @"C:\CodeInsiders\Code - Insiders.exe");
+			var vsProvider   = CreateCapturingVsProvider(out _);
+			var folder       = new VsFolder("empty-vscode-folder", emptyDir)
+			{
+				IdeType       = IdeType.VsCode,
+				VsCodeOptions = new VsCodeLaunchOptions
+				{
+					Edition           = "vscode-insiders-user",
+					Profile           = "Docs",
+					WindowMode        = VsCodeWindowMode.NewWindow,
+					DisableExtensions = true
+				}
+			};
+
+			var runner = new Runner(
+				new LaunchInfo { Solution = folder },
+				new IdeManager(new[] { vsProvider, CreateStubVsCodeProvider(codeStable, codeInsiders) }),
+				psi => { launched.Add(psi); return null; });
+
+			runner.BuildStartInfo(folder).ShouldNotBeNull();
+
+			runner.Run();
+
+			launched.Count.ShouldBe(1);
+			launched[0].FileName.ShouldBe(@"C:\CodeInsiders\Code - Insiders.exe");
+			launched[0].Arguments.ShouldContain($"\"{emptyDir}\"");
+			launched[0].Arguments.ShouldContain("--profile \"Docs\"");
+			launched[0].Arguments.ShouldContain("--new-window");
+			launched[0].Arguments.ShouldContain("--disable-extensions");
+			launched[0].WorkingDirectory.ShouldBe(emptyDir);
+		}
+
+		/// <summary>
+		/// Verifies that an empty folder with legacy <see cref="VsFolder.VsCodeOptions"/> populated (and default <see cref="IdeType.VisualStudio"/>) still launches VS Code directly.
+		/// </summary>
+		[Test]
+		public void RunAll_WhenLegacyEmptyFolderHasVsCodeOptions_LaunchesVsCodeDirectly()
+		{
+			string emptyDir = Path.Combine(tempDir, "legacy-vscode-folder");
+
+			Directory.CreateDirectory(emptyDir);
+
+			var launched     = new List<ProcessStartInfo>();
+			var codeProvider = CreateCapturingVsCodeProvider(out IIdeInstance codeInstance);
+			var vsProvider   = CreateCapturingVsProvider(out _);
+			var folder       = new VsFolder("legacy-vscode-folder", emptyDir)
+			{
+				VsCodeOptions = new VsCodeLaunchOptions()
+			};
+
+			var runner = new Runner(
+				new LaunchInfo { Solution = folder },
+				new IdeManager(new[] { vsProvider, codeProvider }),
+				psi => { launched.Add(psi); return null; });
+
+			runner.Run();
+
+			launched.Count.ShouldBe(1);
+			launched[0].FileName.ShouldBe(codeInstance.Location);
+			launched[0].Arguments.ShouldContain($"\"{emptyDir}\"");
+			launched[0].WorkingDirectory.ShouldBe(emptyDir);
+		}
+
+		/// <summary>
 		/// Verifies that <c>RunBefore</c> and <c>RunAfter</c> items of <see cref="ItemTypeEnum.Other"/> launch in order around the main item.
 		/// </summary>
 		[Test]

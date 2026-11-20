@@ -179,5 +179,33 @@ namespace VSLXshared.Tests.DataModel
 
 			root.ContainedProjectsCount().ShouldBe(3);
 		}
+
+		/// <summary>
+		/// Verifies that <see cref="VsFolder.IsVsCodeConfigured"/> and <see cref="VsFolder.IsVsCodeLaunchTarget"/> detect path-backed folders configured for VS Code even without project or <c>.code-workspace</c> files.
+		/// </summary>
+		[Test]
+		public void IsVsCodeConfigured_AndIsVsCodeLaunchTarget_TrueForPlainEmptyFolderConfiguredForVsCode()
+		{
+			var ideTypeFolder      = new VsFolder("empty-ide", tempDir) { IdeType = IdeType.VsCode };
+			var optionsOnlyFolder  = new VsFolder("empty-opts", tempDir) { VsCodeOptions = new VsCodeLaunchOptions() };
+			var virtualCodeFolder  = new VsFolder("virtual-group", string.Empty) { IdeType = IdeType.VsCode, VsCodeOptions = new VsCodeLaunchOptions() };
+			var plainDefaultFolder = new VsFolder("plain", tempDir);
+
+			ideTypeFolder.IsWorkspaceBacked().ShouldBeFalse();
+			ideTypeFolder.IsVsCodeConfigured().ShouldBeTrue();
+			ideTypeFolder.IsVsCodeLaunchTarget(allowDiskProbe: false).ShouldBeTrue();
+			ideTypeFolder.IsVsCodeLaunchTarget(allowDiskProbe: true).ShouldBeTrue();
+
+			optionsOnlyFolder.IsWorkspaceBacked().ShouldBeFalse();
+			optionsOnlyFolder.IsVsCodeConfigured().ShouldBeTrue();
+			optionsOnlyFolder.IsVsCodeLaunchTarget(allowDiskProbe: false).ShouldBeTrue();
+			optionsOnlyFolder.IsVsCodeLaunchTarget(allowDiskProbe: true).ShouldBeTrue();
+
+			virtualCodeFolder.IsVsCodeConfigured().ShouldBeFalse();
+			virtualCodeFolder.IsVsCodeLaunchTarget(allowDiskProbe: false).ShouldBeFalse();
+
+			plainDefaultFolder.IsVsCodeConfigured().ShouldBeFalse();
+			plainDefaultFolder.IsVsCodeLaunchTarget(allowDiskProbe: true).ShouldBeFalse();
+		}
 	}
 }
