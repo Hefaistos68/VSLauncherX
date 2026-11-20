@@ -1,4 +1,4 @@
-﻿using BrightIdeasSoftware;
+using BrightIdeasSoftware;
 
 using VSLauncher.Controls;
 
@@ -81,7 +81,7 @@ namespace VSLauncher
 			btnVsCodeStartNewWindow = new Button();
 			btnVsCodeStartNoExt = new Button();
 			btnVsCodeOpenActivityLog = new Button();
-			btnVsCodeDownload = new Button();
+			btnVsCodeInstaller = new Button();
 			imageListMainIcons = new ImageList(components);
 			toolStripStatusLabel3 = new ToolStripStatusLabel();
 			tooltipForButtons = new ToolTip(components);
@@ -110,6 +110,7 @@ namespace VSLauncher
 			mainStatusLabel = new ToolStripStatusLabel();
 			toolStripStatusGit = new ToolStripStatusLabel();
 			gitTimer = new System.Windows.Forms.Timer(components);
+			vsCodeUpdateTimer = new System.Windows.Forms.Timer(components);
 			flowLayoutPanel2 = new FlowLayoutPanel();
 			label3 = new Label();
 			leftSubPanel = new TableLayoutPanel();
@@ -718,7 +719,7 @@ namespace VSLauncher
 			// tabVsCode
 			// 
 			tabVsCode.Controls.Add(flowLayoutPanelVsCode);
-			tabVsCode.Controls.Add(btnVsCodeDownload);
+			tabVsCode.Controls.Add(btnVsCodeInstaller);
 			tabVsCode.Location = new Point(4, 24);
 			tabVsCode.Name = "tabVsCode";
 			tabVsCode.Padding = new Padding(3);
@@ -848,23 +849,23 @@ namespace VSLauncher
 			btnVsCodeOpenActivityLog.UseVisualStyleBackColor = true;
 			btnVsCodeOpenActivityLog.Click += btnVsCodeOpenActivityLog_Click;
 			// 
-			// btnVsCodeDownload
+			// btnVsCodeInstaller
 			// 
-			btnVsCodeDownload.Dock = DockStyle.Bottom;
-			btnVsCodeDownload.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-			btnVsCodeDownload.Image = Resources.Download;
-			btnVsCodeDownload.ImageAlign = ContentAlignment.MiddleLeft;
-			btnVsCodeDownload.Location = new Point(3, 418);
-			btnVsCodeDownload.Margin = new Padding(0, 0, 0, 4);
-			btnVsCodeDownload.Name = "btnVsCodeDownload";
-			btnVsCodeDownload.Padding = new Padding(4, 0, 4, 0);
-			btnVsCodeDownload.Size = new Size(236, 48);
-			btnVsCodeDownload.TabIndex = 1;
-			btnVsCodeDownload.Text = "Download VS Code";
-			btnVsCodeDownload.TextAlign = ContentAlignment.MiddleLeft;
-			btnVsCodeDownload.TextImageRelation = TextImageRelation.ImageBeforeText;
-			btnVsCodeDownload.UseVisualStyleBackColor = true;
-			btnVsCodeDownload.Click += btnVsCodeDownload_Click;
+			btnVsCodeInstaller.Dock = DockStyle.Bottom;
+			btnVsCodeInstaller.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+			btnVsCodeInstaller.Image = Resources.Installer;
+			btnVsCodeInstaller.ImageAlign = ContentAlignment.MiddleLeft;
+			btnVsCodeInstaller.Location = new Point(3, 418);
+			btnVsCodeInstaller.Margin = new Padding(0, 0, 0, 4);
+			btnVsCodeInstaller.Name = "btnVsCodeInstaller";
+			btnVsCodeInstaller.Padding = new Padding(4, 0, 4, 0);
+			btnVsCodeInstaller.Size = new Size(236, 48);
+			btnVsCodeInstaller.TabIndex = 1;
+			btnVsCodeInstaller.Text = "VS Code Installer";
+			btnVsCodeInstaller.TextAlign = ContentAlignment.MiddleLeft;
+			btnVsCodeInstaller.TextImageRelation = TextImageRelation.ImageBeforeText;
+			btnVsCodeInstaller.UseVisualStyleBackColor = true;
+			btnVsCodeInstaller.Click += btnVsCodeInstaller_Click;
 			// 
 			// imageListMainIcons
 			// 
@@ -1061,6 +1062,10 @@ namespace VSLauncher
 			// 
 			gitTimer.Interval = 1000;
 			// 
+			// vsCodeUpdateTimer
+			// 
+			vsCodeUpdateTimer.Interval = 3600000;
+			// 
 			// MainDialog
 			// 
 			AutoScaleDimensions = new SizeF(7F, 15F);
@@ -1118,7 +1123,7 @@ namespace VSLauncher
 		private Button btnVsCodeStartNewWindow;
 		private Button btnVsCodeStartNoExt;
 		private Button btnVsCodeOpenActivityLog;
-		private Button btnVsCodeDownload;
+		private Button btnVsCodeInstaller;
 		private Button btnMainStartVisualStudio1;
 		private Button btnMainStartVisualStudio2;
 		private Button btnMainStartVisualStudio3;
@@ -1155,6 +1160,7 @@ namespace VSLauncher
 		private Button btnImportSoP;
 		private Button btnVsInstaller;
 		private System.Windows.Forms.Timer gitTimer;
+		private System.Windows.Forms.Timer vsCodeUpdateTimer;
 		private Button btnMainOpenActivityLog;
 		private ToolStripStatusLabel toolStripStatusGit;
 		private ToolStripMenuItem gitToolStripMenuItem;
