@@ -536,6 +536,452 @@ namespace VSLXshared.Tests.Ide
 		}
 
 		/// <summary>
+		/// Verifies that a fork whose <c>product.json</c> specifies a placeholder <c>updateUrl</c> (such as <c>https://example.com</c>)
+		/// is classified as <see cref="VsCodeUpdateCheckStatus.Unsupported"/> without issuing any HTTP request.
+		/// </summary>
+		[Test]
+		public async Task CheckForUpdateAsync_WhenProductJsonHasPlaceholderUpdateUrl_ReturnsUnsupportedWithoutHttpCall()
+		{
+			string tempDir   = CreateIsolatedTempDirectory();
+			string cachePath = Path.Combine(tempDir, "cache.json");
+			string exePath   = @"C:\Users\Dev\AppData\Local\Programs\Antigravity IDE\Antigravity IDE.exe";
+
+			try
+			{
+				Mock<IVsCodeEnvironment> env = CreateEnvironmentMock(
+					tempDir,
+					exePath,
+					OldCommit,
+					"stable",
+					"user",
+					"1.0.0",
+					"https://example.com");
+				VsCodeProductDescriptor baseDescriptor = GetKnownDescriptor("antigravity-ide");
+				VsCodeProductDescriptor apiDescriptor  = baseDescriptor with
+				{
+					UpdateStrategy = VsCodeUpdateStrategyKind.VsCodeApi
+				};
+				var instance  = new VsCodeInstance("Antigravity IDE", "1.0.0", exePath, "antigravity-ide-user", @"C:\Users\Dev\AppData\Roaming\Antigravity IDE", apiDescriptor, env.Object);
+				var now       = new DateTimeOffset(2026, 11, 20, 12, 0, 0, TimeSpan.Zero);
+				var handler   = new StubHttpMessageHandler(_ => throw new InvalidOperationException("HTTP should not be invoked for placeholder updateUrl."));
+
+				using var service = new VsCodeUpdateService(handler, env.Object, () => now, cachePath, Architecture.X64);
+
+				VsCodeUpdateInfo result = await service.CheckForUpdateAsync(instance);
+
+				handler.RequestUris.ShouldBeEmpty();
+				result.UpdateCheckStatus.ShouldBe(VsCodeUpdateCheckStatus.Unsupported);
+				result.IsUpdateAvailable.ShouldBeFalse();
+				result.CheckSucceeded.ShouldBeTrue();
+			}
+			finally
+			{
+				TryDeleteDirectory(tempDir);
+			}
+		}
+
+		/// <summary>
+		/// Verifies that non-HTTPS, loopback, local, and RFC 2606 reserved URLs are rejected by <see cref="VsCodeUpdateService.IsValidUpdateEndpointUrl"/>.
+		/// </summary>
+		/// <param name="url">The candidate update endpoint URL.</param>
+		/// <param name="expectedValid">Whether the URL is expected to be valid.</param>
+		[TestCase("https://example.com", false)]
+		[TestCase("https://example.org/updates", false)]
+		[TestCase("https://example.net/updates", false)]
+		[TestCase("https://localhost/updates", false)]
+		[TestCase("https://127.0.0.1/updates", false)]
+		[TestCase("http://api2.cursor.sh/updates", false)]
+		[TestCase("https://api2.cursor.sh/updates", true)]
+		public void IsValidUpdateEndpointUrl_ValidatesPublicHttpsEndpoints(string url, bool expectedValid)
+		{
+			VsCodeUpdateService.IsValidUpdateEndpointUrl(url).ShouldBe(expectedValid);
+		}
+
+		/// <summary>
+		/// Verifies that a VS Code API fork queries its <c>product.json</c> <c>updateUrl</c> endpoint and trusts its descriptor download host for downloading.
+		/// </summary>
+		[Test]
+		public async Task CheckForUpdateAsync_ForVsCodeApiFork_QueriesProductJsonUpdateUrlAndTrustsForkHost()
+		{
+			string tempDir   = CreateIsolatedTempDirectory();
+			string cachePath = Path.Combine(tempDir, "cache.json");
+			string exePath   = @"C:\Users\Dev\AppData\Local\Programs\cursor\Cursor.exe";
+
+			try
+			{
+				const string forkCommit        = "abcdef1234567";
+				const string forkDownloadUrl   = "https://downloader.cursor.sh/CursorUserSetup-x64.exe";
+				byte[] installerBytes          = Encoding.UTF8.GetBytes("cursor-installer-bytes");
+				string installerSha256         = Convert.ToHexString(SHA256.HashData(installerBytes)).ToLowerInvariant();
+				Mock<IVsCodeEnvironment> env   = CreateEnvironmentMock(
+					tempDir,
+					exePath,
+					forkCommit,
+					"stable",
+					"user",
+					"0.48.0",
+					"https://api2.cursor.sh/updates");
+				VsCodeProductDescriptor cursor = GetKnownDescriptor("cursor");
+				var instance                   = new VsCodeInstance("Cursor", "0.48.0", exePath, "cursor-user", @"C:\Users\Dev\AppData\Roaming\Cursor", cursor, env.Object);
+				var now                        = new DateTimeOffset(2026, 11, 20, 12, 0, 0, TimeSpan.Zero);
+				string payload                 = BuildUpdateJson(forkDownloadUrl, "0.49.0", NewCommit, installerSha256);
+				var handler                    = new StubHttpMessageHandler(request =>
+				{
+					if (request.RequestUri!.Host.Equals("downloader.cursor.sh", StringComparison.OrdinalIgnoreCase))
+					{
+						return new HttpResponseMessage(HttpStatusCode.OK)
+						{
+							Content = new ByteArrayContent(installerBytes)
+						};
+					}
+
+					return CreateJsonResponse(HttpStatusCode.OK, payload);
+				});
+
+				using var service = new VsCodeUpdateService(handler, env.Object, () => now, cachePath, Architecture.X64);
+
+				VsCodeUpdateInfo result = await service.CheckForUpdateAsync(instance);
+
+				handler.RequestUris.Count.ShouldBe(1);
+				handler.RequestUris[0].ToString().ShouldStartWith("https://api2.cursor.sh/updates/");
+				handler.RequestUris[0].ToString().ShouldContain("/win32-x64-user/stable/abcdef1234567");
+				result.IsUpdateAvailable.ShouldBeTrue();
+				result.UpdateCheckStatus.ShouldBe(VsCodeUpdateCheckStatus.UpdateAvailable);
+				result.CheckSucceeded.ShouldBeTrue();
+				result.LatestVersion.ShouldBe("0.49.0");
+				result.DownloadUrl.ShouldBe(forkDownloadUrl);
+				result.InstallerKind.ShouldBe(VsCodeInstallerKind.InnoSetupGeneric);
+
+				string downloadedPath = await service.DownloadInstallerAsync(result, instance);
+
+				File.Exists(downloadedPath).ShouldBeTrue();
+				File.ReadAllBytes(downloadedPath).ShouldBe(installerBytes);
+			}
+			finally
+			{
+				TryDeleteDirectory(tempDir);
+			}
+		}
+
+		/// <summary>
+		/// Verifies that a GitHub Releases fork queries the GitHub latest release API, compares semantic versions, and selects the matching Windows architecture and scope installer asset.
+		/// </summary>
+		[Test]
+		public async Task CheckForUpdateAsync_ForGitHubReleasesFork_ParsesLatestReleaseAndMatchingWinAsset()
+		{
+			string tempDir   = CreateIsolatedTempDirectory();
+			string cachePath = Path.Combine(tempDir, "cache.json");
+			string exePath   = @"C:\Users\Dev\AppData\Local\Programs\VSCodium\VSCodium.exe";
+
+			try
+			{
+				const string expectedAssetUrl = "https://github.com/VSCodium/vscodium/releases/download/1.96.2/VSCodiumUserSetup-x64-1.96.2.exe";
+				Mock<IVsCodeEnvironment> env  = CreateEnvironmentMock(tempDir, exePath, string.Empty, "stable", "user", "1.95.0");
+				VsCodeProductDescriptor codium = GetKnownDescriptor("vscodium");
+				var instance                   = new VsCodeInstance("VSCodium", "1.95.0", exePath, "vscodium-user", @"C:\Users\Dev\AppData\Roaming\VSCodium", codium, env.Object);
+				var now                        = new DateTimeOffset(2026, 11, 20, 12, 0, 0, TimeSpan.Zero);
+				string releaseJson             = """
+					{
+						"tag_name": "1.96.2",
+						"assets": [
+							{
+								"name": "VSCodiumSetup-x64-1.96.2.exe",
+								"browser_download_url": "https://github.com/VSCodium/vscodium/releases/download/1.96.2/VSCodiumSetup-x64-1.96.2.exe"
+							},
+							{
+								"name": "VSCodiumUserSetup-arm64-1.96.2.exe",
+								"browser_download_url": "https://github.com/VSCodium/vscodium/releases/download/1.96.2/VSCodiumUserSetup-arm64-1.96.2.exe"
+							},
+							{
+								"name": "VSCodiumUserSetup-x64-1.96.2.exe",
+								"browser_download_url": "https://github.com/VSCodium/vscodium/releases/download/1.96.2/VSCodiumUserSetup-x64-1.96.2.exe"
+							},
+							{
+								"name": "VSCodiumUserSetup-x64-1.96.2.exe.sha256",
+								"browser_download_url": "https://github.com/VSCodium/vscodium/releases/download/1.96.2/VSCodiumUserSetup-x64-1.96.2.exe.sha256"
+							}
+						]
+					}
+					""";
+				var handler = new StubHttpMessageHandler(_ => CreateJsonResponse(HttpStatusCode.OK, releaseJson));
+
+				using var service = new VsCodeUpdateService(handler, env.Object, () => now, cachePath, Architecture.X64);
+
+				VsCodeUpdateInfo result = await service.CheckForUpdateAsync(instance);
+
+				handler.RequestUris.Count.ShouldBe(1);
+				handler.RequestUris[0].ToString().ShouldBe("https://api.github.com/repos/VSCodium/vscodium/releases/latest");
+				handler.AcceptHeaders[0].ShouldContain("application/vnd.github+json");
+				result.CheckSucceeded.ShouldBeTrue();
+				result.IsUpdateAvailable.ShouldBeTrue();
+				result.UpdateCheckStatus.ShouldBe(VsCodeUpdateCheckStatus.UpdateAvailable);
+				result.LatestVersion.ShouldBe("1.96.2");
+				result.DownloadUrl.ShouldBe(expectedAssetUrl);
+			}
+			finally
+			{
+				TryDeleteDirectory(tempDir);
+			}
+		}
+
+		/// <summary>
+		/// Verifies that <see cref="VsCodeUpdateService.CheckAllForUpdatesAsync"/> checks every supplied instance and maps each identifier to its resulting update state.
+		/// </summary>
+		[Test]
+		public async Task CheckAllForUpdatesAsync_ChecksAllInstancesAndReturnsPerIdentifierMap()
+		{
+			string tempDir        = CreateIsolatedTempDirectory();
+			string cachePath      = Path.Combine(tempDir, "cache.json");
+			string insidersExe    = @"C:\Users\Dev\AppData\Local\Programs\Microsoft VS Code Insiders\Code - Insiders.exe";
+			string antigravityExe = @"C:\Users\Dev\AppData\Local\Programs\Antigravity IDE\Antigravity IDE.exe";
+
+			try
+			{
+				var env = new Mock<IVsCodeEnvironment>(MockBehavior.Loose);
+
+				env.Setup(e => e.GetTempPath()).Returns(tempDir);
+				env.Setup(e => e.GetFolderPath(Environment.SpecialFolder.ApplicationData)).Returns(tempDir);
+				env.Setup(e => e.GetFolderPath(Environment.SpecialFolder.ProgramFiles)).Returns(@"C:\Program Files");
+				env.Setup(e => e.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86)).Returns(@"C:\Program Files (x86)");
+
+				SetupInstanceJsonFiles(env, UserInstallExe, OldCommit, "stable", "user", "1.146.0", null);
+				SetupInstanceJsonFiles(env, insidersExe, OldCommit, "insider", "user", "1.148.0-insider", null);
+				SetupInstanceJsonFiles(env, antigravityExe, OldCommit, "stable", "user", "1.0.0", "https://example.com");
+
+				VsCodeInstance stable      = CreateInstance(UserInstallExe, "vscode-stable-user", "1.146.0", false, env.Object);
+				VsCodeInstance insiders    = CreateInstance(insidersExe, "vscode-insiders-user", "1.148.0-insider", true, env.Object);
+				var antigravity            = new VsCodeInstance("Antigravity IDE", "1.0.0", antigravityExe, "antigravity-ide-user", @"C:\Users\Dev\AppData\Roaming\Antigravity IDE", GetKnownDescriptor("antigravity-ide"), env.Object);
+				var now                    = new DateTimeOffset(2026, 11, 20, 12, 0, 0, TimeSpan.Zero);
+				string stableUpdateJson    = BuildUpdateJson(TrustedExeUrl, "1.147.0", NewCommit, SampleSha256);
+				var handler                = new StubHttpMessageHandler(req =>
+					req.RequestUri!.ToString().Contains("/insider/", StringComparison.OrdinalIgnoreCase)
+						? new HttpResponseMessage(HttpStatusCode.NoContent)
+						: CreateJsonResponse(HttpStatusCode.OK, stableUpdateJson));
+
+				using var service = new VsCodeUpdateService(handler, env.Object, () => now, cachePath, Architecture.X64);
+
+				IReadOnlyDictionary<string, VsCodeUpdateInfo> results = await service.CheckAllForUpdatesAsync([stable, insiders, antigravity]);
+
+				results.Count.ShouldBe(3);
+				results["vscode-stable-user"].UpdateCheckStatus.ShouldBe(VsCodeUpdateCheckStatus.UpdateAvailable);
+				results["vscode-insiders-user"].UpdateCheckStatus.ShouldBe(VsCodeUpdateCheckStatus.UpToDate);
+				results["antigravity-ide-user"].UpdateCheckStatus.ShouldBe(VsCodeUpdateCheckStatus.Unsupported);
+				handler.RequestUris.Count.ShouldBe(2);
+			}
+			finally
+			{
+				TryDeleteDirectory(tempDir);
+			}
+		}
+
+		/// <summary>
+		/// Verifies that <see cref="VsCodeUpdateService.BuildInstallerStartInfo"/> selects silent command-line arguments based on <see cref="VsCodeInstallerKind"/>.
+		/// </summary>
+		/// <param name="installerKind">The target installer family.</param>
+		/// <param name="expectedArguments">The exact expected silent argument string.</param>
+		[TestCase(VsCodeInstallerKind.InnoSetupVsCode, "/SILENT /NORESTART /CLOSEAPPLICATIONS /MERGETASKS=!runcode")]
+		[TestCase(VsCodeInstallerKind.InnoSetupGeneric, "/SILENT /NORESTART /CLOSEAPPLICATIONS")]
+		[TestCase(VsCodeInstallerKind.NsisSilent, "/S")]
+		public void BuildInstallerStartInfo_SelectsArgumentsByInstallerKind(VsCodeInstallerKind installerKind, string expectedArguments)
+		{
+			ProcessStartInfo startInfo = VsCodeUpdateService.BuildInstallerStartInfo(@"C:\Temp\IdeUpdate.exe", isSystemInstall: false, installerKind);
+
+			startInfo.FileName.ShouldBe(@"C:\Temp\IdeUpdate.exe");
+			startInfo.UseShellExecute.ShouldBeTrue();
+			startInfo.Verb.ShouldBe(string.Empty);
+			startInfo.Arguments.ShouldBe(expectedArguments);
+		}
+
+		/// <summary>
+		/// Verifies that a VS Code API fork with missing <c>updateUrl</c> returns <see cref="VsCodeUpdateCheckStatus.Unsupported"/> without making an HTTP call.
+		/// </summary>
+		[Test]
+		public async Task CheckForUpdateAsync_WhenNonMicrosoftVsCodeApiForkHasNoUpdateUrl_ReturnsUnsupportedWithoutHttpCall()
+		{
+			string tempDir   = CreateIsolatedTempDirectory();
+			string cachePath = Path.Combine(tempDir, "cache.json");
+			string exePath   = @"C:\Users\Dev\AppData\Local\Programs\CustomFork\CustomFork.exe";
+
+			try
+			{
+				Mock<IVsCodeEnvironment> env   = CreateEnvironmentMock(tempDir, exePath, OldCommit, "stable", "user", "1.0.0", updateUrl: null);
+				var descriptor                 = new VsCodeProductDescriptor
+				{
+					FlavorId           = "custom-fork",
+					DisplayName        = "Custom Fork",
+					ShortName          = "Custom Fork",
+					UpdateStrategy     = VsCodeUpdateStrategyKind.VsCodeApi,
+					InstallerKind      = VsCodeInstallerKind.InnoSetupGeneric,
+					UserDataFolderName = "CustomFork"
+				};
+				var instance = new VsCodeInstance("Custom Fork", "1.0.0", exePath, "custom-fork-user", @"C:\Users\Dev\AppData\Roaming\CustomFork", descriptor, env.Object);
+				var now      = new DateTimeOffset(2026, 11, 20, 12, 0, 0, TimeSpan.Zero);
+				var handler  = new StubHttpMessageHandler(_ => throw new InvalidOperationException("HTTP should not be invoked without a valid updateUrl."));
+
+				using var service = new VsCodeUpdateService(handler, env.Object, () => now, cachePath, Architecture.X64);
+
+				VsCodeUpdateInfo result = await service.CheckForUpdateAsync(instance);
+
+				handler.RequestUris.ShouldBeEmpty();
+				result.UpdateCheckStatus.ShouldBe(VsCodeUpdateCheckStatus.Unsupported);
+				result.CheckSucceeded.ShouldBeTrue();
+				result.IsUpdateAvailable.ShouldBeFalse();
+			}
+			finally
+			{
+				TryDeleteDirectory(tempDir);
+			}
+		}
+
+		/// <summary>
+		/// Verifies that <see cref="VsCodeUpdateService.IsTrustedDownloadUrl(string?, VsCodeInstance?)"/> preserves Microsoft-only 1-arg validation
+		/// while accepting descriptor hosts and subdomains of the instance's validated <c>updateUrl</c> host.
+		/// </summary>
+		[Test]
+		public void IsTrustedDownloadUrl_ValidatesInstanceTrustedHostsAndUpdateUrlSubdomains()
+		{
+			string tempDir = CreateIsolatedTempDirectory();
+			string exePath = @"C:\Users\Dev\AppData\Local\Programs\MyFork\MyFork.exe";
+
+			try
+			{
+				Mock<IVsCodeEnvironment> env = CreateEnvironmentMock(
+					tempDir,
+					exePath,
+					OldCommit,
+					"stable",
+					"user",
+					"1.0.0",
+					"https://updates.myfork.dev/api");
+				var descriptor = new VsCodeProductDescriptor
+				{
+					FlavorId             = "myfork",
+					DisplayName          = "MyFork",
+					ShortName            = "MyFork",
+					UpdateStrategy       = VsCodeUpdateStrategyKind.VsCodeApi,
+					TrustedDownloadHosts = ["updates.myfork.dev"]
+				};
+				var instance = new VsCodeInstance("MyFork", "1.0.0", exePath, "myfork-user", @"C:\Users\Dev\AppData\Roaming\MyFork", descriptor, env.Object);
+
+				VsCodeUpdateService.IsTrustedDownloadUrl(TrustedExeUrl).ShouldBeTrue();
+				VsCodeUpdateService.IsTrustedDownloadUrl("https://cdn.updates.myfork.dev/MyForkSetup.exe").ShouldBeFalse();
+				VsCodeUpdateService.IsTrustedDownloadUrl("https://cdn.updates.myfork.dev/MyForkSetup.exe", instance).ShouldBeTrue();
+				VsCodeUpdateService.IsTrustedDownloadUrl("https://updates.myfork.dev/MyForkSetup.exe", instance).ShouldBeTrue();
+				VsCodeUpdateService.IsTrustedDownloadUrl("https://evilmyfork.dev/MyForkSetup.exe", instance).ShouldBeFalse();
+				VsCodeUpdateService.IsTrustedDownloadUrl("http://cdn.updates.myfork.dev/MyForkSetup.exe", instance).ShouldBeFalse();
+			}
+			finally
+			{
+				TryDeleteDirectory(tempDir);
+			}
+		}
+
+		/// <summary>
+		/// Verifies that GitHub Releases update checking normalizes <c>v</c>-prefixed release tags, selects ARM64 System assets,
+		/// and clears cached updates when the local version reaches the cached release version.
+		/// </summary>
+		[Test]
+		public async Task CheckForUpdateAsync_ForGitHubReleasesFork_HandlesVPrefixArm64SystemAndCacheClear()
+		{
+			string tempDir   = CreateIsolatedTempDirectory();
+			string cachePath = Path.Combine(tempDir, "cache.json");
+			string exePath   = @"C:\Program Files\VSCodium\VSCodium.exe";
+
+			try
+			{
+				string currentVersion          = "1.95.0";
+				const string expectedAssetUrl  = "https://github.com/VSCodium/vscodium/releases/download/v1.96.2/VSCodiumSetup-arm64-1.96.2.exe";
+				Mock<IVsCodeEnvironment> env   = CreateDynamicEnvironmentMock(tempDir, exePath, () => string.Empty, () => "stable", () => "system", () => currentVersion);
+				VsCodeProductDescriptor codium = GetKnownDescriptor("vscodium");
+				var instance                   = new VsCodeInstance("VSCodium", currentVersion, exePath, "vscodium-system", @"C:\Users\Dev\AppData\Roaming\VSCodium", codium, env.Object)
+				{
+					IsSystemInstall = true
+				};
+				var now            = new DateTimeOffset(2026, 11, 20, 12, 0, 0, TimeSpan.Zero);
+				string releaseJson = """
+					{
+						"tag_name": "v1.96.2",
+						"assets": [
+							{
+								"name": "VSCodiumUserSetup-arm64-1.96.2.exe",
+								"browser_download_url": "https://github.com/VSCodium/vscodium/releases/download/v1.96.2/VSCodiumUserSetup-arm64-1.96.2.exe"
+							},
+							{
+								"name": "VSCodiumSetup-arm64-1.96.2.exe",
+								"browser_download_url": "https://github.com/VSCodium/vscodium/releases/download/v1.96.2/VSCodiumSetup-arm64-1.96.2.exe"
+							},
+							{
+								"name": "VSCodiumSetup-x64-1.96.2.exe",
+								"browser_download_url": "https://github.com/VSCodium/vscodium/releases/download/v1.96.2/VSCodiumSetup-x64-1.96.2.exe"
+							}
+						]
+					}
+					""";
+				var handler = new StubHttpMessageHandler(_ => CreateJsonResponse(HttpStatusCode.OK, releaseJson));
+
+				using var service = new VsCodeUpdateService(handler, env.Object, () => now, cachePath, Architecture.Arm64);
+
+				VsCodeUpdateInfo firstResult = await service.CheckForUpdateAsync(instance);
+
+				firstResult.IsUpdateAvailable.ShouldBeTrue();
+				firstResult.LatestVersion.ShouldBe("1.96.2");
+				firstResult.DownloadUrl.ShouldBe(expectedAssetUrl);
+				firstResult.IsSystemInstall.ShouldBeTrue();
+
+				// Simulate VSCodium updated locally to 1.96.2; cache should clear without another HTTP call.
+				currentVersion = "1.96.2";
+
+				VsCodeUpdateInfo secondResult = await service.CheckForUpdateAsync(instance);
+
+				handler.RequestUris.Count.ShouldBe(1);
+				secondResult.IsUpdateAvailable.ShouldBeFalse();
+				secondResult.UpdateCheckStatus.ShouldBe(VsCodeUpdateCheckStatus.UpToDate);
+				secondResult.CheckSucceeded.ShouldBeTrue();
+			}
+			finally
+			{
+				TryDeleteDirectory(tempDir);
+			}
+		}
+
+		/// <summary>
+		/// Verifies that deserializing a legacy <see cref="VsCodeUpdateInfo"/> JSON cache entry without <c>UpdateCheckStatus</c>
+		/// or <c>InstallerKind</c> derives consistent defaults.
+		/// </summary>
+		[Test]
+		public void VsCodeUpdateInfo_LegacyCacheDeserialization_DerivesConsistentStatusAndInstallerKind()
+		{
+			const string legacyUpdateJson = """
+				{
+					"InstanceIdentifier": "vscode-stable-user",
+					"IsUpdateAvailable": true,
+					"CurrentVersion": "1.146.0",
+					"LatestVersion": "1.147.0",
+					"CheckSucceeded": true
+				}
+				""";
+			const string legacyUpToDateJson = """
+				{
+					"InstanceIdentifier": "vscode-insiders-user",
+					"IsUpdateAvailable": false,
+					"CurrentVersion": "1.148.0-insider",
+					"CheckSucceeded": true
+				}
+				""";
+
+			VsCodeUpdateInfo? updateInfo   = Newtonsoft.Json.JsonConvert.DeserializeObject<VsCodeUpdateInfo>(legacyUpdateJson);
+			VsCodeUpdateInfo? upToDateInfo = Newtonsoft.Json.JsonConvert.DeserializeObject<VsCodeUpdateInfo>(legacyUpToDateJson);
+
+			updateInfo.ShouldNotBeNull();
+			updateInfo.UpdateCheckStatus.ShouldBe(VsCodeUpdateCheckStatus.UpdateAvailable);
+			updateInfo.InstallerKind.ShouldBe(VsCodeInstallerKind.InnoSetupVsCode);
+
+			upToDateInfo.ShouldNotBeNull();
+			upToDateInfo.UpdateCheckStatus.ShouldBe(VsCodeUpdateCheckStatus.UpToDate);
+			upToDateInfo.InstallerKind.ShouldBe(VsCodeInstallerKind.InnoSetupVsCode);
+		}
+
+		/// <summary>
 		/// Verifies numeric version comparisons across multi-digit components and prerelease suffixes.
 		/// </summary>
 		[TestCase("1.147.0", "1.146.2", 1)]
@@ -558,9 +1004,10 @@ namespace VSLXshared.Tests.Ide
 			string commit,
 			string quality,
 			string target,
-			string version)
+			string version,
+			string? updateUrl = null)
 		{
-			return CreateDynamicEnvironmentMock(tempDir, executablePath, () => commit, () => quality, () => target, () => version);
+			return CreateDynamicEnvironmentMock(tempDir, executablePath, () => commit, () => quality, () => target, () => version, () => updateUrl);
 		}
 
 		/// <summary>
@@ -572,7 +1019,8 @@ namespace VSLXshared.Tests.Ide
 			Func<string> commitProvider,
 			Func<string> qualityProvider,
 			Func<string> targetProvider,
-			Func<string> versionProvider)
+			Func<string> versionProvider,
+			Func<string?>? updateUrlProvider = null)
 		{
 			string installDir      = Path.GetDirectoryName(executablePath)!;
 			string productJsonPath = Path.Combine(installDir, "resources", "app", "product.json");
@@ -586,11 +1034,49 @@ namespace VSLXshared.Tests.Ide
 			env.Setup(e => e.FileExists(productJsonPath)).Returns(true);
 			env.Setup(e => e.FileExists(packageJsonPath)).Returns(true);
 			env.Setup(e => e.ReadAllText(productJsonPath)).Returns(() =>
-				$"{{\"commit\":\"{commitProvider()}\",\"quality\":\"{qualityProvider()}\",\"target\":\"{targetProvider()}\"}}");
+			{
+				string? url        = updateUrlProvider?.Invoke();
+				string urlProperty = string.IsNullOrWhiteSpace(url) ? string.Empty : $",\"updateUrl\":\"{url}\"";
+
+				return $"{{\"commit\":\"{commitProvider()}\",\"quality\":\"{qualityProvider()}\",\"target\":\"{targetProvider()}\"{urlProperty}}}";
+			});
 			env.Setup(e => e.ReadAllText(packageJsonPath)).Returns(() =>
 				$"{{\"version\":\"{versionProvider()}\"}}");
 
 			return env;
+		}
+
+		/// <summary>
+		/// Configures <c>product.json</c> and <c>package.json</c> mock responses for an individual executable path.
+		/// </summary>
+		private static void SetupInstanceJsonFiles(
+			Mock<IVsCodeEnvironment> env,
+			string executablePath,
+			string commit,
+			string quality,
+			string target,
+			string version,
+			string? updateUrl)
+		{
+			string installDir      = Path.GetDirectoryName(executablePath)!;
+			string productJsonPath = Path.Combine(installDir, "resources", "app", "product.json");
+			string packageJsonPath = Path.Combine(installDir, "resources", "app", "package.json");
+			string urlProperty     = string.IsNullOrWhiteSpace(updateUrl) ? string.Empty : $",\"updateUrl\":\"{updateUrl}\"";
+
+			env.Setup(e => e.FileExists(productJsonPath)).Returns(true);
+			env.Setup(e => e.FileExists(packageJsonPath)).Returns(true);
+			env.Setup(e => e.ReadAllText(productJsonPath)).Returns(
+				$"{{\"commit\":\"{commit}\",\"quality\":\"{quality}\",\"target\":\"{target}\"{urlProperty}}}");
+			env.Setup(e => e.ReadAllText(packageJsonPath)).Returns(
+				$"{{\"version\":\"{version}\"}}");
+		}
+
+		/// <summary>
+		/// Looks up a built-in product descriptor by its flavor identifier.
+		/// </summary>
+		private static VsCodeProductDescriptor GetKnownDescriptor(string flavorId)
+		{
+			return VsCodeProductDescriptor.KnownProducts.Single(p => p.FlavorId.Equals(flavorId, StringComparison.OrdinalIgnoreCase));
 		}
 
 		/// <summary>
@@ -678,6 +1164,11 @@ namespace VSLXshared.Tests.Ide
 			/// </summary>
 			internal List<Uri> RequestUris { get; } = new List<Uri>();
 
+			/// <summary>
+			/// Gets the ordered list of <c>Accept</c> header values observed on incoming requests.
+			/// </summary>
+			internal List<string> AcceptHeaders { get; } = new List<string>();
+
 			/// <inheritdoc/>
 			protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
 			{
@@ -685,6 +1176,8 @@ namespace VSLXshared.Tests.Ide
 				{
 					this.RequestUris.Add(request.RequestUri);
 				}
+
+				this.AcceptHeaders.Add(string.Join(",", request.Headers.Accept.Select(h => h.MediaType)));
 
 				return Task.FromResult(this.responder(request));
 			}
