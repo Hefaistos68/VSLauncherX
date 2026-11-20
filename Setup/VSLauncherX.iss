@@ -2,11 +2,11 @@
 ; Can be compiled locally or from CI via ISCC.exe with /DAppVersion, /DAppFileVersion, /DPublishDir, /DOutputDir, /DOutputBaseFilename.
 
 #ifndef AppVersion
-  #define AppVersion "0.2.2"
+  #define AppVersion "0.2.3"
 #endif
 
 #ifndef AppFileVersion
-  #define AppFileVersion "0.2.2.0"
+  #define AppFileVersion "0.2.3.0"
 #endif
 
 #ifndef PublishDir
