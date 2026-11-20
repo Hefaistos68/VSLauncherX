@@ -327,18 +327,7 @@ namespace VSLauncher.Ide
 			int[] rightParts = ParseNumericVersionParts(right);
 			int maxLength    = Math.Max(leftParts.Length, rightParts.Length);
 
-			for (int i = 0; i < maxLength; i++)
-			{
-				int leftValue  = i < leftParts.Length ? leftParts[i] : 0;
-				int rightValue = i < rightParts.Length ? rightParts[i] : 0;
-
-				if (leftValue != rightValue)
-				{
-					return leftValue.CompareTo(rightValue);
-				}
-			}
-
-			return 0;
+			return CompareVersionParts(leftParts, rightParts, maxLength);
 		}
 
 		/// <summary>
@@ -402,7 +391,7 @@ namespace VSLauncher.Ide
 			string commit            = IsValidCommitToken(rawCommit) ? rawCommit.Trim() : string.Empty;
 			string quality           = ResolveQuality(productObj, instance.IsInsiders);
 			bool isSystem            = ResolveIsSystemInstall(productObj, instance);
-			string version           = ResolveLocalVersion(packageObj, instance);
+			string version           = ResolveLocalVersion(packageObj, productObj, instance);
 			string platform          = ResolvePlatformTarget(this.osArchitecture, isSystem);
 			string productUpdateUrl  = TryGetStringProperty(productObj, "updateUrl")?.Trim() ?? string.Empty;
 
@@ -512,18 +501,18 @@ namespace VSLauncher.Ide
 		}
 
 		/// <summary>
-		/// Resolves the best-available installed version from <c>package.json</c>, file version info, or the instance metadata.
+		/// Resolves the best-available installed version from <c>package.json</c> (including optional 4th-segment <c>release</c> metadata),
+		/// file version info, or the instance metadata.
 		/// </summary>
-		private string ResolveLocalVersion(JObject? packageObj, VsCodeInstance instance)
+		private string ResolveLocalVersion(JObject? packageObj, JObject? productObj, VsCodeInstance instance)
 		{
 			string? packageVersion = TryGetStringProperty(packageObj, "version")?.Trim();
+			string? fileVersion    = this.environment.GetFileVersion(instance.Location)?.Trim();
 
 			if (!string.IsNullOrWhiteSpace(packageVersion))
 			{
-				return packageVersion;
+				return ResolveVersionWithReleaseOrFileMetadata(packageVersion, packageObj, productObj, fileVersion);
 			}
-
-			string? fileVersion = this.environment.GetFileVersion(instance.Location)?.Trim();
 
 			if (!string.IsNullOrWhiteSpace(fileVersion))
 			{
@@ -531,6 +520,69 @@ namespace VSLauncher.Ide
 			}
 
 			return instance.Version;
+		}
+
+		/// <summary>
+		/// Augments a 3-segment <c>package.json</c> version with a numeric <c>release</c> segment or matching 4-segment executable file version.
+		/// </summary>
+		private static string ResolveVersionWithReleaseOrFileMetadata(
+			string packageVersion,
+			JObject? packageObj,
+			JObject? productObj,
+			string? fileVersion)
+		{
+			if (!TryParseExactNumericParts(packageVersion, 3, out int[] packageParts))
+			{
+				return packageVersion;
+			}
+
+			string? release = TryGetNumericRelease(packageObj) ?? TryGetNumericRelease(productObj);
+
+			if (release is not null)
+			{
+				return $"{packageVersion}.{release}";
+			}
+
+			if (TryParseExactNumericParts(fileVersion, 4, out int[] fileParts)
+				&& HasSameLeadingSegments(packageParts, fileParts, 3))
+			{
+				return fileVersion!;
+			}
+
+			return packageVersion;
+		}
+
+		/// <summary>
+		/// Extracts a non-negative integer <c>release</c> string from <paramref name="obj"/> when present.
+		/// </summary>
+		private static string? TryGetNumericRelease(JObject? obj)
+		{
+			string? release = TryGetStringProperty(obj, "release")?.Trim();
+
+			if (string.IsNullOrEmpty(release)
+				|| !release.All(char.IsAsciiDigit)
+				|| !int.TryParse(release, NumberStyles.None, CultureInfo.InvariantCulture, out _))
+			{
+				return null;
+			}
+
+			return release;
+		}
+
+		/// <summary>
+		/// Returns whether <paramref name="left"/> and <paramref name="right"/> share identical values across their first <paramref name="count"/> segments.
+		/// </summary>
+		private static bool HasSameLeadingSegments(int[] left, int[] right, int count)
+		{
+			for (int i = 0; i < count; i++)
+			{
+				if (left[i] != right[i])
+				{
+					return false;
+				}
+			}
+
+			return true;
 		}
 
 		/// <summary>
@@ -727,7 +779,7 @@ namespace VSLauncher.Ide
 
 			if (!string.IsNullOrWhiteSpace(localInfo.Version) && !string.IsNullOrWhiteSpace(cached.LatestVersion))
 			{
-				return CompareVersions(localInfo.Version, cached.LatestVersion) >= 0;
+				return CompareRemoteToLocalVersion(cached.LatestVersion, localInfo.Version) <= 0;
 			}
 
 			return false;
@@ -927,7 +979,7 @@ namespace VSLauncher.Ide
 				return CreateFailedInfo(instance, localInfo, nowUtc);
 			}
 
-			if (CompareVersions(latestVersion, localInfo.Version) <= 0)
+			if (CompareRemoteToLocalVersion(latestVersion, localInfo.Version) <= 0)
 			{
 				return CreateUpToDateInfo(instance, localInfo, nowUtc, latestVersion);
 			}
@@ -1127,7 +1179,9 @@ namespace VSLauncher.Ide
 
 			string hex = digest["sha256:".Length..].Trim();
 
-			return hex.Length == 64 ? hex.ToLowerInvariant() : string.Empty;
+			return hex.Length == 64 && hex.All(char.IsAsciiHexDigit)
+				? hex.ToLowerInvariant()
+				: string.Empty;
 		}
 
 		/// <summary>
@@ -1371,6 +1425,84 @@ namespace VSLauncher.Ide
 					return false;
 				}
 			}
+
+			return true;
+		}
+
+		/// <summary>
+		/// Compares a remote release version against a local version, comparing only the 3-part prefix when a 4-part remote tag
+		/// is evaluated against a 3-part local version without a 4th build segment.
+		/// </summary>
+		private static int CompareRemoteToLocalVersion(string? remoteVersion, string? localVersion)
+		{
+			int[] remoteParts = ParseNumericVersionParts(remoteVersion);
+			int[] localParts  = ParseNumericVersionParts(localVersion);
+			int maxLength     = remoteParts.Length == 4 && localParts.Length == 3
+				? 3
+				: Math.Max(remoteParts.Length, localParts.Length);
+
+			return CompareVersionParts(remoteParts, localParts, maxLength);
+		}
+
+		/// <summary>
+		/// Compares two parsed numeric version arrays up to <paramref name="maxLength"/> segments, padding shorter arrays with zero.
+		/// </summary>
+		private static int CompareVersionParts(int[] leftParts, int[] rightParts, int maxLength)
+		{
+			for (int i = 0; i < maxLength; i++)
+			{
+				int leftValue  = i < leftParts.Length ? leftParts[i] : 0;
+				int rightValue = i < rightParts.Length ? rightParts[i] : 0;
+
+				if (leftValue != rightValue)
+				{
+					return leftValue.CompareTo(rightValue);
+				}
+			}
+
+			return 0;
+		}
+
+		/// <summary>
+		/// Parses a pure dot-separated version string containing exactly <paramref name="expectedCount"/> numeric segments.
+		/// </summary>
+		private static bool TryParseExactNumericParts(string? version, int expectedCount, out int[] parts)
+		{
+			parts = Array.Empty<int>();
+
+			if (string.IsNullOrWhiteSpace(version))
+			{
+				return false;
+			}
+
+			string normalized = NormalizeVersionTag(version);
+
+			if (normalized.IndexOfAny(new[] { '-', '+' }) >= 0)
+			{
+				return false;
+			}
+
+			string[] segments = normalized.Split('.');
+
+			if (segments.Length != expectedCount)
+			{
+				return false;
+			}
+
+			int[] parsed = new int[expectedCount];
+
+			for (int i = 0; i < expectedCount; i++)
+			{
+				if (string.IsNullOrEmpty(segments[i])
+					|| !int.TryParse(segments[i], NumberStyles.None, CultureInfo.InvariantCulture, out int value))
+				{
+					return false;
+				}
+
+				parsed[i] = value;
+			}
+
+			parts = parsed;
 
 			return true;
 		}

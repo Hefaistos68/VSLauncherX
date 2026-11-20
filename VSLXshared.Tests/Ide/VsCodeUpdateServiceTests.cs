@@ -561,9 +561,9 @@ namespace VSLXshared.Tests.Ide
 				{
 					UpdateStrategy = VsCodeUpdateStrategyKind.VsCodeApi
 				};
-				var instance  = new VsCodeInstance("Antigravity IDE", "1.0.0", exePath, "antigravity-ide-user", @"C:\Users\Dev\AppData\Roaming\Antigravity IDE", apiDescriptor, env.Object);
-				var now       = new DateTimeOffset(2026, 11, 20, 12, 0, 0, TimeSpan.Zero);
-				var handler   = new StubHttpMessageHandler(_ => throw new InvalidOperationException("HTTP should not be invoked for placeholder updateUrl."));
+				var instance = new VsCodeInstance("Antigravity IDE", "1.0.0", exePath, "antigravity-ide-user", @"C:\Users\Dev\AppData\Roaming\Antigravity IDE", apiDescriptor, env.Object);
+				var now      = new DateTimeOffset(2026, 11, 20, 12, 0, 0, TimeSpan.Zero);
+				var handler  = new StubHttpMessageHandler(_ => throw new InvalidOperationException("HTTP should not be invoked for placeholder updateUrl."));
 
 				using var service = new VsCodeUpdateService(handler, env.Object, () => now, cachePath, Architecture.X64);
 
@@ -675,8 +675,8 @@ namespace VSLXshared.Tests.Ide
 
 			try
 			{
-				const string expectedAssetUrl = "https://github.com/VSCodium/vscodium/releases/download/1.96.2/VSCodiumUserSetup-x64-1.96.2.exe";
-				Mock<IVsCodeEnvironment> env  = CreateEnvironmentMock(tempDir, exePath, string.Empty, "stable", "user", "1.95.0");
+				const string expectedAssetUrl  = "https://github.com/VSCodium/vscodium/releases/download/1.96.2/VSCodiumUserSetup-x64-1.96.2.exe";
+				Mock<IVsCodeEnvironment> env   = CreateEnvironmentMock(tempDir, exePath, string.Empty, "stable", "user", "1.95.0");
 				VsCodeProductDescriptor codium = GetKnownDescriptor("vscodium");
 				var instance                   = new VsCodeInstance("VSCodium", "1.95.0", exePath, "vscodium-user", @"C:\Users\Dev\AppData\Roaming\VSCodium", codium, env.Object);
 				var now                        = new DateTimeOffset(2026, 11, 20, 12, 0, 0, TimeSpan.Zero);
@@ -804,8 +804,8 @@ namespace VSLXshared.Tests.Ide
 
 			try
 			{
-				Mock<IVsCodeEnvironment> env   = CreateEnvironmentMock(tempDir, exePath, OldCommit, "stable", "user", "1.0.0", updateUrl: null);
-				var descriptor                 = new VsCodeProductDescriptor
+				Mock<IVsCodeEnvironment> env = CreateEnvironmentMock(tempDir, exePath, OldCommit, "stable", "user", "1.0.0", updateUrl: null);
+				var descriptor               = new VsCodeProductDescriptor
 				{
 					FlavorId           = "custom-fork",
 					DisplayName        = "Custom Fork",
@@ -897,8 +897,8 @@ namespace VSLXshared.Tests.Ide
 				{
 					IsSystemInstall = true
 				};
-				var now            = new DateTimeOffset(2026, 11, 20, 12, 0, 0, TimeSpan.Zero);
-				string releaseJson = """
+				var now                        = new DateTimeOffset(2026, 11, 20, 12, 0, 0, TimeSpan.Zero);
+				string releaseJson             = """
 					{
 						"tag_name": "v1.96.2",
 						"assets": [
@@ -982,6 +982,174 @@ namespace VSLXshared.Tests.Ide
 		}
 
 		/// <summary>
+		/// Verifies that VSCodium installations whose 3-part <c>package.json</c> version and 4th-segment <c>release</c> metadata
+		/// (or 4-part executable file version) match a 4-part GitHub release tag report <see cref="VsCodeUpdateCheckStatus.UpToDate"/>.
+		/// </summary>
+		/// <param name="packageRelease">Optional <c>release</c> property in <c>package.json</c>.</param>
+		/// <param name="productRelease">Optional <c>release</c> property in <c>product.json</c>.</param>
+		/// <param name="fileVersion">Optional 4-part executable file version.</param>
+		[TestCase("25017", null, null)]
+		[TestCase(null, "25017", null)]
+		[TestCase(null, null, "1.96.2.25017")]
+		public async Task CheckForUpdateAsync_ForVscodiumMatchingFourPartReleaseTag_ReturnsUpToDate(
+			string? packageRelease,
+			string? productRelease,
+			string? fileVersion)
+		{
+			string tempDir   = CreateIsolatedTempDirectory();
+			string cachePath = Path.Combine(tempDir, "cache.json");
+			string exePath   = @"C:\Users\Dev\AppData\Local\Programs\VSCodium\VSCodium.exe";
+
+			try
+			{
+				Mock<IVsCodeEnvironment> env   = CreateVscodiumEnvironmentMock(tempDir, exePath, "1.96.2", packageRelease, productRelease, fileVersion);
+				VsCodeProductDescriptor codium = GetKnownDescriptor("vscodium");
+				var instance                   = new VsCodeInstance("VSCodium", "1.96.2", exePath, "vscodium-user", @"C:\Users\Dev\AppData\Roaming\VSCodium", codium, env.Object);
+				var now                        = new DateTimeOffset(2026, 11, 20, 12, 0, 0, TimeSpan.Zero);
+				string releaseJson             = BuildVscodiumFourPartReleaseJson("1.96.2.25017");
+				var handler                    = new StubHttpMessageHandler(_ => CreateJsonResponse(HttpStatusCode.OK, releaseJson));
+
+				using var service = new VsCodeUpdateService(handler, env.Object, () => now, cachePath, Architecture.X64);
+
+				VsCodeUpdateInfo result = await service.CheckForUpdateAsync(instance);
+
+				result.CheckSucceeded.ShouldBeTrue();
+				result.UpdateCheckStatus.ShouldBe(VsCodeUpdateCheckStatus.UpToDate);
+				result.IsUpdateAvailable.ShouldBeFalse();
+				result.CurrentVersion.ShouldBe("1.96.2.25017");
+				result.LatestVersion.ShouldBe("1.96.2.25017");
+			}
+			finally
+			{
+				TryDeleteDirectory(tempDir);
+			}
+		}
+
+		/// <summary>
+		/// Verifies that a VSCodium installation with an older 4th-segment <c>release</c> value than the GitHub release tag
+		/// reports <see cref="VsCodeUpdateCheckStatus.UpdateAvailable"/>.
+		/// </summary>
+		[Test]
+		public async Task CheckForUpdateAsync_ForVscodiumOlderFourPartRelease_ReturnsUpdateAvailable()
+		{
+			string tempDir   = CreateIsolatedTempDirectory();
+			string cachePath = Path.Combine(tempDir, "cache.json");
+			string exePath   = @"C:\Users\Dev\AppData\Local\Programs\VSCodium\VSCodium.exe";
+
+			try
+			{
+				Mock<IVsCodeEnvironment> env   = CreateVscodiumEnvironmentMock(tempDir, exePath, "1.96.2", "25010", productRelease: null, fileVersion: null);
+				VsCodeProductDescriptor codium = GetKnownDescriptor("vscodium");
+				var instance                   = new VsCodeInstance("VSCodium", "1.96.2", exePath, "vscodium-user", @"C:\Users\Dev\AppData\Roaming\VSCodium", codium, env.Object);
+				var now                        = new DateTimeOffset(2026, 11, 20, 12, 0, 0, TimeSpan.Zero);
+				string releaseJson             = BuildVscodiumFourPartReleaseJson("1.96.2.25017");
+				var handler                    = new StubHttpMessageHandler(_ => CreateJsonResponse(HttpStatusCode.OK, releaseJson));
+
+				using var service = new VsCodeUpdateService(handler, env.Object, () => now, cachePath, Architecture.X64);
+
+				VsCodeUpdateInfo result = await service.CheckForUpdateAsync(instance);
+
+				result.CheckSucceeded.ShouldBeTrue();
+				result.UpdateCheckStatus.ShouldBe(VsCodeUpdateCheckStatus.UpdateAvailable);
+				result.IsUpdateAvailable.ShouldBeTrue();
+				result.CurrentVersion.ShouldBe("1.96.2.25010");
+				result.LatestVersion.ShouldBe("1.96.2.25017");
+				result.DownloadUrl.ShouldBe("https://github.com/VSCodium/vscodium/releases/download/1.96.2.25017/VSCodiumUserSetup-x64-1.96.2.25017.exe");
+				result.Sha256Hash.ShouldBe(SampleSha256);
+			}
+			finally
+			{
+				TryDeleteDirectory(tempDir);
+			}
+		}
+
+		/// <summary>
+		/// Verifies that a 3-part local version without 4th-segment metadata matching the first 3 segments of a 4-part GitHub tag
+		/// reports <see cref="VsCodeUpdateCheckStatus.UpToDate"/> and clears matching cached updates without looping.
+		/// </summary>
+		[Test]
+		public async Task CheckForUpdateAsync_WhenThreePartLocalMatchesFirstThreeSegmentsOfFourPartTag_ReturnsUpToDate()
+		{
+			string tempDir   = CreateIsolatedTempDirectory();
+			string cachePath = Path.Combine(tempDir, "cache.json");
+			string exePath   = @"C:\Users\Dev\AppData\Local\Programs\VSCodium\VSCodium.exe";
+
+			try
+			{
+				string currentVersion          = "1.96.2";
+				Mock<IVsCodeEnvironment> env   = CreateDynamicEnvironmentMock(tempDir, exePath, () => string.Empty, () => "stable", () => "user", () => currentVersion);
+				VsCodeProductDescriptor codium = GetKnownDescriptor("vscodium");
+				var instance                   = new VsCodeInstance("VSCodium", currentVersion, exePath, "vscodium-user", @"C:\Users\Dev\AppData\Roaming\VSCodium", codium, env.Object);
+				var now                        = new DateTimeOffset(2026, 11, 20, 12, 0, 0, TimeSpan.Zero);
+				string releaseJson             = BuildVscodiumFourPartReleaseJson("1.96.2.25017");
+				var handler                    = new StubHttpMessageHandler(_ => CreateJsonResponse(HttpStatusCode.OK, releaseJson));
+
+				using var service = new VsCodeUpdateService(handler, env.Object, () => now, cachePath, Architecture.X64);
+
+				VsCodeUpdateInfo upToDateResult = await service.CheckForUpdateAsync(instance);
+
+				upToDateResult.CheckSucceeded.ShouldBeTrue();
+				upToDateResult.UpdateCheckStatus.ShouldBe(VsCodeUpdateCheckStatus.UpToDate);
+				upToDateResult.IsUpdateAvailable.ShouldBeFalse();
+				upToDateResult.CurrentVersion.ShouldBe("1.96.2");
+				upToDateResult.LatestVersion.ShouldBe("1.96.2.25017");
+
+				// Also verify that upgrading from 1.95.0 to 3-part 1.96.2 clears a cached 1.96.2.25017 update without HTTP.
+				File.Delete(cachePath);
+				currentVersion = "1.95.0";
+
+				VsCodeUpdateInfo availableResult = await service.CheckForUpdateAsync(instance);
+
+				availableResult.IsUpdateAvailable.ShouldBeTrue();
+
+				currentVersion = "1.96.2";
+
+				VsCodeUpdateInfo clearedResult = await service.CheckForUpdateAsync(instance);
+
+				handler.RequestUris.Count.ShouldBe(2);
+				clearedResult.UpdateCheckStatus.ShouldBe(VsCodeUpdateCheckStatus.UpToDate);
+				clearedResult.IsUpdateAvailable.ShouldBeFalse();
+			}
+			finally
+			{
+				TryDeleteDirectory(tempDir);
+			}
+		}
+
+		/// <summary>
+		/// Verifies that non-hexadecimal 64-character GitHub release asset <c>digest</c> values are ignored safely.
+		/// </summary>
+		[Test]
+		public async Task CheckForUpdateAsync_ForGitHubReleasesWithNonHexDigest_IgnoresInvalidSha256Hash()
+		{
+			string tempDir   = CreateIsolatedTempDirectory();
+			string cachePath = Path.Combine(tempDir, "cache.json");
+			string exePath   = @"C:\Users\Dev\AppData\Local\Programs\VSCodium\VSCodium.exe";
+
+			try
+			{
+				Mock<IVsCodeEnvironment> env   = CreateEnvironmentMock(tempDir, exePath, string.Empty, "stable", "user", "1.95.0");
+				VsCodeProductDescriptor codium = GetKnownDescriptor("vscodium");
+				var instance                   = new VsCodeInstance("VSCodium", "1.95.0", exePath, "vscodium-user", @"C:\Users\Dev\AppData\Roaming\VSCodium", codium, env.Object);
+				var now                        = new DateTimeOffset(2026, 11, 20, 12, 0, 0, TimeSpan.Zero);
+				string invalidHexDigest        = "sha256:" + new string('z', 64);
+				string releaseJson             = BuildVscodiumFourPartReleaseJson("1.96.2.25017", invalidHexDigest);
+				var handler                    = new StubHttpMessageHandler(_ => CreateJsonResponse(HttpStatusCode.OK, releaseJson));
+
+				using var service = new VsCodeUpdateService(handler, env.Object, () => now, cachePath, Architecture.X64);
+
+				VsCodeUpdateInfo result = await service.CheckForUpdateAsync(instance);
+
+				result.IsUpdateAvailable.ShouldBeTrue();
+				result.Sha256Hash.ShouldBe(string.Empty);
+			}
+			finally
+			{
+				TryDeleteDirectory(tempDir);
+			}
+		}
+
+		/// <summary>
 		/// Verifies numeric version comparisons across multi-digit components and prerelease suffixes.
 		/// </summary>
 		[TestCase("1.147.0", "1.146.2", 1)]
@@ -993,6 +1161,58 @@ namespace VSLXshared.Tests.Ide
 			int comparison = VsCodeUpdateService.CompareVersions(left, right);
 
 			Math.Sign(comparison).ShouldBe(expectedSign);
+		}
+
+		/// <summary>
+		/// Creates a mock <see cref="IVsCodeEnvironment"/> configured with VSCodium <c>package.json</c>, <c>product.json</c>, and file version metadata.
+		/// </summary>
+		private static Mock<IVsCodeEnvironment> CreateVscodiumEnvironmentMock(
+			string tempDir,
+			string executablePath,
+			string packageVersion,
+			string? packageRelease,
+			string? productRelease,
+			string? fileVersion)
+		{
+			string installDir      = Path.GetDirectoryName(executablePath)!;
+			string productJsonPath = Path.Combine(installDir, "resources", "app", "product.json");
+			string packageJsonPath = Path.Combine(installDir, "resources", "app", "package.json");
+			string pkgReleaseProp  = string.IsNullOrWhiteSpace(packageRelease) ? string.Empty : $",\"release\":\"{packageRelease}\"";
+			string prodReleaseProp = string.IsNullOrWhiteSpace(productRelease) ? string.Empty : $",\"release\":\"{productRelease}\"";
+			var env                = new Mock<IVsCodeEnvironment>(MockBehavior.Loose);
+
+			env.Setup(e => e.GetTempPath()).Returns(tempDir);
+			env.Setup(e => e.GetFolderPath(Environment.SpecialFolder.ApplicationData)).Returns(tempDir);
+			env.Setup(e => e.GetFolderPath(Environment.SpecialFolder.ProgramFiles)).Returns(@"C:\Program Files");
+			env.Setup(e => e.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86)).Returns(@"C:\Program Files (x86)");
+			env.Setup(e => e.GetFileVersion(executablePath)).Returns(fileVersion);
+			env.Setup(e => e.FileExists(productJsonPath)).Returns(true);
+			env.Setup(e => e.FileExists(packageJsonPath)).Returns(true);
+			env.Setup(e => e.ReadAllText(productJsonPath)).Returns($"{{\"quality\":\"stable\",\"target\":\"user\"{prodReleaseProp}}}");
+			env.Setup(e => e.ReadAllText(packageJsonPath)).Returns($"{{\"version\":\"{packageVersion}\"{pkgReleaseProp}}}");
+
+			return env;
+		}
+
+		/// <summary>
+		/// Builds a GitHub <c>releases/latest</c> JSON payload for a 4-part VSCodium release tag.
+		/// </summary>
+		private static string BuildVscodiumFourPartReleaseJson(string tagName, string? digest = null)
+		{
+			string assetDigest = digest ?? $"sha256:{SampleSha256}";
+
+			return $$"""
+				{
+					"tag_name": "{{tagName}}",
+					"assets": [
+						{
+							"name": "VSCodiumUserSetup-x64-{{tagName}}.exe",
+							"browser_download_url": "https://github.com/VSCodium/vscodium/releases/download/{{tagName}}/VSCodiumUserSetup-x64-{{tagName}}.exe",
+							"digest": "{{assetDigest}}"
+						}
+					]
+				}
+				""";
 		}
 
 		/// <summary>

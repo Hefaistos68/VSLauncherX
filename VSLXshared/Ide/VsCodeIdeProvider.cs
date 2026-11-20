@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.RegularExpressions;
 
 using Microsoft.Data.Sqlite;
 
@@ -20,8 +19,6 @@ namespace VSLauncher.Ide
 	{
 		private const string VsCodeDownloadUrl = "https://code.visualstudio.com/download";
 		private const string RecentlyOpenedKey = "history.recentlyOpenedPathsList";
-
-		private static readonly Regex NonSlugCharsRegex = new Regex("[^a-z0-9]+", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
 		private readonly IVsCodeEnvironment environment;
 		private readonly CustomVsCodeIdeStore customStore;
@@ -410,7 +407,7 @@ namespace VSLauncher.Ide
 				return false;
 			}
 
-			JObject? productJson = TryReadProductJson(this.environment, productJsonPath);
+			JObject? productJson = VsCodeProductDescriptor.TryReadProductJson(this.environment, productJsonPath);
 
 			if (productJson is null)
 			{
@@ -424,7 +421,7 @@ namespace VSLauncher.Ide
 				return false;
 			}
 
-			VsCodeProductDescriptor? descriptor = ResolveDescriptorFromProductJson(installDir, executablePath);
+			VsCodeProductDescriptor? descriptor = ResolveDescriptorFromProductJson(productJson, executablePath);
 
 			if (descriptor is null)
 			{
@@ -797,6 +794,26 @@ namespace VSLauncher.Ide
 		}
 
 		/// <summary>
+		/// Resolves a product descriptor from an already-parsed <c>product.json</c> object, matching a known built-in product when applicable.
+		/// </summary>
+		/// <param name="productJson">The parsed <c>product.json</c> root object.</param>
+		/// <param name="executablePath">The full path to the IDE executable.</param>
+		/// <returns>The resolved <see cref="VsCodeProductDescriptor"/>, or <c>null</c> if invalid.</returns>
+		private static VsCodeProductDescriptor? ResolveDescriptorFromProductJson(JObject productJson, string executablePath)
+		{
+			VsCodeProductDescriptor? parsed = VsCodeProductDescriptor.TryCreateFromProductJson(
+				productJson,
+				executablePath);
+
+			if (parsed is null)
+			{
+				return null;
+			}
+
+			return MatchKnownDescriptor(parsed) ?? parsed;
+		}
+
+		/// <summary>
 		/// Matches a parsed <c>product.json</c> descriptor against <see cref="VsCodeProductDescriptor.KnownProducts"/> by flavor, display name, or short name.
 		/// </summary>
 		private static VsCodeProductDescriptor? MatchKnownDescriptor(VsCodeProductDescriptor parsed)
@@ -1013,25 +1030,6 @@ namespace VSLauncher.Ide
 		}
 
 		/// <summary>
-		/// Attempts to read and parse <c>product.json</c> via <paramref name="environment"/>.
-		/// </summary>
-		private static JObject? TryReadProductJson(IVsCodeEnvironment environment, string productJsonPath)
-		{
-			try
-			{
-				string json = environment.ReadAllText(productJsonPath);
-
-				return JObject.Parse(json);
-			}
-			catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
-			{
-				Debug.WriteLine(ex);
-
-				return null;
-			}
-		}
-
-		/// <summary>
 		/// Creates a fallback <see cref="VsCodeProductDescriptor"/> for a custom IDE executable lacking <c>product.json</c> metadata.
 		/// </summary>
 		private static VsCodeProductDescriptor CreateFallbackCustomDescriptor(string canonicalPath, string? customDisplayName)
@@ -1042,7 +1040,7 @@ namespace VSLauncher.Ide
 
 			return new VsCodeProductDescriptor
 			{
-				FlavorId           = SlugifyFlavorId(effectiveName),
+				FlavorId           = VsCodeProductDescriptor.Slugify(effectiveName, "vscode-custom"),
 				DisplayName        = effectiveName,
 				ShortName          = effectiveName,
 				ExecutableNames    = string.IsNullOrWhiteSpace(exeName) ? Array.Empty<string>() : [exeName],
@@ -1094,16 +1092,6 @@ namespace VSLauncher.Ide
 			string normalizedPrefix = Path.TrimEndingDirectorySeparator(canonicalRoot) + Path.DirectorySeparatorChar;
 
 			return filePath.StartsWith(normalizedPrefix, StringComparison.OrdinalIgnoreCase);
-		}
-
-		/// <summary>
-		/// Converts a display name into a lowercase ASCII alphanumeric slug separated by hyphens.
-		/// </summary>
-		private static string SlugifyFlavorId(string value)
-		{
-			string slug = NonSlugCharsRegex.Replace(value.ToLowerInvariant(), "-").Trim('-');
-
-			return string.IsNullOrEmpty(slug) ? "vscode-custom" : slug;
 		}
 
 		/// <summary>

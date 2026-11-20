@@ -17,6 +17,20 @@ namespace VSLXshared.Tests.Ide
 		private const string RoamingAppData = @"C:\Users\Dev\AppData\Roaming";
 
 		/// <summary>
+		/// Verifies that an explicit <c>storeFilePath</c> is trimmed and canonicalized while non-normalizable inputs fall back to trimmed text.
+		/// </summary>
+		[Test]
+		public void Constructor_WithExplicitStoreFilePath_NormalizesPathAndFallsBackSafely()
+		{
+			var normalizedStore  = new CustomVsCodeIdeStore(storeFilePath: @"  C:\Temp\sub\..\vscode-custom-ides.json  ");
+			string fallbackInput = "  invalid\0store-path.json  ";
+			var fallbackStore    = new CustomVsCodeIdeStore(storeFilePath: fallbackInput);
+
+			normalizedStore.StoreFilePath.ShouldBe(@"C:\Temp\vscode-custom-ides.json");
+			fallbackStore.StoreFilePath.ShouldBe("invalid\0store-path.json");
+		}
+
+		/// <summary>
 		/// Verifies that <see cref="CustomVsCodeIdeStore.Load"/> returns an empty list without throwing when the store file is missing or contains invalid JSON.
 		/// </summary>
 		[Test]

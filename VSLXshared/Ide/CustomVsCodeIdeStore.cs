@@ -62,7 +62,7 @@ namespace VSLauncher.Ide
 			this.environment   = environment ?? WindowsVsCodeEnvironment.Instance;
 			this.storeFilePath = string.IsNullOrWhiteSpace(storeFilePath)
 				? ResolveDefaultStorePath(this.environment)
-				: storeFilePath;
+				: TryNormalizePath(storeFilePath) ?? storeFilePath.Trim();
 		}
 
 		/// <summary>

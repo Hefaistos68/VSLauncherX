@@ -116,7 +116,7 @@ namespace VSLXshared.Tests.Ide
 					"nameShort": "Cursor",
 					"nameLong": "Cursor",
 					"win32DirName": "Cursor",
-					"updateUrl": "https://api2.cursor.sh/updates"
+					"updateUrl": "https://API2.Cursor.SH./updates"
 				}
 				""");
 
@@ -128,6 +128,7 @@ namespace VSLXshared.Tests.Ide
 			descriptor.ShouldNotBeNull();
 			descriptor.FlavorId.ShouldBe("cursor");
 			descriptor.UpdateStrategy.ShouldBe(VsCodeUpdateStrategyKind.VsCodeApi);
+			descriptor.TrustedDownloadHosts.ShouldContain("api2.cursor.sh");
 		}
 
 		/// <summary>

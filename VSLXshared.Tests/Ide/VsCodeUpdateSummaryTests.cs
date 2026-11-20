@@ -44,7 +44,7 @@ namespace VSLXshared.Tests.Ide
 		{
 			VsCodeInstance vsCode      = CreateTestInstance("vscode-stable", "Visual Studio Code", "VS Code", "vscode-stable-user", "1.146.0", VsCodeUpdateStrategyKind.VsCodeApi);
 			VsCodeInstance antigravity = CreateTestInstance("antigravity-ide", "Antigravity IDE", "Antigravity IDE", "antigravity-ide-user", "1.0.0", VsCodeUpdateStrategyKind.Unsupported);
-			var states = new Dictionary<string, VsCodeUpdateInfo>(StringComparer.OrdinalIgnoreCase)
+			var states                 = new Dictionary<string, VsCodeUpdateInfo>(StringComparer.OrdinalIgnoreCase)
 			{
 				[vsCode.Identifier] = new VsCodeUpdateInfo
 				{
@@ -88,7 +88,7 @@ namespace VSLXshared.Tests.Ide
 		{
 			VsCodeInstance vsCode = CreateTestInstance("vscode-stable", "Visual Studio Code", "VS Code", "vscode-stable-user", "1.146.0", VsCodeUpdateStrategyKind.VsCodeApi);
 			VsCodeInstance cursor = CreateTestInstance("cursor", "Cursor", "Cursor", "cursor-user", "0.48.0", VsCodeUpdateStrategyKind.VsCodeApi);
-			var states = new Dictionary<string, VsCodeUpdateInfo>(StringComparer.OrdinalIgnoreCase)
+			var states            = new Dictionary<string, VsCodeUpdateInfo>(StringComparer.OrdinalIgnoreCase)
 			{
 				[vsCode.Identifier] = new VsCodeUpdateInfo
 				{
@@ -134,7 +134,7 @@ namespace VSLXshared.Tests.Ide
 		{
 			VsCodeInstance vsCode      = CreateTestInstance("vscode-stable", "Visual Studio Code", "VS Code", "vscode-stable-user", "1.147.0", VsCodeUpdateStrategyKind.VsCodeApi);
 			VsCodeInstance antigravity = CreateTestInstance("antigravity-ide", "Antigravity IDE", "Antigravity IDE", "antigravity-ide-user", "1.0.0", VsCodeUpdateStrategyKind.Unsupported);
-			var states = new Dictionary<string, VsCodeUpdateInfo>(StringComparer.OrdinalIgnoreCase)
+			var states                 = new Dictionary<string, VsCodeUpdateInfo>(StringComparer.OrdinalIgnoreCase)
 			{
 				[vsCode.Identifier] = new VsCodeUpdateInfo
 				{

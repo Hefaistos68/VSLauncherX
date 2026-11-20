@@ -323,17 +323,19 @@ namespace VSLXshared.Tests.Ide
 			string customForkDir         = Path.Combine(programsDir, "MyCustomFork");
 			string customForkExe         = Path.Combine(customForkDir, "MyCustomFork.exe");
 			string customForkUninst      = Path.Combine(customForkDir, "unins000.exe");
+			string customForkUninstall   = Path.Combine(customForkDir, "Uninstall MyCustomFork.exe");
 			string nonVsCodeDir          = Path.Combine(programsDir, "antigravity");
 			string nonVsCodeExe          = Path.Combine(nonVsCodeDir, "Antigravity.exe");
 			string nonVsCodeUninst       = Path.Combine(nonVsCodeDir, "Uninstall Antigravity.exe");
 			Mock<IVsCodeEnvironment> env = CreateBaseEnvironmentMock();
 
 			env.Setup(e => e.GetDirectories(programsDir)).Returns(new[] { nonVsCodeDir, customForkDir });
-			env.Setup(e => e.GetFiles(customForkDir, "*.exe")).Returns(new[] { customForkUninst, customForkExe });
+			env.Setup(e => e.GetFiles(customForkDir, "*.exe")).Returns(new[] { customForkUninst, customForkUninstall, customForkExe });
 			env.Setup(e => e.GetFiles(nonVsCodeDir, "*.exe")).Returns(new[] { nonVsCodeExe, nonVsCodeUninst });
 
 			SetupExecutable(env, customForkExe, "1.2.3");
 			SetupExecutable(env, customForkUninst, "1.0.0");
+			SetupExecutable(env, customForkUninstall, "1.0.0");
 			SetupVsCodeAppMetadata(env, customForkDir, "MyCustomFork", "MyCustomFork Studio", "MyCustomFork", null);
 
 			SetupExecutable(env, nonVsCodeExe, "3.0.0");

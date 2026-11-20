@@ -372,13 +372,31 @@ namespace VSLauncher.Ide
 				return null;
 			}
 
+			return TryCreateFromProductJson(root, executablePath);
+		}
+
+		/// <summary>
+		/// Constructs a <see cref="VsCodeProductDescriptor"/> from an already-parsed <c>product.json</c> object and executable path.
+		/// </summary>
+		/// <param name="productJson">The parsed <c>product.json</c> root object.</param>
+		/// <param name="executablePath">The full path to the IDE executable.</param>
+		/// <returns>A populated <see cref="VsCodeProductDescriptor"/>, or <c>null</c> if inputs are invalid.</returns>
+		internal static VsCodeProductDescriptor? TryCreateFromProductJson(
+			JObject? productJson,
+			string executablePath)
+		{
+			if (productJson is null || string.IsNullOrWhiteSpace(executablePath))
+			{
+				return null;
+			}
+
 			string exeName            = Path.GetFileName(executablePath)?.Trim() ?? string.Empty;
 			string exeStem            = Path.GetFileNameWithoutExtension(executablePath)?.Trim() ?? string.Empty;
-			string? nameShort         = TryGetStringProperty(root, "nameShort")?.Trim();
-			string? nameLong          = TryGetStringProperty(root, "nameLong")?.Trim();
-			string? win32DirName      = TryGetStringProperty(root, "win32DirName")?.Trim();
-			string? quality           = TryGetStringProperty(root, "quality")?.Trim();
-			string? updateUrl         = TryGetStringProperty(root, "updateUrl")?.Trim();
+			string? nameShort         = TryGetStringProperty(productJson, "nameShort")?.Trim();
+			string? nameLong          = TryGetStringProperty(productJson, "nameLong")?.Trim();
+			string? win32DirName      = TryGetStringProperty(productJson, "win32DirName")?.Trim();
+			string? quality           = TryGetStringProperty(productJson, "quality")?.Trim();
+			string? updateUrl         = TryGetStringProperty(productJson, "updateUrl")?.Trim();
 			string shortName          = FirstNonEmpty(nameShort, nameLong, exeStem);
 			string displayName        = FirstNonEmpty(nameLong, nameShort, exeStem);
 			string userDataFolderName = FirstNonEmpty(win32DirName, nameShort, exeStem);
@@ -419,7 +437,10 @@ namespace VSLauncher.Ide
 		/// <summary>
 		/// Attempts to read and parse <c>product.json</c> from disk via <paramref name="environment"/>.
 		/// </summary>
-		private static JObject? TryReadProductJson(IVsCodeEnvironment environment, string productJsonPath)
+		/// <param name="environment">The host environment abstraction.</param>
+		/// <param name="productJsonPath">The full path to <c>product.json</c>.</param>
+		/// <returns>The parsed <see cref="JObject"/>, or <c>null</c> if the file could not be read or parsed.</returns>
+		internal static JObject? TryReadProductJson(IVsCodeEnvironment environment, string productJsonPath)
 		{
 			try
 			{
@@ -462,24 +483,29 @@ namespace VSLauncher.Ide
 		/// <summary>
 		/// Converts a display name into a lowercase ASCII alphanumeric slug separated by hyphens.
 		/// </summary>
-		private static string Slugify(string value)
+		/// <param name="value">The input text to normalize.</param>
+		/// <param name="fallback">The fallback slug returned when <paramref name="value"/> yields no alphanumeric characters.</param>
+		/// <returns>The normalized slug string.</returns>
+		internal static string Slugify(string value, string fallback = "vscode-fork")
 		{
 			string slug = NonSlugCharsRegex.Replace(value.ToLowerInvariant(), "-").Trim('-');
 
-			return string.IsNullOrEmpty(slug) ? "vscode-fork" : slug;
+			return string.IsNullOrEmpty(slug) ? fallback : slug;
 		}
 
 		/// <summary>
-		/// Extracts the host of a validated HTTPS <c>updateUrl</c> as an initial trusted download host.
+		/// Extracts the normalized lowercase host of a validated HTTPS <c>updateUrl</c> as an initial trusted download host.
 		/// </summary>
 		private static IReadOnlyList<string> ResolveTrustedHosts(string? updateUrl, bool hasValidUpdateUrl)
 		{
-			if (!hasValidUpdateUrl || !Uri.TryCreate(updateUrl, UriKind.Absolute, out Uri? uri))
+			if (!hasValidUpdateUrl || !Uri.TryCreate(updateUrl?.Trim(), UriKind.Absolute, out Uri? uri))
 			{
 				return Array.Empty<string>();
 			}
 
-			return [uri.Host];
+			string host = uri.Host.TrimEnd('.').ToLowerInvariant();
+
+			return string.IsNullOrEmpty(host) ? Array.Empty<string>() : [host];
 		}
 	}
 }

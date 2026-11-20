@@ -406,6 +406,11 @@ namespace VSLauncher
 			this.btnVsCodeOpenActivityLog.Enabled = enabled;
 			this.btnVsCodeInstaller.Visible       = true;
 
+			if (!enabled && this.selectVsCodeEdition.SelectedIdeInstance is null)
+			{
+				ResetVsCodeQuickActionButtons();
+			}
+
 			UpdateVsCodeInstallerButtonState();
 		}
 
@@ -943,6 +948,7 @@ namespace VSLauncher
 
 			PersistFallbackVsCodeEditionIfChanged(previousIdentifier);
 			RebuildTaskbarItems();
+			this.olvFiles.BuildList(true);
 			EnsureVsCodeUpdateTimerStarted();
 			CheckVsCodeUpdatesAsync(forceRefresh: false);
 		}
@@ -973,6 +979,12 @@ namespace VSLauncher
 		{
 			if (this.selectVsCodeEdition.SelectedIdeInstance is not IIdeInstance currentSelected)
 			{
+				if (!string.IsNullOrEmpty(Properties.Settings.Default.SelectedVsCodeEdition))
+				{
+					Properties.Settings.Default.SelectedVsCodeEdition = string.Empty;
+					Properties.Settings.Default.Save();
+				}
+
 				return;
 			}
 
@@ -1889,13 +1901,29 @@ namespace VSLauncher
 		/// <param name="selected">The selected VS Code instance.</param>
 		private void UpdateVsCodeQuickActionButtons(IIdeInstance selected)
 		{
-			Bitmap icon            = selected.AppIcon.ToBitmap();
-			string shortName       = selected.ShortName;
-			string tooltip         = selected.ToString() ?? selected.Name;
+			ApplyVsCodeQuickActionButtons(
+				selected.ShortName,
+				selected.ToString() ?? selected.Name,
+				selected.AppIcon.ToBitmap());
+		}
+
+		/// <summary>
+		/// Resets the VS Code quick-action buttons to default VS Code labels with cleared tooltips and icons.
+		/// </summary>
+		private void ResetVsCodeQuickActionButtons()
+		{
+			ApplyVsCodeQuickActionButtons("VS Code", tooltip: null, icon: null);
+		}
+
+		/// <summary>
+		/// Applies button label formatting, tooltip text, and optional icon bitmap across the VS Code quick-action buttons.
+		/// </summary>
+		/// <param name="shortName">The product short name interpolated into button text formats.</param>
+		/// <param name="tooltip">The tooltip text, or <c>null</c> to clear tooltips.</param>
+		/// <param name="icon">The icon bitmap to assign and track for disposal, or <c>null</c> to clear button icons.</param>
+		private void ApplyVsCodeQuickActionButtons(string shortName, string? tooltip, Bitmap? icon)
+		{
 			Bitmap? previousBitmap = this.currentVsCodeButtonBitmap;
-
-			this.currentVsCodeButtonBitmap = icon;
-
 			Button[] vsCodeButtons =
 			{
 				this.btnVsCodeStart,
@@ -1903,6 +1931,8 @@ namespace VSLauncher
 				this.btnVsCodeStartNewWindow,
 				this.btnVsCodeStartNoExt
 			};
+
+			this.currentVsCodeButtonBitmap = icon;
 
 			foreach (Button button in vsCodeButtons)
 			{
