@@ -213,15 +213,18 @@ namespace VSLauncher.DataModel
 				{
 					try
 					{
-						string? name = baseObj.Properties["Name"].Value?.ToString();
-						string? version = baseObj.Properties["Version"].Value?.ToString();
-						string? location = baseObj.Properties["ProductLocation"].Value?.ToString();
+						string? name       = baseObj.Properties["Name"].Value?.ToString();
+						string? version    = baseObj.Properties["Version"].Value?.ToString();
+						string? location   = baseObj.Properties["ProductLocation"].Value?.ToString();
 						string? identifier = baseObj.Properties["IdentifyingNumber"].Value?.ToString();
 
-						if (name != null && version != null && location != null && identifier != null)
+						if (name != null && version != null && location != null && identifier != null && IsLaunchableVisualStudioExecutable(location))
 						{
-							string year = VisualStudioInstanceManager.YearFromVersion(ExtractMajorVersion(version));
-							list.Add(new VisualStudioInstance(name, version, location, identifier, year));
+							string trimmedLocation = location.Trim();
+							string qualifiedName   = QualifyDisplayName(name, trimmedLocation);
+							string year            = VisualStudioInstanceManager.YearFromVersion(ExtractMajorVersion(version));
+
+							list.Add(new VisualStudioInstance(qualifiedName, version, trimmedLocation, identifier, year));
 						}
 					}
 					catch (Exception ex)
@@ -231,7 +234,7 @@ namespace VSLauncher.DataModel
 				}
 			}
 
-			list.Sort((x, y) => CompareVersionStrings(x.Version, y.Version));
+			list.Sort(CompareInstances);
 
 			return list;
 		}
@@ -272,9 +275,14 @@ namespace VSLauncher.DataModel
 						if (name != null && version != null && location != null && identifier != null)
 						{
 							location = Path.Combine(location, "Common7", "IDE", "devenv.exe");
-							string year = VisualStudioInstanceManager.YearFromVersion(ExtractMajorVersion(version));
-							name = NormalizeName(name, year);
-							list.Add(new VisualStudioInstance(name, version, location, identifier, year));
+
+							if (IsLaunchableVisualStudioExecutable(location))
+							{
+								string year          = VisualStudioInstanceManager.YearFromVersion(ExtractMajorVersion(version));
+								string qualifiedName = QualifyDisplayName(NormalizeName(name, year), location);
+
+								list.Add(new VisualStudioInstance(qualifiedName, version, location, identifier, year));
+							}
 						}
 					}
 				}
@@ -289,9 +297,98 @@ namespace VSLauncher.DataModel
 				Debug.WriteLine($"Error 0x{ex.HResult:x8}: {ex.Message}");
 			}
 
-			list.Sort((x, y) => CompareVersionStrings(x.Version, y.Version));
+			list.Sort(CompareInstances);
 
 			return list;
+		}
+
+		/// <summary>
+		/// Determines whether <paramref name="location"/> points to an existing Visual Studio <c>devenv.exe</c> executable.
+		/// </summary>
+		/// <param name="location">The candidate product location path.</param>
+		/// <param name="fileExists">Optional file existence predicate for unit testing.</param>
+		/// <returns><c>true</c> if <paramref name="location"/> is an existing <c>devenv.exe</c>; otherwise <c>false</c>.</returns>
+		public static bool IsLaunchableVisualStudioExecutable(string? location, Func<string, bool>? fileExists = null)
+		{
+			if (string.IsNullOrWhiteSpace(location))
+			{
+				return false;
+			}
+
+			string trimmed            = location.Trim();
+			string fileName           = Path.GetFileName(trimmed);
+			Func<string, bool> exists = fileExists ?? File.Exists;
+
+			if (!string.Equals(fileName, "devenv.exe", StringComparison.OrdinalIgnoreCase))
+			{
+				return false;
+			}
+
+			return exists(trimmed);
+		}
+
+		/// <summary>
+		/// Qualifies a Visual Studio display name with its release channel (<c>Insiders</c> or <c>Preview</c>) when inferred from <paramref name="location"/> and not already present.
+		/// </summary>
+		/// <param name="name">The base display name.</param>
+		/// <param name="location">The path to <c>devenv.exe</c>.</param>
+		/// <returns>The disambiguated display name.</returns>
+		public static string QualifyDisplayName(string name, string location)
+		{
+			if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(location))
+			{
+				return name;
+			}
+
+			if (name.Contains("Insiders", StringComparison.OrdinalIgnoreCase)
+				|| name.Contains("Preview", StringComparison.OrdinalIgnoreCase))
+			{
+				return name;
+			}
+
+			if (location.Contains(@"\Insiders\", StringComparison.OrdinalIgnoreCase)
+				|| location.Contains("/Insiders/", StringComparison.OrdinalIgnoreCase))
+			{
+				return $"{name} Insiders";
+			}
+
+			if (location.Contains(@"\Preview\", StringComparison.OrdinalIgnoreCase)
+				|| location.Contains("/Preview/", StringComparison.OrdinalIgnoreCase))
+			{
+				return $"{name} Preview";
+			}
+
+			return name;
+		}
+
+		/// <summary>
+		/// Compares two <see cref="VisualStudioInstance"/> instances deterministically by version, display name, and identifier.
+		/// </summary>
+		/// <param name="x">The first instance.</param>
+		/// <param name="y">The second instance.</param>
+		/// <returns>A signed integer indicating relative sort order.</returns>
+		public static int CompareInstances(VisualStudioInstance x, VisualStudioInstance y)
+		{
+			if (ReferenceEquals(x, y))
+			{
+				return 0;
+			}
+
+			int versionComparison = CompareVersionStrings(x.Version, y.Version);
+
+			if (versionComparison != 0)
+			{
+				return versionComparison;
+			}
+
+			int nameComparison = string.Compare(x.Name, y.Name, StringComparison.OrdinalIgnoreCase);
+
+			if (nameComparison != 0)
+			{
+				return nameComparison;
+			}
+
+			return string.Compare(x.Identifier, y.Identifier, StringComparison.OrdinalIgnoreCase);
 		}
 
 		/// <summary>
