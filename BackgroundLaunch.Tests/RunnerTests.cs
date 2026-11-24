@@ -622,6 +622,52 @@ namespace BackgroundLaunch.Tests
 		}
 
 		/// <summary>
+		/// Verifies that <see cref="Runner.Run"/> launches both <c>.sln</c> (with <c>RequiredVersion</c>) and <c>.slnx</c> items
+		/// using the sidebar-selected Visual Studio version when <see cref="VsItem.VsVersion"/> is unset.
+		/// </summary>
+		[Test]
+		public void RunAll_DefaultVisualStudioSlnAndSlnx_LaunchSidebarSelectedVersionOverRequiredVersion()
+		{
+			string slnPath  = Path.Combine(tempDir, "App.sln");
+			string slnxPath = Path.Combine(tempDir, "App.slnx");
+
+			File.WriteAllText(slnPath, string.Empty);
+			File.WriteAllText(slnxPath, string.Empty);
+
+			var vsCommunity = new VisualStudioInstance("Visual Studio Community 2026", "18.12.12405.243", @"C:\VS26\Community\devenv.exe", "6025944c", "2026");
+			var vsInsiders  = new VisualStudioInstance("Visual Studio Community 2026 Insiders", "18.13.12412.241", @"C:\VS26\Insiders\devenv.exe", "c5d6d819", "2026");
+			var vsProvider  = new VisualStudioIdeProvider(new[] { vsCommunity, vsInsiders });
+			var ideManager  = new IdeManager(new IIdeProvider[] { vsProvider });
+
+			var slnItem  = new VsSolution { Name = "AppSln", Path = slnPath, RequiredVersion = "18", VsVersion = string.Empty };
+			var slnxItem = new VsSolution { Name = "AppSlnx", Path = slnxPath, RequiredVersion = string.Empty, VsVersion = string.Empty };
+
+			(VsItem Item, string TargetId, string ExpectedExe)[] cases =
+			{
+				(slnItem, "c5d6d819", vsInsiders.Location),
+				(slnItem, "6025944c", vsCommunity.Location),
+				(slnxItem, "c5d6d819", vsInsiders.Location),
+				(slnxItem, "6025944c", vsCommunity.Location)
+			};
+
+			foreach ((VsItem item, string targetId, string expectedExe) in cases)
+			{
+				var launched   = new List<ProcessStartInfo>();
+				var launchInfo = new LaunchInfo
+				{
+					Solution       = new VsFolder(item.Clone()),
+					DefaultTargets = new[] { new IdeDefaultTarget(IdeType.VisualStudio, targetId) }
+				};
+				var runner = new Runner(launchInfo, ideManager, psi => { launched.Add(psi); return null; });
+
+				runner.Run();
+
+				launched.Count.ShouldBe(1);
+				launched[0].FileName.ShouldBe(expectedExe);
+			}
+		}
+
+		/// <summary>
 		/// Creates a subdirectory containing an empty <c>.code-workspace</c> file.
 		/// </summary>
 		private static string CreateWorkspaceDir(string rootTempDir, string folderName)

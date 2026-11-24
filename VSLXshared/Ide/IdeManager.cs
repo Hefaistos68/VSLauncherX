@@ -232,7 +232,7 @@ namespace VSLauncher.Ide
 		}
 
 		/// <summary>
-		/// Resolves an instance within a single provider using explicit ID, solution required version, sidebar default, and provider default.
+		/// Resolves an instance within a single provider using explicit ID, sidebar default, solution required version, and provider default.
 		/// </summary>
 		private static IIdeInstance? ResolveFromProvider(
 			IIdeProvider provider,
@@ -251,6 +251,13 @@ namespace VSLauncher.Ide
 				}
 			}
 
+			IIdeInstance? byDefaultTarget = TryFindDefaultTargetInstance(provider, targetIde, defaultTargetIdentifiers);
+
+			if (byDefaultTarget is not null)
+			{
+				return byDefaultTarget;
+			}
+
 			if (targetIde == IdeType.VisualStudio && item is VsSolution solution && !string.IsNullOrWhiteSpace(solution.RequiredVersion))
 			{
 				IIdeInstance? byVersion = provider.FindByVersion(solution.RequiredVersion);
@@ -261,7 +268,7 @@ namespace VSLauncher.Ide
 				}
 			}
 
-			return ResolveDefaultInstance(provider, targetIde, defaultTargetIdentifiers);
+			return provider.DefaultInstance;
 		}
 
 		/// <summary>
@@ -272,19 +279,25 @@ namespace VSLauncher.Ide
 			IdeType ideType,
 			IReadOnlyDictionary<IdeType, string>? defaultTargetIdentifiers)
 		{
+			return TryFindDefaultTargetInstance(provider, ideType, defaultTargetIdentifiers) ?? provider.DefaultInstance;
+		}
+
+		/// <summary>
+		/// Attempts to resolve the configured sidebar default instance for <paramref name="ideType"/>.
+		/// </summary>
+		private static IIdeInstance? TryFindDefaultTargetInstance(
+			IIdeProvider provider,
+			IdeType ideType,
+			IReadOnlyDictionary<IdeType, string>? defaultTargetIdentifiers)
+		{
 			if (defaultTargetIdentifiers is not null &&
 				defaultTargetIdentifiers.TryGetValue(ideType, out string? defaultId) &&
 				!string.IsNullOrWhiteSpace(defaultId))
 			{
-				IIdeInstance? byDefaultId = provider.FindByIdentifier(defaultId);
-
-				if (byDefaultId is not null)
-				{
-					return byDefaultId;
-				}
+				return provider.FindByIdentifier(defaultId);
 			}
 
-			return provider.DefaultInstance;
+			return null;
 		}
 	}
 }

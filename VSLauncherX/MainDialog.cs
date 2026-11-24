@@ -1808,44 +1808,46 @@ namespace VSLauncher
 		/// <param name="e">The event parameters</param>
 		private void selectVisualStudioVersion_SelectedIndexChanged(object sender, EventArgs e)
 		{
-			// update all buttons with icon from selected visual studio version
-			if (this.selectVisualStudioVersion.SelectedIndex >= 0 && this.selectVisualStudioVersion.SelectedIndex < this.visualStudioInstances.Count)
+			if (this.selectVisualStudioVersion.SelectedItem is not VisualStudioInstance selected)
 			{
-				// save the selected item as last selected item
-				if (!this.bInUpdate)
-				{
-					Properties.Settings.Default.SelectedVSversion = this.visualStudioInstances[this.selectVisualStudioVersion.SelectedIndex].Identifier;
-					Properties.Settings.Default.Save();
-				}
-
-				// set icon and text according to selection onto all buttons
-				Bitmap icon = this.visualStudioInstances[this.selectVisualStudioVersion.SelectedIndex].AppIcon.ToBitmap();
-				string shortName = this.visualStudioInstances[this.selectVisualStudioVersion.SelectedIndex].ShortName;
-				Bitmap? previousBitmap = this.currentVsButtonBitmap;
-				this.currentVsButtonBitmap = icon;
-
-				this.btnMainStartVisualStudio1.Text = string.Format((string)this.btnMainStartVisualStudio1.Tag!, shortName);
-				this.tooltipForButtons.SetToolTip(this.btnMainStartVisualStudio1, this.visualStudioInstances[this.selectVisualStudioVersion.SelectedIndex].ToString());
-				this.btnMainStartVisualStudio1.Image = icon;
-
-				this.btnMainStartVisualStudio2.Text = string.Format((string)this.btnMainStartVisualStudio2.Tag!, shortName);
-				this.tooltipForButtons.SetToolTip(this.btnMainStartVisualStudio2, this.visualStudioInstances[this.selectVisualStudioVersion.SelectedIndex].ToString());
-				this.btnMainStartVisualStudio2.Image = icon;
-
-				this.btnMainStartVisualStudio3.Text = string.Format((string)this.btnMainStartVisualStudio3.Tag!, shortName);
-				this.tooltipForButtons.SetToolTip(this.btnMainStartVisualStudio3, this.visualStudioInstances[this.selectVisualStudioVersion.SelectedIndex].ToString());
-				this.btnMainStartVisualStudio3.Image = icon;
-
-				this.btnMainStartVisualStudio4.Text = string.Format((string)this.btnMainStartVisualStudio4.Tag!, shortName);
-				this.tooltipForButtons.SetToolTip(this.btnMainStartVisualStudio4, this.visualStudioInstances[this.selectVisualStudioVersion.SelectedIndex].ToString());
-				this.btnMainStartVisualStudio4.Image = icon;
-
-				this.btnMainStartVisualStudio5.Text = string.Format((string)this.btnMainStartVisualStudio5.Tag!, shortName);
-				this.tooltipForButtons.SetToolTip(this.btnMainStartVisualStudio5, this.visualStudioInstances[this.selectVisualStudioVersion.SelectedIndex].ToString());
-				this.btnMainStartVisualStudio5.Image = icon;
-
-				previousBitmap?.Dispose();
+				return;
 			}
+
+			if (!this.bInUpdate)
+			{
+				Properties.Settings.Default.SelectedVSversion = selected.Identifier;
+				Properties.Settings.Default.Save();
+				RebuildTaskbarItems();
+			}
+
+			Bitmap icon            = selected.AppIcon.ToBitmap();
+			string shortName       = selected.ShortName;
+			string? tooltip        = selected.ToString();
+			Bitmap? previousBitmap = this.currentVsButtonBitmap;
+
+			this.currentVsButtonBitmap = icon;
+
+			this.btnMainStartVisualStudio1.Text  = string.Format((string)this.btnMainStartVisualStudio1.Tag!, shortName);
+			this.tooltipForButtons.SetToolTip(this.btnMainStartVisualStudio1, tooltip);
+			this.btnMainStartVisualStudio1.Image = icon;
+
+			this.btnMainStartVisualStudio2.Text  = string.Format((string)this.btnMainStartVisualStudio2.Tag!, shortName);
+			this.tooltipForButtons.SetToolTip(this.btnMainStartVisualStudio2, tooltip);
+			this.btnMainStartVisualStudio2.Image = icon;
+
+			this.btnMainStartVisualStudio3.Text  = string.Format((string)this.btnMainStartVisualStudio3.Tag!, shortName);
+			this.tooltipForButtons.SetToolTip(this.btnMainStartVisualStudio3, tooltip);
+			this.btnMainStartVisualStudio3.Image = icon;
+
+			this.btnMainStartVisualStudio4.Text  = string.Format((string)this.btnMainStartVisualStudio4.Tag!, shortName);
+			this.tooltipForButtons.SetToolTip(this.btnMainStartVisualStudio4, tooltip);
+			this.btnMainStartVisualStudio4.Image = icon;
+
+			this.btnMainStartVisualStudio5.Text  = string.Format((string)this.btnMainStartVisualStudio5.Tag!, shortName);
+			this.tooltipForButtons.SetToolTip(this.btnMainStartVisualStudio5, tooltip);
+			this.btnMainStartVisualStudio5.Image = icon;
+
+			previousBitmap?.Dispose();
 		}
 
 		/// <summary>
@@ -1974,14 +1976,7 @@ namespace VSLauncher
 		/// <returns>The selected <see cref="VisualStudioInstance"/> or <c>null</c>.</returns>
 		private VisualStudioInstance? GetSelectedVisualStudioInstance()
 		{
-			int index = this.selectVisualStudioVersion.SelectedIndex;
-
-			if (index >= 0 && index < this.visualStudioInstances.Count)
-			{
-				return this.visualStudioInstances[index];
-			}
-
-			return null;
+			return this.selectVisualStudioVersion.SelectedItem;
 		}
 
 		/// <summary>

@@ -16,10 +16,10 @@ namespace VSLXshared.Tests.Ide
 	public class IdeManagerTests
 	{
 		/// <summary>
-		/// Verifies the 4-step Visual Studio resolution precedence: explicit ID, solution required version, sidebar default, and provider default.
+		/// Verifies the 4-step Visual Studio resolution precedence: explicit ID, sidebar default, solution required version, and provider default.
 		/// </summary>
 		[Test]
-		public void ResolveInstance_FollowsExplicitIdThenSolutionRequiredVersionThenDefaultTargetThenProviderDefault()
+		public void ResolveInstance_FollowsExplicitIdThenDefaultTargetThenSolutionRequiredVersionThenProviderDefault()
 		{
 			var vs2019     = CreateMockInstance(IdeType.VisualStudio, "vs19", "16.11");
 			var vs2022     = CreateMockInstance(IdeType.VisualStudio, "vs22", "17.10");
@@ -31,31 +31,32 @@ namespace VSLXshared.Tests.Ide
 			var pinned    = new VsSolution { VsVersion = "vs19", RequiredVersion = "17" };
 			var byReq     = new VsSolution { RequiredVersion = "16" };
 			var bySidebar = new VsProject();
-			var defaults  = new Dictionary<IdeType, string> { [IdeType.VisualStudio] = "vs19" };
+			var defaults  = new Dictionary<IdeType, string> { [IdeType.VisualStudio] = "vs22" };
 
 			manager.ResolveInstance(pinned, defaults)!.Identifier.ShouldBe("vs19");
-			manager.ResolveInstance(byReq, defaults)!.Identifier.ShouldBe("vs19");
-			manager.ResolveInstance(bySidebar, defaults)!.Identifier.ShouldBe("vs19");
+			manager.ResolveInstance(byReq, defaults)!.Identifier.ShouldBe("vs22");
+			manager.ResolveInstance(byReq, null)!.Identifier.ShouldBe("vs19");
+			manager.ResolveInstance(bySidebar, defaults)!.Identifier.ShouldBe("vs22");
 			manager.ResolveInstance(bySidebar, null)!.Identifier.ShouldBe("vs22");
 		}
 
 		/// <summary>
-		/// Verifies that a solution's <see cref="VsSolution.RequiredVersion"/> takes precedence over a different sidebar default identifier.
+		/// Verifies that the sidebar-selected Visual Studio default target takes precedence over a solution's <see cref="VsSolution.RequiredVersion"/> when the item has no explicit <see cref="VsItem.VsVersion"/>.
 		/// </summary>
 		[Test]
-		public void ResolveInstance_SolutionRequiredVersionTakesPrecedenceOverDefaultTarget()
+		public void ResolveInstance_SidebarDefaultTargetTakesPrecedenceOverSolutionRequiredVersion()
 		{
-			var vs2019     = CreateMockInstance(IdeType.VisualStudio, "vs19", "16.11");
-			var vs2022     = CreateMockInstance(IdeType.VisualStudio, "vs22", "17.10");
-			var vsProvider = CreateMockProvider(IdeType.VisualStudio, vs2022, vs2019, vs2022);
+			var vs2026Stable   = CreateMockInstance(IdeType.VisualStudio, "vs26-stable", "18.12");
+			var vs2026Insiders = CreateMockInstance(IdeType.VisualStudio, "vs26-insiders", "18.13");
+			var vsProvider     = CreateMockProvider(IdeType.VisualStudio, vs2026Insiders, vs2026Stable, vs2026Insiders);
 
-			vsProvider.Setup(p => p.FindByVersion("16")).Returns(vs2019);
+			vsProvider.Setup(p => p.FindByVersion("18")).Returns(vs2026Stable);
 
 			var manager  = new IdeManager(new[] { vsProvider.Object });
-			var byReq    = new VsSolution { RequiredVersion = "16" };
-			var defaults = new Dictionary<IdeType, string> { [IdeType.VisualStudio] = "vs22" };
+			var sln      = new VsSolution { RequiredVersion = "18" };
+			var defaults = new Dictionary<IdeType, string> { [IdeType.VisualStudio] = "vs26-insiders" };
 
-			manager.ResolveInstance(byReq, defaults)!.Identifier.ShouldBe("vs19");
+			manager.ResolveInstance(sln, defaults)!.Identifier.ShouldBe("vs26-insiders");
 		}
 
 		/// <summary>
