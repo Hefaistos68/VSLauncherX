@@ -13,8 +13,8 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <SignAssembly>False</SignAssembly>
-    <AssemblyVersion>0.2.4.0</AssemblyVersion>
-    <FileVersion>0.2.4.0</FileVersion>
+    <AssemblyVersion>0.2.5.0</AssemblyVersion>
+    <FileVersion>0.2.5.0</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -64,6 +64,16 @@
     <ProjectReference Include="..\ObjectListView\ObjectListView2022.csproj" />
     <ProjectReference Include="..\VSLXshared\VSLXshared.csproj" />
   </ItemGroup>
+
+  <Target Name="CopyBackgroundLaunchFiles" AfterTargets="Build">
+    <ItemGroup>
+      <BackgroundLaunchOutput Include="$(MSBuildThisFileDirectory)..\BackgroundLaunch\bin\$(Configuration)\$(TargetFramework)\BackgroundLaunch.exe" />
+      <BackgroundLaunchOutput Include="$(MSBuildThisFileDirectory)..\BackgroundLaunch\bin\$(Configuration)\$(TargetFramework)\BackgroundLaunch.dll" />
+      <BackgroundLaunchOutput Include="$(MSBuildThisFileDirectory)..\BackgroundLaunch\bin\$(Configuration)\$(TargetFramework)\BackgroundLaunch.deps.json" />
+      <BackgroundLaunchOutput Include="$(MSBuildThisFileDirectory)..\BackgroundLaunch\bin\$(Configuration)\$(TargetFramework)\BackgroundLaunch.runtimeconfig.json" />
+    </ItemGroup>
+    <Copy SourceFiles="@(BackgroundLaunchOutput)" DestinationFolder="$(TargetDir)" SkipUnchangedFiles="true" />
+  </Target>
 
   <ItemGroup>
     <Compile Update="Forms\dlgImportVisualStudio.cs" />

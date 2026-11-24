@@ -10,7 +10,6 @@
     <SignAssembly>False</SignAssembly>
     <EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
     <AnalysisLevel>latest-all</AnalysisLevel>
-    <BaseOutputPath>..\VSLauncherX\bin</BaseOutputPath>
     <StartupObject>BackgroundLaunch.Program</StartupObject>
     <Title>Launcher for Visual Studio solutions and projects</Title>
     <Authors>Hefaistos68</Authors>
